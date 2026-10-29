@@ -37,7 +37,7 @@ Tory is intended to help users record inventory movements and use recent demand 
 
 ## 3. Stakeholders and owner-defined scenarios
 
-No stakeholder interviews are claimed. These scenarios express the owner-defined role labels and approved high-level goals. Exact permissions remain **PROPOSED** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md) pending owner approval.
+No stakeholder interviews are claimed. These scenarios express owner-defined roles and goals. Manager-only adjustment is approved (BR-003); other action permissions remain **PROPOSED/TBD** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md).
 
 ### Manager scenario — owner-defined role, proposed workflow
 
@@ -53,7 +53,7 @@ The same person owns the project and performs development, review, testing and d
 
 ## 4. Requirement status and priority conventions
 
-- **Confirmed baseline:** the high-level capability is owner-approved in the Charter/P1. Detailed acceptance criteria below remain draft until SRS approval.
+- **Confirmed baseline / owner rule:** Charter/P1 capabilities and [BR-001–BR-011](OWNER_REQUIREMENTS_DECISIONS.md) are approved individually. Other detailed criteria remain draft until SRS approval.
 - **PROPOSED detail:** a specific interpretation added to make the baseline testable; it is not an approved business rule until accepted by the owner.
 - **TBD:** information is absent and must be resolved or explicitly deferred with an owner and due stage.
 - Priority: **Must** = needed to satisfy the fixed baseline; **Should** = proposed quality/detail that materially supports baseline completion; **TBD** = owner decides whether it is required.
@@ -64,12 +64,12 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-001 — Identify and select a product
 
-- **Priority/status:** Must-supports baseline; product fields and maintenance workflow **PROPOSED**.
+- **Priority/status:** Required, trimmed, case-insensitively unique active SKU **APPROVED BR-001**; other fields/lifecycle proposed or TBD.
 - **Actor:** Manager or Staff, subject to approved permissions.
 - **Preconditions:** User is authenticated and authorized; product exists and is active under the proposed lifecycle rule.
 - **Main flow:** User selects a product using its approved identifier; Tory presents the product identity and current recorded stock.
 - **Errors:** Unknown, inactive or unauthorized product selection is rejected with a clear message and no data mutation.
-- **Acceptance criteria (proposed):** Given an authorized user and an existing product, selecting it returns its approved identifying fields and current quantity. An unknown or unauthorized identifier returns a controlled error. Exact fields and product creation/editing rights require approval.
+- **Acceptance criteria:** Reject missing/blank-after-trim SKU and trim/case collisions among active products. Authorized selection returns approved identity and current quantity; unknown/unauthorized selection is controlled. SKU renaming/reuse and product maintenance rights remain TBD.
 
 ### FR-002 — View current inventory
 
@@ -91,34 +91,34 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-004 — Record stock-out
 
-- **Priority/status:** **Confirmed baseline capability**; demand classification and negative-stock policy **PROPOSED detail**.
+- **Priority/status:** Stock-out capability confirmed; no-negative rule **APPROVED BR-002** and stock-out demand proxy **APPROVED BR-006**; actor/input details TBD.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** User authorized; product exists; quantity input satisfies approved validation.
 - **Main flow:** User submits a stock-out quantity and, if approved, a reason/type; Tory validates and commits the movement and quantity change atomically.
-- **Errors:** Invalid input, insufficient stock under the proposed no-negative rule, unknown product, duplicate request or database failure causes no partial quantity change.
-- **Acceptance criteria (proposed):** A valid stock-out changes quantity by the approved amount. Under the proposed rule, quantity cannot become negative and a rejected stock-out changes no committed data. Whether stock-out counts as demand for forecasting must be explicitly approved.
+- **Errors:** Reject a stock-out that would make on-hand negative without partial mutation. Other validation and manual duplicate handling remain TBD.
+- **Acceptance criteria:** Stock-out equal to on-hand may reach zero; one exceeding on-hand is rejected atomically. Every committed stock-out counts as demand, as a proxy rather than validated sales.
 
 ### FR-005 — Record stock adjustment
 
-- **Priority/status:** **Confirmed baseline capability**; permissions, reason and adjustment semantics **PROPOSED detail**.
-- **Actor:** Proposed Manager-only; Staff policy requires approval.
+- **Priority/status:** Manager-only, absolute physical count, required reason and recorded difference **APPROVED BR-003**; reason format/retention TBD.
+- **Actor:** Manager only; Staff cannot perform adjustment.
 - **Preconditions:** User has adjustment permission; product exists; adjustment input is valid.
-- **Main flow:** User submits an adjustment with the approved quantity/reason representation; Tory records and applies it atomically.
+- **Main flow:** Manager enters physical count and reason; Tory sets on-hand to that count and records `new count − prior on-hand` atomically.
 - **Errors:** Unauthorized, invalid or conflicting adjustment is rejected without partial update.
-- **Acceptance criteria (proposed):** An authorized valid adjustment produces the exact approved resulting quantity or signed delta, and a rejected adjustment leaves quantity unchanged. Owner must choose absolute-count versus signed-delta semantics and reason requirements.
+- **Acceptance criteria:** Prior `p`, physical count `c` yields on-hand `c` and recorded difference `c − p` with reason. Reject Staff, missing reason and negative resulting count without partial mutation. Count precision and retention TBD.
 
 ### FR-006 — Import stock transactions atomically from CSV
 
-- **Priority/status:** **Confirmed baseline capability**, transaction rows only; exact file contract is **PROPOSED detail**.
+- **Priority/status:** Transaction CSV capability confirmed; `sku,change`, atomicity, empty/header-only rejection **APPROVED BR-004**; successful identical-file re-upload rejection **APPROVED BR-005**; parsing details TBD.
 - **Actor:** Proposed Manager-only; Staff import permission requires approval.
 - **Preconditions:** User authorized; upload accepted by the approved size/encoding constraints; referenced products exist.
 - **Main flow:** Tory parses and validates the entire stock-transaction batch, checks all rows against applicable inventory rules, and commits all rows as one logical batch.
-- **Errors:** Any invalid row, malformed file, unknown product, insufficient stock, duplicate request or database failure rejects the entire batch; no row from that batch is committed.
-- **Acceptance criteria:** (1) A fully valid batch applies all rows according to the approved ordering/duplicate-SKU rule. (2) Inserting one invalid row at any position causes zero batch changes. (3) Invalid product-catalog rows are not processed as catalog imports. (4) PostgreSQL state before and after a rejected batch is identical for the batch's effects. Header, encoding, row limits, duplicate file handling and error report format remain proposed/TBD.
+- **Errors:** Invalid rows, malformed/empty/header-only uploads, insufficient stock, or identical re-upload after a successful import reject the whole batch without mutation.
+- **Acceptance criteria:** A valid new `sku,change` batch commits all rows; any invalid row commits none. Empty/header-only files fail. A previously successful identical file cannot apply twice; a failed upload is not a successful prior import. Committed negative changes count as demand; rejected rows do not. Duplicate identity, encoding, whitespace, row order/limits and error format TBD.
 
 ### FR-007 — Authenticate users and distinguish Manager/Staff access
 
-- **Priority/status:** Distinct Manager and Staff permissions are **Confirmed baseline**; authentication mechanism and exact permission mapping are **PROPOSED/TBD**.
+- **Priority/status:** Distinct roles confirmed; Manager-only adjustment **APPROVED BR-003**; other permission cells and account provisioning TBD.
 - **Actor:** Manager, Staff, and any proposed account administrator.
 - **Preconditions:** User account provisioned through an owner-approved process.
 - **Main flow:** User authenticates; each protected operation is authorized using the approved role/action matrix.
@@ -127,39 +127,39 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-008 — Maintain per-product supplier and reorder settings
 
-- **Priority/status:** **Confirmed baseline capability**; fields, units, edit permissions and validation **PROPOSED detail**.
+- **Priority/status:** Supplier/reorder settings confirmed; positive whole calendar-day lead time per product **APPROVED BR-010**; other settings and edit permission TBD.
 - **Actor:** Proposed Manager can maintain; Staff read-only or no access is proposed.
 - **Preconditions:** Product exists; user has approved configuration permission.
 - **Main flow:** User views or updates the approved lead-time, safety-stock and reorder settings for one product; Tory validates and persists the changes.
 - **Errors:** Invalid values, missing product or unauthorized edit is rejected with no partial configuration update.
-- **Acceptance criteria (proposed):** Each product's approved settings persist and are used by its recommendation; values for one product do not alter another product. Meaning of “reorder settings” beyond lead time and safety stock is TBD.
+- **Acceptance criteria:** Each product's lead time is a positive whole number of calendar days; reject zero, negative or fractional days. Values for one product do not alter another. Safety-stock constraints and other settings TBD.
 
 ### FR-009 — Supply eligible demand observations for forecasting
 
-- **Priority/status:** Supporting requirement **PROPOSED/TBD**; the baseline confirms forecasting but does not define its source data.
+- **Priority/status:** Stock-out proxy, Singapore calendar window and reliable seven-day coverage **APPROVED BR-006–BR-008**; observation mechanism TBD.
 - **Actor:** System processing stock movement data; user role sees result under FR-010.
-- **Preconditions:** Approved source and classification rule identify demand observations and coverage for the seven-day window.
-- **Main flow:** Tory selects only owner-approved demand data, grouped by the approved calendar interval and product.
-- **Errors:** Incomplete, unavailable or unclassified observations are reported as insufficient/unknown rather than silently treated as zero, subject to owner approval.
-- **Acceptance criteria (proposed):** A reference dataset with known eligible demand events produces a documented seven-day input series; adjustments and replenishments are excluded unless explicitly approved as demand. Data source, stock-out proxy, timezone and completeness semantics block approval.
+- **Preconditions:** Dated committed movements and trustworthy observation coverage are available for each of the prior seven Asia/Singapore calendar days; how coverage is established remains TBD.
+- **Main flow:** Count all committed manual and negative-CSV stock-outs; exclude stock-in, adjustments and rejected-batch rows. Group by the previous seven complete Singapore calendar days, excluding current day.
+- **Errors:** Any unobserved/incomplete day makes the forecast unavailable. Absence of movement records alone does not establish a verified zero day.
+- **Acceptance criteria:** A verified zero-demand day contributes zero; an unobserved day makes the seven-day input series unavailable. Boundary events are assigned by Asia/Singapore local calendar date. The proxy is not validated customer sales. Source record/coverage design and retention remain TBD.
 
 ### FR-010 — Calculate and display an explainable seven-day moving average
 
-- **Priority/status:** **Confirmed baseline capability**; day boundaries, missing-day and rounding semantics **PROPOSED detail**.
+- **Priority/status:** Seven-day average confirmed; window, coverage and precision **APPROVED BR-007–BR-009**.
 - **Actor:** Manager and/or Staff according to approved permissions.
-- **Preconditions:** Approved demand source and sufficient/completeness rules are satisfied for the product.
+- **Preconditions:** Seven previous complete, reliably observed Asia/Singapore days exist for the product.
 - **Main flow:** Tory calculates the moving-average value from the approved seven-day window and displays the result with the dates and daily inputs/assumptions needed to explain it.
-- **Errors:** Insufficient or incomplete demand history produces the approved unavailable/partial status, not a fabricated numeric forecast.
-- **Acceptance criteria (proposed):** For a fully specified seven-day reference series, displayed average equals the arithmetic mean of eligible demand over those seven approved days. Displayed explanation names the window and inputs. Missing days, true zero-demand days and rounding are tested separately after approval.
+- **Errors:** Missing or incomplete coverage on any day makes forecast unavailable; do not infer zero from no records.
+- **Acceptance criteria:** Display previous seven dates and daily stock-out proxy inputs. Average is total / 7, displayed to two decimal places; retain full precision for downstream calculations. For verified `[1,0,1,0,1,0,0]`, display `0.43`; if any day lacks coverage, show unavailable. See [worked examples](BUSINESS_RULES_AND_EDGE_CASES.md#edge-case-acceptance-examples-to-approve).
 
 ### FR-011 — Produce an explainable reorder recommendation
 
-- **Priority/status:** **Confirmed baseline capability**; formula, rounding and treatment of stock on order **PROPOSED detail**.
+- **Priority/status:** Formula and informational nature **APPROVED BR-011**; stock on order, trigger and safety-stock constraints TBD.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** FR-010 result and approved product supplier/reorder settings are available.
-- **Main flow:** Tory calculates a recommendation using approved inputs and displays the result and formula/input explanation.
+- **Main flow:** Compute reorder point = full-precision average daily demand × positive whole calendar-day lead time + safety stock; suggest `max(0, ceil(reorder point − current on-hand))`. Display inputs and calculation; create no purchase order.
 - **Errors:** Missing forecast/settings or invalid values yield an unavailable recommendation with a reason; no purchase order is created.
-- **Acceptance criteria (proposed):** Given approved inputs, the recommendation equals the owner-approved formula; changing one input changes only affected outputs. The recommendation is advice only. Automatic procurement is excluded. Treatment of inbound orders, minimum order quantity and target stock remain TBD.
+- **Acceptance criteria:** For verified demand total `3` over seven days, lead time `7`, safety stock input `0`, on-hand `0`: full-precision average `3/7`, reorder point `3`, suggested quantity `3`; displayed `0.43` must not be multiplied back (it would incorrectly suggest `4`). Zero safety stock here is a test input, not approval of its allowed range. Missing coverage yields no numeric recommendation. Inventory on order, trigger semantics, safety-stock constraints and pack/minimum rules TBD.
 
 ### FR-012 — Provide controlled validation feedback
 
@@ -182,9 +182,9 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ### Correctness and data integrity
 
-**NFR-003 — Transaction integrity:** A committed movement shall atomically update quantity and its associated record if the owner approves movement history. A rejected CSV batch shall commit zero batch changes. Concurrent updates shall preserve the approved inventory invariants using PostgreSQL. **Proposed verification:** PostgreSQL integration/concurrency tests; no SQLite-only concurrency evidence.
+**NFR-003 — Transaction integrity:** No accepted stock-out makes on-hand negative. Manager adjustment sets physical count and records difference/reason atomically. A rejected CSV batch, including empty/header-only or previously successful identical upload, commits zero changes; a successful file is not applied twice. Exact identity and concurrent-upload safeguards TBD. **Proposed verification:** PostgreSQL integration/concurrency tests.
 
-**NFR-004 — Forecast reproducibility:** For fixed approved demand inputs and settings, forecast and recommendation outputs shall be deterministic and reproducible. Formula version, input window and rounding must be visible or recorded as approved.
+**NFR-004 — Forecast reproducibility:** For fixed dated stock-out inputs, verified daily coverage, on-hand and settings, use BR-007–BR-011 deterministically. Show the Singapore seven-day window, two-decimal display and full-precision calculation inputs; unobserved days yield unavailable rather than an imputed zero. Formula version/record-retention details TBD.
 
 ### Usability
 
@@ -214,15 +214,15 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ## 7. Business rules and data requirements
 
-Detailed candidate rules and unresolved alternatives are maintained in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). They are not approved until accepted by the owner.
+The eleven approved rules are in [OWNER_REQUIREMENTS_DECISIONS.md](OWNER_REQUIREMENTS_DECISIONS.md); proposed alternatives and edge cases are in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). The SRS as a whole remains unapproved.
 
 ### Logical data concepts (proposed; not a schema design)
 
 - **Product:** stable identifier, SKU, display name, current on-hand quantity, lifecycle state; exact fields and product maintenance actions TBD.
-- **Stock movement:** product, movement type, quantity/delta, timestamp, actor/request identity and any approved reason/reference. Ledger retention and correction method TBD.
-- **Import batch:** batch identity, source metadata, status and row-level validation outcomes; retention and duplicate-file detection TBD.
+- **Stock movement:** trustworthy dated records of stock-outs are needed for the Singapore calendar window and demand proxy. Product, type, quantity, time and adjustment reason/difference are logical needs; schema, retention and correction method TBD.
+- **Import batch:** sufficient successful-import identity/history is needed to reject an identical re-upload. Hashing, retention, concurrency safeguard and row-level validation records TBD.
 - **Supplier/reorder settings:** product association, lead time, safety stock, and owner-approved additional reorder parameters.
-- **Demand observation/forecast:** product, date/window, eligible demand input, moving-average result, explanation and recommendation calculation version/inputs. Data source and retention TBD.
+- **Demand observation/forecast:** trustworthy per-product daily coverage evidence, including verified zero-demand days, is needed in addition to dated movements. Absence of records alone does not prove coverage. Coverage method, schema and retention TBD.
 - **User/role:** account identity, active status and Manager/Staff role under the approved identity lifecycle.
 
 PostgreSQL is approved. The logical entities above do not prescribe tables, ORM relationships, application architecture or hosting topology.
@@ -233,21 +233,21 @@ PostgreSQL is approved. The logical entities above do not prescribe tables, ORM 
 - Django 5.2 LTS + PostgreSQL is the approved backend. Exact deployment patch versions and configuration are later decisions.
 - The project has one solo developer, 10–15 hours/week, deadline 27 November 2026 and SGD 0 cash budget. Schedule risk is high and tracked in Planning.
 - Codex may assist development; generated changes require independent review and verification.
-- A demand dataset can be supplied or derived only after owner approval of its source and classification. Availability/quality are not established.
+- BR-006 approves stock-outs as a demand proxy; availability, reliability and coverage of dated history are not established.
 - A zero-cost PostgreSQL CI/staging solution may be available, but provider eligibility, quotas, connectivity and no-charge operation are unresolved.
 - Existing PoC evidence is narrow and historical. Source PoC reports record 14/14 passed; PoC source reviewed there had 15 test methods; 16/16 is owner-reported without a matching artifact. No PoC result completes formal Testing.
 - Jira and a separate `tory-inventory` GitHub repository are desired work-management changes, but neither is verified as configured. The current course repository remains the documented project repository until changed.
 
 ## 9. Open questions and requirement boundaries
 
-See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for the complete decision list. Blocking issues include exact role permissions, product fields and lifecycle, stock-out/demand classification, CSV contract and limits, forecast data availability/completeness, reorder formula and settings, duplicate request behavior, numeric NFR targets, accessibility/browser expectations, and identity/account administration.
+See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for remaining decisions. Blocking issues include other role permissions, product lifecycle, CSV encoding/limits and duplicate identity, trustworthy observation coverage and dated history, inventory-on-order treatment, reorder-trigger semantics, safety-stock constraints, manual duplicate handling, numeric NFR targets and account provisioning.
 
 ### Explicit boundaries
 
 - Product CSV import is excluded.
 - Reorder recommendations do not place orders.
 - No frontend framework, hosting provider, architecture, CI vendor or CD solution is selected here.
-- No audit/history, export, backup, user-management or data-retention capability is treated as approved unless the owner accepts the proposed requirement.
+- BR-003 requires recording the adjustment difference/reason; BR-005 requires enough successful-import history to reject an identical re-upload; BR-006–BR-008 require trustworthy dated stock-outs and observation coverage. Their schema, retention, audit interface and recovery policy remain TBD. Export, backup and in-app user management are not approved features.
 - Requirements approval does not authorize Design, Implementation or Testing entry; each Waterfall stage requires its own gate.
 
 ## 10. Requirements verification and change control
@@ -268,3 +268,4 @@ See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for the complete decision l
 - [ADR-001: Backend and Database](../decisions/ADR-001-backend-and-database.md)
 - [Technology Evaluation](../TECHNOLOGY_EVALUATION.md)
 - [PoC Results](../POC_RESULTS.md), [Technical Feasibility](../TECHNICAL_FEASIBILITY.md), [PoC Handover](../POC_HANDOVER.md)
+- [Owner Requirements Decisions](OWNER_REQUIREMENTS_DECISIONS.md)

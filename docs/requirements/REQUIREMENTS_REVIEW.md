@@ -11,7 +11,7 @@ The draft SRS is aligned to the approved Charter, P1 conditions and ADR-001. It 
 
 Jira and a separate `tory-inventory` GitHub repository are desired work-management changes. Neither is verified as configured or required to approve a product behavior in this SRS; repository migration, if pursued, needs a separate recorded decision.
 
-Completeness is **partial pending owner decisions**. The largest ambiguity is how demand is derived from stock movements: stock-out does not necessarily mean demand, and the PoC has no ledger or demand history. Role permissions, product maintenance fields, adjustment semantics, CSV contract specifics and reorder formula also require approval. These decisions directly affect data design and testability.
+Completeness is **partial pending owner decisions**. [BR-001–BR-011](OWNER_REQUIREMENTS_DECISIONS.md) approve the specified inventory, CSV, stock-out demand proxy, Singapore seven-day forecast, lead time and reorder calculations. Stock-out demand is not validated customer sales. Trustworthy daily coverage and dated movement evidence are essential, but their mechanism, retention and architecture remain undecided.
 
 ## 2. Completeness, consistency and testability review
 
@@ -19,26 +19,26 @@ Completeness is **partial pending owner decisions**. The largest ambiguity is ho
 |---|---|---|
 | Fixed scope coverage | Pass | Manual stock movements, atomic stock-transaction CSV, PostgreSQL, distinct roles, per-product settings, seven-day average, recommendation, staging and CI are represented. Product catalog import and unapproved features remain excluded. |
 | Approved decisions | Pass | Django 5.2 LTS + PostgreSQL follows ADR-001; exact deployment versions/providers remain TBD. P1 authorized Requirements entry with conditions only. |
-| Functional completeness | Needs owner decisions | FRs cover all baselines, but role actions, product CRUD/identity, movement history and demand-source rules are not approved. |
-| Correctness / data integrity | Needs owner decisions | Negative-stock, adjustment, duplicate request, CSV ordering/idempotency and movement-history semantics are proposed, not approved. |
-| Forecast testability | Needs owner decisions | Window, timezone, eligible demand source, zero vs missing days, insufficient history, rounding and recommendation formula need a decision before deterministic acceptance cases can be baselined. |
-| Security / RBAC | Needs owner decisions | Role distinction is confirmed; all action permissions and account lifecycle are proposed/TBD in the matrix. |
+| Functional completeness | Needs owner decisions | Eleven rules approved; other role actions, product lifecycle, history/coverage and account provisioning remain open. |
+| Correctness / data integrity | Needs owner decisions | No-negative, adjustment, CSV atomicity/empty and successful duplicate rejection approved. Duplicate identity/concurrency, manual retries, row ordering and retention remain open. |
+| Forecast testability | Partial | Prior seven complete Asia/Singapore days, verified zeros, missing-day unavailability, two-decimal display, full precision and reorder formula approved. Trustworthy observation coverage and dated history remain unproven and need a Design solution. |
+| Security / RBAC | Needs owner decisions | Manager-only adjustment approved; other action permissions and account lifecycle proposed/TBD. |
 | Nonfunctional testability | Partial | Numeric response targets are proposed, but dataset and concurrency profile are TBD. Availability, recovery objectives, browser/accessibility criteria and retention have no approved targets. |
 | Zero-cost feasibility | Open risk | GitHub Actions, Render and Supabase remain candidates. Eligibility, quotas, payment/overage safeguards, PostgreSQL connectivity, external egress and recovery limits are unverified. |
 | Test evidence | Open evidence gap | Source PoC reports record 14/14 passing; PoC source reviewed there had 15 test methods; the later 16/16 result is owner-reported and lacks a matching artifact/source revision. None is formal Tory Testing. |
 | Schedule/capacity | High risk | Deadline is 27 November 2026; capacity 10–15 hours/week. Planning estimates 44–54 remaining hours including contingency versus 43–64 theoretical hours. Target Requirements window is compressed and all downstream stages must follow sequentially. |
 | Stage boundaries | Pass | SRS and proposed criteria are Requirements work; architecture and schema details are deferred to Design; no implementation or formal Testing is claimed. |
 
-## 3. Owner decisions required for SRS approval
+## 3. Approved rules and remaining owner decisions
 
-These eight decision packages capture all material open business choices in the draft. A decision may approve the proposed rule, replace it, or defer it with an owner and target stage. No interview or external stakeholder validation is assumed.
+The owner approved [BR-001–BR-011](OWNER_REQUIREMENTS_DECISIONS.md) on 29 October 2026. These approvals do not approve the complete SRS or Requirements exit. The following choices remain open; the owner may approve, revise or explicitly defer them with a target stage. No stakeholder interview is claimed.
 
-1. **Product and inventory identity:** required product fields, SKU normalization/case rules, product create/edit/deactivate rights, and behavior for products with movement history.
-2. **Role and account policy:** approve each Manager/Staff cell in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md), especially stock adjustment, CSV import, configuration read/write, user provisioning and any administrator role.
-3. **Stock movement semantics:** quantity units, zero/negative handling, negative stock policy, adjustment as absolute count vs signed delta, reason requirement, movement history/retention, duplicate request/retry handling and concurrency expectations.
-4. **CSV contract:** header/encoding/BOM, strictness, row shape, repeated SKU order, header-only file, max bytes/rows, repeated whole-file handling, error reporting and Manager/Staff permission.
-5. **Demand source:** identify where eligible daily demand comes from and approve whether a manual stock-out can be treated as demand; distinguish demand from adjustment, shrinkage, transfer or correction if applicable.
-6. **Forecast and reorder rules:** seven calendar days vs other boundary, timezone, missing/zero/insufficient history, rounding/display precision, lead-time units, safety-stock units, formula, inbound stock treatment, reorder trigger and any MOQ/pack-size settings.
+1. **Product identity:** SKU renaming/reuse, other required product fields, character/length/display rules and create/edit/deactivate rights; BR-001 already fixes active-SKU uniqueness.
+2. **Role and account policy:** remaining [Manager/Staff cells](ROLE_PERMISSION_MATRIX.md), CSV/settings access, account provisioning and any administrator role; BR-003 fixes adjustment actor.
+3. **Stock history and validation:** quantity precision, manual duplicate requests, correction/retention policy and reliable dated stock-out records; BR-002/BR-003/BR-006 fix the stated invariants.
+4. **CSV details:** encoding/BOM, whitespace, row shape/order/limits, duplicate identity/hashing/retention/concurrent upload safeguards and error format; BR-004/BR-005 fix the stated batch behavior.
+5. **Observation coverage:** decide how each day is reliably known complete, including verified zero days, and how evidence is retained. No-record days cannot silently count as zero; no schema/architecture is chosen here.
+6. **Reorder choices:** inventory on order, trigger/display semantics, safety-stock constraints, minimum/pack size and other supplier settings. BR-010/BR-011 fix lead-time units and calculation only.
 7. **Nonfunctional targets:** approve/revise proposed 2s/3s p95 warm-response targets and test dataset/load; decide staging availability expectation, backup/restore/retention and security/accessibility expectations. Numeric values not approved remain TBD.
 8. **Scope and feasibility response:** confirm that the fixed deadline and scope remain unchanged while tracking the 44–54h estimate; if forecasts exceed available hours, decide whether to request schedule change control or submit a formal scope change. Verify a zero-cost PostgreSQL CI/staging path before Design exit; no provider is selected.
 
@@ -56,9 +56,9 @@ These eight decision packages capture all material open business choices in the 
 Requirements exit remains pending until all are completed and explicitly approved by the owner:
 
 - [ ] All fixed baseline requirements remain covered with no unapproved scope additions.
-- [ ] Owner resolves or explicitly defers the eight decision packages above.
-- [ ] Manager/Staff matrix is approved and traced to FR/NFR IDs.
-- [ ] Business rules and edge cases are approved or marked deferred with owners/target stage.
+- [ ] Owner resolves or explicitly defers the remaining decision packages above.
+- [ ] Remaining Manager/Staff cells are approved and traced; BR-003 is already approved.
+- [ ] Remaining business-rule details are approved or explicitly deferred; BR-001–BR-011 are recorded.
 - [ ] Each approved Must requirement has deterministic acceptance criteria and a traceability entry.
 - [ ] Proposed numeric NFR targets are approved, revised or replaced with justified TBDs.
 - [ ] Scope, zero-cost constraint and schedule risk are reconciled; no budget or provider assumption is implicit.
@@ -72,6 +72,7 @@ Requirements exit remains pending until all are completed and explicitly approve
 - [Role Permission Matrix](ROLE_PERMISSION_MATRIX.md)
 - [Business Rules and Edge Cases](BUSINESS_RULES_AND_EDGE_CASES.md)
 - [Traceability Matrix](REQUIREMENTS_TRACEABILITY_MATRIX.md)
+- [Owner Requirements Decisions](OWNER_REQUIREMENTS_DECISIONS.md)
 - [P1 Gate Record](../planning/PLANNING_GATE_P1.md)
 - [Owner Decisions](../planning/OWNER_DECISIONS.md)
 - [Feasibility Assessment](../planning/FEASIBILITY_ASSESSMENT.md) and [Project Schedule](../planning/PROJECT_SCHEDULE.md)
