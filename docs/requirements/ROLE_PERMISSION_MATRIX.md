@@ -1,8 +1,8 @@
 # Tory Role and Permission Matrix
 
-**Status:** Proposal for owner approval; only the existence of Manager and Staff roles with distinct permissions is confirmed. **Every action-level permission below is PROPOSED, not approved.**
+**Status:** Manager-only stock adjustment is **APPROVED BR-003**. Other action permissions are proposed/TBD; the full matrix and SRS remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
 
-Legend: **PROPOSED: Allow** means candidate permission; **PROPOSED: Deny** means candidate restriction; **TBD** means no recommendation is safe without owner direction. This matrix is not implementation evidence.
+Legend: **APPROVED** applies only to the adjustment row; **PROPOSED** is a candidate permission; **TBD** needs owner direction. This matrix is not implementation evidence.
 
 | Capability / action | Manager | Staff | Approval note |
 |---|---|---|---|
@@ -10,13 +10,13 @@ Legend: **PROPOSED: Allow** means candidate permission; **PROPOSED: Deny** means
 | Create product record / assign SKU | **PROPOSED: Allow** | **PROPOSED: Deny** | Product catalog import remains excluded |
 | Edit product identity or deactivate product | **PROPOSED: Allow** | **PROPOSED: Deny** | Deletion/archive and behavior with movement history TBD |
 | Record stock-in | **PROPOSED: Allow** | **PROPOSED: Allow** | Quantity validation and duplicate submission policy TBD |
-| Record stock-out | **PROPOSED: Allow** | **PROPOSED: Allow** | Whether it represents demand and negative-stock policy TBD |
-| Record stock adjustment | **PROPOSED: Allow** | **PROPOSED: Deny** | Adjustment representation and whether Staff can request one TBD |
-| Import stock-transaction CSV | **PROPOSED: Allow** | **PROPOSED: Deny** | Manager-only reduces risk but has not been approved; product catalog import denied/out of scope for both |
+| Record stock-out | **PROPOSED: Allow** | **PROPOSED: Allow** | BR-002 prohibits negative stock; BR-006 counts all committed stock-outs as demand. Actor permission TBD. |
+| Record stock adjustment | **APPROVED: Allow** | **APPROVED: Deny** | BR-003: Manager enters physical count and reason; resulting difference recorded. |
+| Import stock-transaction CSV | **PROPOSED: Allow** | **PROPOSED: Deny** | BR-004/BR-005 fix behavior, not actor permission; catalog import out of scope. |
 | View supplier lead time, safety stock and reorder settings | **PROPOSED: Allow** | **PROPOSED: Read-only** | Staff access to settings needs approval |
 | Create/update supplier and reorder settings | **PROPOSED: Allow** | **PROPOSED: Deny** | “Reorder settings” fields remain TBD |
 | View seven-day forecast and explanation | **PROPOSED: Allow** | **PROPOSED: Allow** | Visibility and data caveats TBD |
-| View reorder recommendation and explanation | **PROPOSED: Allow** | **PROPOSED: Allow** | Recommendation is informational; no order placement |
+| View reorder recommendation and explanation | **PROPOSED: Allow** | **PROPOSED: Allow** | BR-011 makes it informational; viewing permission TBD. |
 | Manage user accounts, credentials or role assignments | **TBD** | **PROPOSED: Deny** | Whether in-app account administration is in scope is unresolved; do not assume Manager is a superuser |
 | Change system-wide configuration or technical settings | **PROPOSED: Deny** | **PROPOSED: Deny** | Reserved for controlled deployment/owner operations unless separately approved |
 | Delete movement/import history or purge records | **PROPOSED: Deny** | **PROPOSED: Deny** | Retention and correction policy TBD; destructive maintenance not part of normal workflow |
@@ -32,4 +32,4 @@ Legend: **PROPOSED: Allow** means candidate permission; **PROPOSED: Deny** means
 
 ## Owner decisions required
 
-Approve or revise every action row, decide whether staff can initiate/submit adjustments, decide who provisions/deactivates users, and confirm whether inventory history/export is in scope. The matrix will be baselined only after explicit owner approval; changes after that point require SRS change control.
+Approve or revise remaining action rows, decide who provisions/deactivates users, and confirm whether inventory history/export is in scope. Any separate Staff request-for-adjustment workflow is TBD and not implied by BR-003. The full matrix still needs explicit owner approval.
