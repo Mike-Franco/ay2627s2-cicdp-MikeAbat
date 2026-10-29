@@ -31,3 +31,9 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 ## Assignment context
 
 The repository retains its course-workspace name, `ay2627s2-cicdp-MikeAbat`; Tory is the project documented within it. Course: Singapore Polytechnic ST0529 CA1.
+
+## Documentation CI
+
+The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes and pull requests targeting `main`. It uses a read-only GitHub token, a pinned checkout action, a five-minute job timeout and no paid tools. The [checker](scripts/check_docs.py) uses only Python's standard library. Its small ruleset requires UTF-8 Markdown, one level-one heading at the start of each document, a final newline, no tab characters, no merge-conflict markers in checked text files, and the listed key project documents. It permits existing two-space Markdown line breaks and does not reformat approved Planning records. It is not a secrets scan or proof that the documents contain no secrets.
+
+Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main`, open the repository's **Actions** tab, select **Documentation CI**, and check that **Check documentation** passes for the intended commit. Django/PostgreSQL application checks are planned for a later stage when Tory application code exists; this documentation workflow does not approve a CI provider for the final application pipeline.
