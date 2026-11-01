@@ -37,7 +37,7 @@ Tory is intended to help users record inventory movements and use recent demand 
 
 ## 3. Stakeholders and owner-defined scenarios
 
-No stakeholder interviews are claimed. These scenarios express owner-defined roles and goals. Manager-only adjustment is approved (BR-003); other action permissions remain **PROPOSED/TBD** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md).
+No stakeholder interviews are claimed. These scenarios express owner-defined roles and goals. Manager-only adjustment (BR-003), Manager deactivation of Staff (BR-026), constrained Staff assignment (BR-027), and Manager product deactivation/reactivation (BR-028) are individually approved; other action permissions remain **PROPOSED/TBD** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md).
 
 ### Manager scenario — owner-defined role, proposed workflow
 
@@ -53,7 +53,7 @@ The same person owns the project and performs development, review, testing and d
 
 ## 4. Requirement status and priority conventions
 
-- **Confirmed baseline / owner rule:** Charter/P1 capabilities and [BR-001–BR-011](OWNER_REQUIREMENTS_DECISIONS.md) are approved individually. Other detailed criteria remain draft until SRS approval.
+- **Confirmed baseline / owner rule:** Charter/P1 capabilities and [BR-001–BR-011 and BR-026–BR-033](OWNER_REQUIREMENTS_DECISIONS.md) are approved individually, on their recorded dates. Numbering gaps carry no implied approval. Other detailed criteria remain draft until SRS approval.
 - **PROPOSED detail:** a specific interpretation added to make the baseline testable; it is not an approved business rule until accepted by the owner.
 - **TBD:** information is absent and must be resolved or explicitly deferred with an owner and due stage.
 - Priority: **Must** = needed to satisfy the fixed baseline; **Should** = proposed quality/detail that materially supports baseline completion; **TBD** = owner decides whether it is required.
@@ -64,17 +64,17 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-001 — Identify and select a product
 
-- **Priority/status:** Required, trimmed, case-insensitively unique active SKU **APPROVED BR-001**; other fields/lifecycle proposed or TBD.
+- **Priority/status:** Required, trimmed, case-insensitively unique active SKU **APPROVED BR-001**; no ordinary transactions on deactivated products, prior stock resolution and Manager reactivation **APPROVED BR-028**; other lifecycle details TBD.
 - **Actor:** Manager or Staff, subject to approved permissions.
 - **Preconditions:** User is authenticated and authorized; product exists and is active under the proposed lifecycle rule.
 - **Main flow:** User selects a product using its approved identifier; Tory presents the product identity and current recorded stock.
 - **Errors:** Unknown, inactive or unauthorized product selection is rejected with a clear message and no data mutation.
-- **Acceptance criteria:** Reject missing/blank-after-trim SKU and trim/case collisions among active products. Authorized selection returns approved identity and current quantity; unknown/unauthorized selection is controlled. SKU renaming/reuse and product maintenance rights remain TBD.
+- **Acceptance criteria:** Reject missing/blank-after-trim SKU and trim/case collisions among active products. Authorized selection returns approved identity and current quantity; unknown/unauthorized selection is controlled. Deactivation requires prior resolution of remaining stock; ordinary transactions on a deactivated product are rejected; a Manager can reactivate it. Exact resolution workflow, SKU renaming/reuse and other product maintenance rights remain TBD.
 
 ### FR-002 — View current inventory
 
 - **Priority/status:** Must-supports manual movement and replenishment baseline; list/search/filter details **PROPOSED**.
-- **Actor:** Manager and Staff, with visibility controlled by the approved matrix.
+- **Actor:** Manager and Staff, with visibility controlled by the approved matrix and inventory assignments (BR-027).
 - **Preconditions:** User is authenticated; products exist.
 - **Main flow:** User requests inventory information; Tory displays approved product identifiers and recorded quantities.
 - **Errors:** Unauthorized request is denied; unavailable database data is reported without presenting an unverified quantity as current.
@@ -82,21 +82,21 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-003 — Record stock-in
 
-- **Priority/status:** **Confirmed baseline capability**; input fields and role allocation **PROPOSED detail**.
+- **Priority/status:** **Confirmed baseline capability**; expiry per receiving batch **APPROVED BR-032**; other input fields and role allocation **PROPOSED/TBD**.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** User authorized; product exists; quantity input satisfies approved validation.
-- **Main flow:** User submits a stock-in quantity; Tory validates it, records the movement and updates the product's on-hand quantity atomically.
+- **Main flow:** User submits a stock-in quantity; Tory validates it, records the receiving batch's expiry when applicable, and updates stock atomically. Expiry is optional for products not tracked for expiry.
 - **Errors:** Invalid/nonpositive quantity, unknown product, duplicate request or database failure is rejected or safely deduplicated under the approved rule; no partial state is allowed.
-- **Acceptance criteria (proposed):** For a valid quantity `q`, committed on-hand quantity becomes prior quantity + `q`. Invalid input leaves quantity unchanged. A durable movement record is proposed and requires an explicit history/retention decision; FR-012 concerns validation feedback, not history.
+- **Acceptance criteria:** For a valid quantity `q`, committed on-hand quantity becomes prior quantity + `q`; receiving-batch expiry is recorded when applicable and is optional for a non-expiry-tracked product (BR-032). A deactivated product rejects ordinary stock-in (BR-028). Invalid input leaves quantity unchanged. Exact batch fields, tracking policy and history/retention remain TBD.
 
 ### FR-004 — Record stock-out
 
-- **Priority/status:** Stock-out capability confirmed; no-negative rule **APPROVED BR-002** and stock-out demand proxy **APPROVED BR-006**; actor/input details TBD.
+- **Priority/status:** Stock-out capability confirmed; no-negative rule **APPROVED BR-002**; demand proxy with quarantine/disposal exclusion **APPROVED BR-006/BR-031**; expired-batch quarantine and FEFO **APPROVED BR-029/BR-033**; actor/input details TBD.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** User authorized; product exists; quantity input satisfies approved validation.
-- **Main flow:** User submits a stock-out quantity and, if approved, a reason/type; Tory validates and commits the movement and quantity change atomically.
+- **Main flow:** User submits an ordinary issue quantity and, if approved, a reason/type; Tory allocates eligible batches automatically in earliest-expiry order (FEFO), validates and commits the movement and quantity change atomically. Expired batches are quarantined and unavailable for ordinary issue.
 - **Errors:** Reject a stock-out that would make on-hand negative without partial mutation. Other validation and manual duplicate handling remain TBD.
-- **Acceptance criteria:** Stock-out equal to on-hand may reach zero; one exceeding on-hand is rejected atomically. Every committed stock-out counts as demand, as a proxy rather than validated sales.
+- **Acceptance criteria:** An ordinary issue cannot use a quarantined expired batch or a deactivated product. Eligible batches are consumed by earliest expiry; insufficient eligible stock is rejected atomically even if quarantined stock remains. Committed ordinary stock-outs count as demand; quarantine and disposal do not (BR-031). Expiry boundary, no-expiry ordering and concurrency remain TBD.
 
 ### FR-005 — Record stock adjustment
 
@@ -104,26 +104,26 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 - **Actor:** Manager only; Staff cannot perform adjustment.
 - **Preconditions:** User has adjustment permission; product exists; adjustment input is valid.
 - **Main flow:** Manager enters physical count and reason; Tory sets on-hand to that count and records `new count − prior on-hand` atomically.
-- **Errors:** Unauthorized, invalid or conflicting adjustment is rejected without partial update.
+- **Errors:** Unauthorized, invalid or conflicting adjustment is rejected without partial update. Whether a particular adjustment is an ordinary transaction against a deactivated product requires classification under BR-028.
 - **Acceptance criteria:** Prior `p`, physical count `c` yields on-hand `c` and recorded difference `c − p` with reason. Reject Staff, missing reason and negative resulting count without partial mutation. Count precision and retention TBD.
 
 ### FR-006 — Import stock transactions atomically from CSV
 
-- **Priority/status:** Transaction CSV capability confirmed; `sku,change`, atomicity, empty/header-only rejection **APPROVED BR-004**; successful identical-file re-upload rejection **APPROVED BR-005**; parsing details TBD.
+- **Priority/status:** Transaction CSV capability confirmed; `sku,change`, atomicity, empty/header-only rejection **APPROVED BR-004**; successful identical-file re-upload rejection **APPROVED BR-005**; batch/expiry compatibility with BR-028/BR-029/BR-032/BR-033 unresolved.
 - **Actor:** Proposed Manager-only; Staff import permission requires approval.
 - **Preconditions:** User authorized; upload accepted by the approved size/encoding constraints; referenced products exist.
 - **Main flow:** Tory parses and validates the entire stock-transaction batch, checks all rows against applicable inventory rules, and commits all rows as one logical batch.
 - **Errors:** Invalid rows, malformed/empty/header-only uploads, insufficient stock, or identical re-upload after a successful import reject the whole batch without mutation.
-- **Acceptance criteria:** A valid new `sku,change` batch commits all rows; any invalid row commits none. Empty/header-only files fail. A previously successful identical file cannot apply twice; a failed upload is not a successful prior import. Committed negative changes count as demand; rejected rows do not. Duplicate identity, encoding, whitespace, row order/limits and error format TBD.
+- **Acceptance criteria:** A valid new `sku,change` batch commits all rows; any invalid row commits none. Empty/header-only files fail. A previously successful identical file cannot apply twice; a failed upload is not a successful prior import. Ordinary negative issues count as demand; quarantine and disposal do not. Ordinary transactions on deactivated products and issues using quarantined stock are disallowed. How a two-column CSV identifies receiving batches/expiry, distinguishes disposal, and allocates negative changes by FEFO is TBD; no CSV format change is approved. Duplicate identity, encoding, whitespace, row order/limits, concurrency and error format are also TBD.
 
 ### FR-007 — Authenticate users and distinguish Manager/Staff access
 
-- **Priority/status:** Distinct roles confirmed; Manager-only adjustment **APPROVED BR-003**; other permission cells and account provisioning TBD.
+- **Priority/status:** Distinct roles confirmed; Manager-only adjustment **APPROVED BR-003**; Manager Staff deactivation and constrained assignment **APPROVED BR-026/BR-027**; other permission cells and account provisioning TBD.
 - **Actor:** Manager, Staff, and any proposed account administrator.
 - **Preconditions:** User account provisioned through an owner-approved process.
-- **Main flow:** User authenticates; each protected operation is authorized using the approved role/action matrix.
+- **Main flow:** User authenticates; each protected operation is authorized using the approved role/action matrix. A Manager may deactivate a Staff account, revoking access while preserving attributable history, and may assign Staff only to inventories the Manager is currently authorized to manage in the same business.
 - **Errors:** Invalid credentials, inactive account or missing permission is denied; no protected data change occurs.
-- **Acceptance criteria (proposed):** For every permission-matrix row, an automated test verifies both allowed and denied behavior for Manager and Staff. Unauthenticated access to protected operations is denied. Account creation, password reset, session behavior and administrative actor require approval.
+- **Acceptance criteria:** A deactivated Staff account loses access without losing attribution for prior actions (BR-026). A Manager cannot assign Staff across a business boundary or outside that Manager's authorized inventories (BR-027). Proposed verification covers allowed and denied behavior for the remaining matrix cells. Account creation, password reset, reactivation, session revocation timing and other administration require decisions.
 
 ### FR-008 — Maintain per-product supplier and reorder settings
 
@@ -136,16 +136,16 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-009 — Supply eligible demand observations for forecasting
 
-- **Priority/status:** Stock-out proxy, Singapore calendar window and reliable seven-day coverage **APPROVED BR-006–BR-008**; observation mechanism TBD.
+- **Priority/status:** Stock-out proxy, Singapore calendar window and reliable seven-day coverage **APPROVED BR-006–BR-008**; quarantine/disposal exclusion **APPROVED BR-031**; observation mechanism TBD.
 - **Actor:** System processing stock movement data; user role sees result under FR-010.
 - **Preconditions:** Dated committed movements and trustworthy observation coverage are available for each of the prior seven Asia/Singapore calendar days; how coverage is established remains TBD.
-- **Main flow:** Count all committed manual and negative-CSV stock-outs; exclude stock-in, adjustments and rejected-batch rows. Group by the previous seven complete Singapore calendar days, excluding current day.
+- **Main flow:** Count committed ordinary manual and negative-CSV stock-outs as demand; exclude stock-in, adjustments, quarantine, disposal and rejected-batch rows. Group by the previous seven complete Singapore calendar days, excluding current day. BR-031 qualifies BR-006 so quarantine/disposal are not mistaken for ordinary demand.
 - **Errors:** Any unobserved/incomplete day makes the forecast unavailable. Absence of movement records alone does not establish a verified zero day.
 - **Acceptance criteria:** A verified zero-demand day contributes zero; an unobserved day makes the seven-day input series unavailable. Boundary events are assigned by Asia/Singapore local calendar date. The proxy is not validated customer sales. Source record/coverage design and retention remain TBD.
 
 ### FR-010 — Calculate and display an explainable seven-day moving average
 
-- **Priority/status:** Seven-day average confirmed; window, coverage and precision **APPROVED BR-007–BR-009**.
+- **Priority/status:** Seven-day average confirmed; window, coverage and precision **APPROVED BR-007–BR-009**; quarantine/disposal exclusion **APPROVED BR-031**.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** Seven previous complete, reliably observed Asia/Singapore days exist for the product.
 - **Main flow:** Tory calculates the moving-average value from the approved seven-day window and displays the result with the dates and daily inputs/assumptions needed to explain it.
@@ -154,12 +154,12 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-011 — Produce an explainable reorder recommendation
 
-- **Priority/status:** Formula and informational nature **APPROVED BR-011**; stock on order, trigger and safety-stock constraints TBD.
+- **Priority/status:** Formula and informational nature **APPROVED BR-011**; available-to-issue quantity excluding quarantine **APPROVED BR-030**; stock on order, trigger and safety-stock constraints TBD.
 - **Actor:** Manager and/or Staff according to approved permissions.
 - **Preconditions:** FR-010 result and approved product supplier/reorder settings are available.
-- **Main flow:** Compute reorder point = full-precision average daily demand × positive whole calendar-day lead time + safety stock; suggest `max(0, ceil(reorder point − current on-hand))`. Display inputs and calculation; create no purchase order.
+- **Main flow:** Compute reorder point = full-precision average daily demand × positive whole calendar-day lead time + safety stock; apply the BR-011 suggested-quantity formula using available-to-issue quantity in place of its earlier `current on-hand` input, excluding quarantined stock (BR-030). Display inputs and calculation; create no purchase order.
 - **Errors:** Missing forecast/settings or invalid values yield an unavailable recommendation with a reason; no purchase order is created.
-- **Acceptance criteria:** For verified demand total `3` over seven days, lead time `7`, safety stock input `0`, on-hand `0`: full-precision average `3/7`, reorder point `3`, suggested quantity `3`; displayed `0.43` must not be multiplied back (it would incorrectly suggest `4`). Zero safety stock here is a test input, not approval of its allowed range. Missing coverage yields no numeric recommendation. Inventory on order, trigger semantics, safety-stock constraints and pack/minimum rules TBD.
+- **Acceptance criteria:** For verified demand total `3` over seven days, lead time `7`, safety stock input `0`, available-to-issue quantity `0`: full-precision average `3/7`, reorder point `3`, suggested quantity `3`; displayed `0.43` must not be multiplied back (it would incorrectly suggest `4`). Quarantined stock never increases the available-to-issue input. Zero safety stock here is a test input, not approval of its allowed range. Missing coverage yields no numeric recommendation. Inventory on order, trigger semantics, safety-stock constraints and pack/minimum rules TBD.
 
 ### FR-012 — Provide controlled validation feedback
 
@@ -176,15 +176,15 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ### Security
 
-**NFR-001 — Authorization:** Every protected operation shall enforce the approved Manager/Staff permission matrix at the server side; denial shall occur before any protected mutation. **Proposed verification:** positive and negative automated tests for every matrix cell.
+**NFR-001 — Authorization:** Every protected operation shall enforce the approved Manager/Staff permission matrix at the server side; denial shall occur before any protected mutation. BR-026 revokes deactivated Staff access while preserving attribution; BR-027 constrains Manager Staff assignment to currently authorized inventories in the same business. **Proposed verification:** positive and negative automated tests for every approved matrix cell, including cross-business and out-of-scope assignments.
 
 **NFR-002 — Credential and secret handling:** Credentials, session secrets and database passwords shall not be committed to source or returned in application errors; staging shall use transport encryption where the selected provider supports it. Authentication/session details and security review criteria are **TBD** pending approval.
 
 ### Correctness and data integrity
 
-**NFR-003 — Transaction integrity:** No accepted stock-out makes on-hand negative. Manager adjustment sets physical count and records difference/reason atomically. A rejected CSV batch, including empty/header-only or previously successful identical upload, commits zero changes; a successful file is not applied twice. Exact identity and concurrent-upload safeguards TBD. **Proposed verification:** PostgreSQL integration/concurrency tests.
+**NFR-003 — Transaction integrity:** No accepted stock-out makes on-hand negative. Manager adjustment sets physical count and records difference/reason atomically. No ordinary transaction applies to a deactivated product (BR-028); expired batches are quarantined and unavailable for ordinary issue (BR-029); receiving-batch expiry follows BR-032; eligible issue allocation follows FEFO (BR-033). A rejected CSV batch, including empty/header-only or previously successful identical upload, commits zero changes; a successful file is not applied twice. Exact identity, batch/CSV compatibility, expiry boundary and concurrent-update safeguards TBD. **Proposed verification:** PostgreSQL integration/concurrency tests.
 
-**NFR-004 — Forecast reproducibility:** For fixed dated stock-out inputs, verified daily coverage, on-hand and settings, use BR-007–BR-011 deterministically. Show the Singapore seven-day window, two-decimal display and full-precision calculation inputs; unobserved days yield unavailable rather than an imputed zero. Formula version/record-retention details TBD.
+**NFR-004 — Forecast reproducibility:** For fixed dated ordinary stock-out inputs, verified daily coverage, available-to-issue quantity and settings, use BR-007–BR-011 and BR-030–BR-031 deterministically. Quarantine and disposal are excluded from demand; quarantined stock is excluded from the reorder quantity input. Show the Singapore seven-day window, two-decimal display and full-precision calculation inputs; unobserved days yield unavailable rather than an imputed zero. Formula version, movement classification and record-retention details TBD.
 
 ### Usability
 
@@ -214,16 +214,17 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ## 7. Business rules and data requirements
 
-The eleven approved rules are in [OWNER_REQUIREMENTS_DECISIONS.md](OWNER_REQUIREMENTS_DECISIONS.md); proposed alternatives and edge cases are in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). The SRS as a whole remains unapproved.
+The individually approved BR-001–BR-011 and BR-026–BR-033 are in [OWNER_REQUIREMENTS_DECISIONS.md](OWNER_REQUIREMENTS_DECISIONS.md); proposed alternatives and edge cases are in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). The SRS as a whole remains unapproved.
 
 ### Logical data concepts (proposed; not a schema design)
 
-- **Product:** stable identifier, SKU, display name, current on-hand quantity, lifecycle state; exact fields and product maintenance actions TBD.
-- **Stock movement:** trustworthy dated records of stock-outs are needed for the Singapore calendar window and demand proxy. Product, type, quantity, time and adjustment reason/difference are logical needs; schema, retention and correction method TBD.
+- **Product:** stable identifier, SKU, display name, current on-hand quantity, lifecycle state; deactivation/reactivation follows BR-028, while exact stock-resolution workflow and other maintenance actions remain TBD.
+- **Receiving batch:** per-batch expiry when tracked, optional expiry for non-expiry-tracked products; eligibility, quarantine and FEFO order follow BR-029/BR-032/BR-033. Expiration boundary, no-expiry ordering and physical representation remain TBD.
+- **Stock movement:** trustworthy dated records of ordinary stock-outs, quarantine and disposal are needed to distinguish demand from excluded activity. Product, batch, type, quantity, time and adjustment reason/difference are logical needs; schema, retention and correction method TBD.
 - **Import batch:** sufficient successful-import identity/history is needed to reject an identical re-upload. Hashing, retention, concurrency safeguard and row-level validation records TBD.
 - **Supplier/reorder settings:** product association, lead time, safety stock, and owner-approved additional reorder parameters.
 - **Demand observation/forecast:** trustworthy per-product daily coverage evidence, including verified zero-demand days, is needed in addition to dated movements. Absence of records alone does not prove coverage. Coverage method, schema and retention TBD.
-- **User/role:** account identity, active status and Manager/Staff role under the approved identity lifecycle.
+- **User/role and inventory assignment:** account identity, active status, attributable history, Manager/Staff role, business boundary and Manager-authorized inventory scope support BR-026/BR-027. Provisioning, reactivation, session timing and assignment lifecycle remain TBD.
 
 PostgreSQL is approved. The logical entities above do not prescribe tables, ORM relationships, application architecture or hosting topology.
 
@@ -240,14 +241,14 @@ PostgreSQL is approved. The logical entities above do not prescribe tables, ORM 
 
 ## 9. Open questions and requirement boundaries
 
-See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for remaining decisions. Blocking issues include other role permissions, product lifecycle, CSV encoding/limits and duplicate identity, trustworthy observation coverage and dated history, inventory-on-order treatment, reorder-trigger semantics, safety-stock constraints, manual duplicate handling, numeric NFR targets and account provisioning.
+See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for remaining decisions. Blocking issues include other role permissions, account provisioning/reactivation, remaining-stock resolution before product deactivation, expiration boundaries, no-expiry batch ordering, CSV-versus-batch conflicts, quarantine implementation, concurrency, CSV encoding/limits and duplicate identity, trustworthy observation coverage and dated history, inventory-on-order treatment, reorder-trigger semantics, safety-stock constraints, manual duplicate handling and numeric NFR targets.
 
 ### Explicit boundaries
 
 - Product CSV import is excluded.
 - Reorder recommendations do not place orders.
 - No frontend framework, hosting provider, architecture, CI vendor or CD solution is selected here.
-- BR-003 requires recording the adjustment difference/reason; BR-005 requires enough successful-import history to reject an identical re-upload; BR-006–BR-008 require trustworthy dated stock-outs and observation coverage. Their schema, retention, audit interface and recovery policy remain TBD. Export, backup and in-app user management are not approved features.
+- BR-003 requires recording the adjustment difference/reason; BR-005 requires enough successful-import history to reject an identical re-upload; BR-006–BR-008 and BR-031 require trustworthy dated movements, classification and observation coverage. BR-026–BR-027 approve only Manager Staff deactivation and constrained assignment; other in-app user management remains unapproved. Schema, retention, audit interface and recovery policy remain TBD. Export and backup are not approved features.
 - Requirements approval does not authorize Design, Implementation or Testing entry; each Waterfall stage requires its own gate.
 
 ## 10. Requirements verification and change control
