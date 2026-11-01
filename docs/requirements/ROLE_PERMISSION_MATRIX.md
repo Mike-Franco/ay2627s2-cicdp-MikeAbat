@@ -1,6 +1,6 @@
 # Tory Role and Permission Matrix
 
-**Status:** BR-021–BR-025 approve the listed role actions and assigned-inventory scope; BR-003 and BR-026–BR-028 add specific constraints. Unlisted actions and mechanics remain TBD; the full SRS and Requirements exit remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
+**Status:** BR-021–BR-025 approve the listed role actions and assigned-inventory scope; BR-003, BR-026–BR-028 and BR-037 add specific constraints. Unlisted actions and mechanics remain TBD; the full SRS and Requirements exit remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
 
 Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED** is a candidate permission; **TBD** needs owner direction. This matrix is not implementation evidence.
 
@@ -8,17 +8,18 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 |---|---|---|---|
 | View inventory and product identity/quantity | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; no viewing beyond authorized assignment. Exact fields TBD. |
 | View transaction history | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-024; history survives product deactivation (BR-019). Fields/retention TBD. |
-| Create product record / assign SKU | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021; shared catalogue per business (BR-016); catalog CSV remains excluded. Catalogue-level authorization mechanics TBD. |
-| Edit product identity | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021; SKU rename/reuse and other edit details TBD. |
-| Deactivate product | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021 supplies Manager actor; BR-019 requires soft deactivation/history; BR-028 requires remaining-stock resolution and blocks ordinary transactions afterward. Exact workflow TBD. |
+| Create product record / assign SKU | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021; shared catalogue per business (BR-016); BR-038 permanently reserves each SKU to its original product. Catalogue-level authorization mechanics TBD. |
+| Edit product identity | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021; BR-038 bars reassigning an existing SKU to a different product. Rename/alias details TBD. |
+| Deactivate product | **APPROVED: Allow within authorized business scope only when all business inventories have zero physical stock** | **APPROVED: Deny** | BR-021/BR-040; quarantined units count as physical stock. BR-019 preserves history; BR-028 bars ordinary transactions afterward. Exact resolution workflow TBD. |
 | Reactivate product | **APPROVED: Allow** | **TBD** | BR-028 explicitly grants Managers reactivation; Staff permission is not decided by this rule. |
 | Record ordinary stock-in | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; whole-base-unit quantities (BR-020); BR-028 bars deactivated products. |
-| Record ordinary stock-out | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; BR-002/BR-028/BR-029/BR-033 constrain balance, lifecycle and batch issue. |
+| Record ordinary stock-out | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; BR-002/BR-028/BR-029/BR-033–BR-035 constrain balance, lifecycle, batch order and expiry cutoff. |
+| Dispose of quarantined units | **APPROVED: Assigned inventories in own business, with reason** | **APPROVED: Deny** | BR-037; retain attributable disposal history and exclude it from demand (BR-031). Reason format and transition mechanics TBD. |
 | Record stock adjustment | **APPROVED: Allow** | **APPROVED: Deny** | BR-003: Manager enters physical count and reason; resulting difference recorded. |
 | Assign Staff to inventory | **APPROVED: Only Manager's authorised inventories in the same business** | **TBD** | BR-027 constrains Manager assignments; Staff assignment capability is not stated. Assignment lifecycle TBD. |
 | Invite/create Staff account | **APPROVED: Allow** | **TBD** | BR-023; invitation/authentication mechanics and Staff self-service rights TBD. Initial Manager is provisioned during setup. |
 | Deactivate Staff account | **APPROVED: Allow** | **TBD** | BR-026 revokes access and retains attributable history; session timing and reactivation TBD. |
-| Import stock-transaction CSV | **APPROVED: Assigned inventories in own business** | **APPROVED: Deny** | BR-021; BR-004/BR-005 fix batch behavior; catalogue import excluded. |
+| Import stock-transaction CSV | **APPROVED: Explicitly select one authorized inventory before upload** | **APPROVED: Deny** | BR-021/BR-039; every `sku,change` row applies there. BR-036 rejects expiry-tracked positive rows; BR-041 rejects exact-byte successful re-upload only in that inventory. Catalogue import excluded. |
 | View supplier lead time and safety stock | **APPROVED: Authorized scope** | **APPROVED: Authorized scope** | BR-014/BR-025; only these two reorder settings in MVP. |
 | Edit supplier lead time and safety stock | **APPROVED: Authorized scope** | **APPROVED: Deny** | BR-025; BR-010/BR-015 set validation. |
 | View seven-day forecast and explanation | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; data coverage constraints still apply. |
@@ -39,4 +40,4 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 
 ## Owner decisions required
 
-Resolve unlisted action rows, initial Manager setup and Staff invitation/authentication mechanics, account reactivation, catalogue-level authorization and history-view details. BR-023 fixes who provisions the initial Manager and who invites/creates Staff; BR-024 approves authorized history viewing but does not approve export. Any separate Staff request-for-adjustment workflow is TBD and not implied by BR-003. The remaining matrix details and complete SRS still need owner disposition.
+Resolve unlisted action rows, initial Manager setup and Staff invitation/authentication mechanics, account reactivation, catalogue-level authorization and history-view details. BR-023 fixes who provisions the initial Manager and who invites/creates Staff; BR-024 approves authorized history viewing but does not approve export. BR-037 fixes Manager-only quarantined disposal, with reason and attributable history; exact reason format remains TBD. Any separate Staff request-for-adjustment workflow is TBD and not implied by BR-003. The remaining matrix details and complete SRS still need owner disposition.
