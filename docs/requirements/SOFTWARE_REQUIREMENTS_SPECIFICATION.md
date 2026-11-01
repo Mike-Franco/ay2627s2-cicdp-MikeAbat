@@ -39,7 +39,7 @@ Tory is intended to help users record inventory movements and use recent demand 
 
 ## 3. Stakeholders and owner-defined scenarios
 
-No stakeholder interviews are claimed. These scenarios express owner-defined roles and goals. BR-021–BR-025 approve the stated Manager/Staff actions and assigned-inventory boundary; BR-026–BR-028 add Staff deactivation, constrained assignment and Manager product reactivation. Remaining mechanics and unlisted actions are **TBD** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md).
+No stakeholder interviews are claimed. These scenarios express owner-defined roles and goals. BR-021–BR-025 approve the stated Manager/Staff actions and assigned-inventory boundary; BR-026–BR-028 add Staff deactivation, constrained assignment and Manager product reactivation. BR-042–BR-045 approve email/password authentication, Staff email invitations, reset links and session/security controls. Remaining mechanics and unlisted actions are **TBD** in [ROLE_PERMISSION_MATRIX.md](ROLE_PERMISSION_MATRIX.md).
 
 ### Manager scenario — owner-defined role, proposed workflow
 
@@ -47,7 +47,7 @@ As a Tory Manager, I review assigned inventories and transaction history, record
 
 ### Staff scenario — owner-defined role, proposed workflow
 
-As a Tory Staff user, I view assigned inventory and its transaction history, record ordinary stock-in/out, view supplier lead time and safety stock, and inspect forecasts/reorder suggestions. I cannot perform Manager-only actions. Invitation and authentication mechanics remain TBD.
+As a Tory Staff user, I set my own password after a Manager's email invitation, then use email/password sign-in to view assigned inventory and its transaction history, record ordinary stock-in/out, view supplier lead time and safety stock, and inspect forecasts/reorder suggestions. I cannot perform Manager-only actions. Email delivery and token/session timing remain TBD.
 
 ### Project owner / solo developer
 
@@ -55,7 +55,7 @@ The same person owns the project and performs development, review, testing and d
 
 ## 4. Requirement status and priority conventions
 
-- **Confirmed baseline / owner rule:** Charter/P1 capabilities and [BR-001–BR-041](OWNER_REQUIREMENTS_DECISIONS.md) are approved individually. BR-012–BR-025 were supplied as supplementary owner evidence and documented on 1 November 2026; their original approval timestamp is not known. Other detailed criteria remain draft until SRS approval.
+- **Confirmed baseline / owner rule:** Charter/P1 capabilities and [BR-001–BR-045](OWNER_REQUIREMENTS_DECISIONS.md) are approved individually. BR-012–BR-025 were supplied as supplementary owner evidence and documented on 1 November 2026; their original approval timestamp is not known. Other detailed criteria remain draft until SRS approval.
 - **PROPOSED detail:** a specific interpretation added to make the baseline testable; it is not an approved business rule until accepted by the owner.
 - **TBD:** information is absent and must be resolved or explicitly deferred with an owner and due stage.
 - Priority: **Must** = needed to satisfy the fixed baseline; **Should** = proposed quality/detail that materially supports baseline completion; **TBD** = owner decides whether it is required.
@@ -120,12 +120,12 @@ Each acceptance criterion is a proposed verification condition for the SRS. Wher
 
 ### FR-007 — Authenticate users and distinguish Manager/Staff access
 
-- **Priority/status:** Distinct roles and listed actions **APPROVED BR-021–BR-025**; Manager-only adjustment **APPROVED BR-003**; Manager Staff deactivation and constrained assignment **APPROVED BR-026/BR-027**; Manager-only quarantined-unit disposal **APPROVED BR-037**; invitation/authentication mechanics TBD.
+- **Priority/status:** Distinct roles and listed actions **APPROVED BR-021–BR-025**; Manager-only adjustment **APPROVED BR-003**; Manager Staff deactivation and constrained assignment **APPROVED BR-026/BR-027**; Manager-only quarantined-unit disposal **APPROVED BR-037**; Django email/password login, secure Staff email invitations, single-use time-limited reset links and session/security controls **APPROVED BR-042–BR-045**. Delivery and timing details TBD.
 - **Actor:** Manager, Staff, and any proposed account administrator.
-- **Preconditions:** Initial Manager provisioned during setup or Staff invited/created by a Manager (BR-023); exact mechanics TBD.
-- **Main flow:** User authenticates; each protected operation is authorized using the approved role/action matrix and assigned-inventory/business boundary (BR-021/BR-022). Before CSV upload, a Manager explicitly selects an inventory they are authorized to access (BR-039). Managers invite/create Staff (BR-023), may deactivate Staff while preserving attributable history (BR-026), and may assign Staff only to inventories they are authorized to manage in the same business (BR-027).
-- **Errors:** Invalid credentials, inactive account or missing permission is denied; no protected data change occurs.
-- **Acceptance criteria:** Both roles are limited to assigned inventories in their own business and may view authorised transaction history (BR-022/BR-024). The initial Manager is provisioned during setup; Managers can invite/create Staff (BR-023). A deactivated Staff account loses access without losing attribution for prior actions (BR-026). A Manager cannot assign Staff across a business boundary or outside that Manager's authorized inventories (BR-027). Staff cannot record quarantined-unit disposal; Managers can do so with a reason and attributable history (BR-037). Invitation, authentication, password reset, reactivation, session revocation timing and unlisted administration remain TBD.
+- **Preconditions:** Initial Manager provisioned during setup or Staff securely invited by a Manager through email (BR-023/BR-043); invitee sets their own password. Email delivery and initial Manager credential setup TBD.
+- **Main flow:** Manager or Staff signs in with email and password through Django-based authentication (BR-042). Server-managed session access uses HttpOnly cookies, HTTPS and CSRF protection (BR-045). Protected operations enforce the approved role/action matrix and assigned-inventory/business boundary (BR-021/BR-022). Managers invite Staff by email without choosing their passwords (BR-043), may deactivate Staff while preserving attributable history (BR-026), and may assign Staff only to inventories they are authorized to manage in the same business (BR-027). Users may request a time-limited, single-use password reset link (BR-044). Before CSV upload, a Manager explicitly selects an authorized inventory (BR-039).
+- **Errors:** Wrong password, inactive account, expired/reused reset link, invalid invitation, missing permission or failed CSRF validation does not grant protected access or mutate protected data. Exact error presentation remains TBD.
+- **Acceptance criteria:** Correct email/password credentials establish a server-managed session for the appropriate active role; wrong passwords do not (BR-042/BR-045). A Manager can invite Staff by email, and the invitee sets their own password without the Manager knowing it; assignments remain within the Manager's authorized same-business inventories (BR-043/BR-027). **Proposed invitation verification:** expired or reused invitation tokens cannot create a second account or set a password again; token expiry duration and mechanics remain TBD. A reset link works once within its validity window and fails after expiry or reuse (BR-044); duration remains TBD. Logout invalidates the current server session for subsequent protected requests (**proposed verification**); deactivated accounts cannot access protected operations even with a previously issued session, while prior history remains attributable (BR-026). Protected requests without valid CSRF proof are denied; valid authenticated requests still require assigned-inventory authorization (BR-022/BR-045). Staff cannot record quarantined-unit disposal (BR-037). Email delivery, session timeout, rate limiting, account reactivation, cookie settings beyond HttpOnly and unlisted administration remain TBD.
 
 ### FR-008 — Maintain per-product supplier and reorder settings
 
@@ -178,9 +178,9 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ### Security
 
-**NFR-001 — Authorization:** Every protected operation shall enforce BR-021–BR-025 role permissions and assigned-inventory/same-business access at the server side; denial shall occur before any protected mutation. BR-026 revokes deactivated Staff access while preserving attribution; BR-027 constrains Manager Staff assignment to currently authorized inventories in the same business. BR-037 limits quarantined-unit disposal to Managers. BR-039 requires an explicitly selected authorized inventory before CSV upload, with every row scoped to it. **Proposed verification:** positive and negative automated tests for each approved matrix cell, including Staff disposal denial, cross-business and out-of-scope requests, assignments and CSV selections.
+**NFR-001 — Authorization:** Every protected operation shall enforce BR-021–BR-025 role permissions and assigned-inventory/same-business access at the server side; denial shall occur before any protected mutation. BR-026 revokes deactivated Staff access while preserving attribution; BR-027 constrains Manager Staff assignment to currently authorized inventories in the same business. BR-037 limits quarantined-unit disposal to Managers. BR-039 requires an explicitly selected authorized inventory before CSV upload. BR-042/BR-045 require authenticated server-managed sessions and CSRF protection; an authenticated session never expands inventory scope. **Proposed verification:** positive and negative tests for role cells, deactivated sessions, invalid CSRF proof, cross-business/out-of-scope requests, assignments and CSV selections.
 
-**NFR-002 — Credential and secret handling:** Credentials, session secrets and database passwords shall not be committed to source or returned in application errors; staging shall use transport encryption where the selected provider supports it. Authentication/session details and security review criteria are **TBD** pending approval.
+**NFR-002 — Credential and secret handling:** Django-based email/password authentication (BR-042), invitees choosing their own passwords after secure Manager email invitation (BR-043), time-limited single-use reset links (BR-044), and server-managed sessions with HttpOnly cookies, HTTPS and CSRF protection (BR-045) are approved. Credentials, session secrets and database passwords shall not be committed to source or returned in application errors. **Proposed verification:** wrong passwords, expired/reused invitation and reset links, logout, deactivated sessions, HttpOnly cookie attribute, HTTPS-only protected traffic and CSRF rejection/acceptance. Email delivery, token expiry duration, session timeout, authentication rate limiting, additional cookie attributes and exact security review criteria remain TBD.
 
 ### Correctness and data integrity
 
@@ -206,7 +206,7 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ### Deployment
 
-**NFR-009 — Staging and cost constraint:** Tory shall provide a hosted staging demonstration using PostgreSQL and remain within the confirmed SGD 0 cash ceiling. Provider, eligibility, quotas, payment-method rules and connectivity must be verified before Design exit. No provider is selected.
+**NFR-009 — Staging and cost constraint:** Tory shall provide a hosted staging demonstration using PostgreSQL and remain within the confirmed SGD 0 cash ceiling. BR-045 requires HTTPS; BR-043/BR-044 require invitation and reset email delivery. Provider, email/HTTPS feasibility at zero cost, eligibility, quotas, payment-method rules and connectivity must be verified before Design exit. No provider is selected.
 
 **NFR-010 — Automated CI:** Automated CI shall install approved dependencies, provision/connect to PostgreSQL, apply migrations and run approved checks on relevant changes. Provider, repository visibility, quota and exact gate set are **TBD**. CD is optional and not required by this SRS.
 
@@ -216,7 +216,7 @@ All numeric targets below are **PROPOSED** for owner approval or marked **TBD**.
 
 ## 7. Business rules and data requirements
 
-The individually approved BR-001–BR-041 are in [OWNER_REQUIREMENTS_DECISIONS.md](OWNER_REQUIREMENTS_DECISIONS.md), including the supplementary owner-provided BR-012–BR-025 record; proposed alternatives and edge cases are in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). The SRS as a whole remains unapproved.
+The individually approved BR-001–BR-045 are in [OWNER_REQUIREMENTS_DECISIONS.md](OWNER_REQUIREMENTS_DECISIONS.md), including the supplementary owner-provided BR-012–BR-025 record; proposed alternatives and edge cases are in [BUSINESS_RULES_AND_EDGE_CASES.md](BUSINESS_RULES_AND_EDGE_CASES.md). The SRS as a whole remains unapproved.
 
 ### Logical data concepts (proposed; not a schema design)
 
@@ -227,7 +227,7 @@ The individually approved BR-001–BR-041 are in [OWNER_REQUIREMENTS_DECISIONS.m
 - **Import batch:** identify successful imports by selected inventory and exact file bytes; reject a prior byte-identical success only within that inventory (BR-041). Every row applies to the Manager's explicitly selected authorized inventory (BR-039). Byte comparison/retention implementation, concurrency safeguard and row-level validation records TBD.
 - **Supplier/reorder settings:** per-product positive whole-calendar-day lead time and nonnegative whole-number safety stock, including zero; these are the only MVP reorder settings (BR-010/BR-014/BR-015). Managers edit and Staff view within their authorized scope (BR-025).
 - **Demand observation/forecast:** trustworthy per-product daily coverage evidence, including verified zero-demand days, is needed in addition to dated movements. Absence of records alone does not prove coverage. Coverage method, schema and retention TBD.
-- **User/role and inventory assignment:** initial Manager provisioned during setup; Managers invite/create Staff (BR-023). Account identity, active status, attributable history, Manager/Staff role, business boundary and assignments support BR-021–BR-027. Invitation/authentication mechanics, reactivation, session timing and assignment lifecycle remain TBD.
+- **User/role and inventory assignment:** initial Manager provisioned during setup; Managers securely invite Staff by email and invitees set their own passwords (BR-023/BR-043). Django email/password identity, active status, attributable history, Manager/Staff role, business boundary and assignments support BR-021–BR-027/BR-042. Time-limited single-use reset links (BR-044), server-managed sessions, HttpOnly cookies, HTTPS and CSRF protection (BR-045) are logical needs, not a prescribed schema. Email delivery, invitation/reset expiry duration, session timeout, rate limiting, reactivation and assignment lifecycle remain TBD.
 
 PostgreSQL is approved. The logical entities above do not prescribe tables, ORM relationships, application architecture or hosting topology.
 
@@ -244,7 +244,7 @@ PostgreSQL is approved. The logical entities above do not prescribe tables, ORM 
 
 ## 9. Open questions and requirement boundaries
 
-See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for remaining decisions. Blocking issues include SKU rename/alias and business reassignment, price format, invitation/authentication mechanics, account reactivation, exact remaining-stock resolution before product deactivation, equal-expiry tie-breakers, quarantine implementation/audit transition, cross-inventory and CSV concurrency, CSV byte-comparison retention/mechanism, encoding/limits, non-expiry-tracked positive CSV handling, trustworthy observation coverage and dated history, disposal reason format/history retention, alert presentation when inputs are unavailable, packaging conversion, manual duplicate handling and numeric NFR targets. BR-038 settles cross-product inactive-SKU reuse; BR-039 fixes before-upload inventory selection and all-row scope; BR-040 fixes the all-inventory zero-physical-stock deactivation precondition; BR-041 fixes inventory-scoped exact-byte duplicate identity.
+See [REQUIREMENTS_REVIEW.md](REQUIREMENTS_REVIEW.md) for remaining decisions. Blocking issues include SKU rename/alias and business reassignment, price format, email delivery, invitation/reset token expiry duration, session timeout, authentication rate limiting, free staging HTTPS/email feasibility, account reactivation, exact remaining-stock resolution before product deactivation, equal-expiry tie-breakers, quarantine implementation/audit transition, cross-inventory and CSV concurrency, CSV byte-comparison retention/mechanism, encoding/limits, non-expiry-tracked positive CSV handling, trustworthy observation coverage and dated history, disposal reason format/history retention, alert presentation when inputs are unavailable, packaging conversion, manual duplicate handling and numeric NFR targets. BR-042–BR-045 settle the authentication method, secure Staff invitation and password ownership, reset-link single use/time limit, and core session/transport/CSRF protections.
 
 ### Explicit boundaries
 

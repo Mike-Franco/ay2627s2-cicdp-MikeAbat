@@ -1,11 +1,14 @@
 # Tory Role and Permission Matrix
 
-**Status:** BR-021–BR-025 approve the listed role actions and assigned-inventory scope; BR-003, BR-026–BR-028 and BR-037 add specific constraints. Unlisted actions and mechanics remain TBD; the full SRS and Requirements exit remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
+**Status:** BR-021–BR-025 approve the listed role actions and assigned-inventory scope; BR-003, BR-026–BR-028, BR-037 and BR-042–BR-045 add specific account and security constraints. Unlisted actions and mechanics remain TBD; the full SRS and Requirements exit remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
 
 Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED** is a candidate permission; **TBD** needs owner direction. This matrix is not implementation evidence.
 
 | Capability / action | Manager | Staff | Approval note |
 |---|---|---|---|
+| Sign in with email/password | **APPROVED: Active account** | **APPROVED: Active account** | BR-042/BR-045; Django authentication and server-managed sessions. Session timeout TBD. |
+| End own session (logout) | **PROPOSED: Allow** | **PROPOSED: Allow** | Proposed acceptance: ended session cannot access protected operations. BR-045 approves server-managed sessions but does not specify the logout workflow. |
+| Request and use password reset link | **APPROVED: Time-limited, single-use** | **APPROVED: Time-limited, single-use** | BR-044; expiry duration, email delivery and rate limiting TBD. |
 | View inventory and product identity/quantity | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-021/BR-022; no viewing beyond authorized assignment. Exact fields TBD. |
 | View transaction history | **APPROVED: Assigned inventories in own business** | **APPROVED: Assigned inventories in own business** | BR-024; history survives product deactivation (BR-019). Fields/retention TBD. |
 | Create product record / assign SKU | **APPROVED: Allow within authorized business scope** | **APPROVED: Deny** | BR-021; shared catalogue per business (BR-016); BR-038 permanently reserves each SKU to its original product. Catalogue-level authorization mechanics TBD. |
@@ -17,8 +20,8 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 | Dispose of quarantined units | **APPROVED: Assigned inventories in own business, with reason** | **APPROVED: Deny** | BR-037; retain attributable disposal history and exclude it from demand (BR-031). Reason format and transition mechanics TBD. |
 | Record stock adjustment | **APPROVED: Allow** | **APPROVED: Deny** | BR-003: Manager enters physical count and reason; resulting difference recorded. |
 | Assign Staff to inventory | **APPROVED: Only Manager's authorised inventories in the same business** | **TBD** | BR-027 constrains Manager assignments; Staff assignment capability is not stated. Assignment lifecycle TBD. |
-| Invite/create Staff account | **APPROVED: Allow** | **TBD** | BR-023; invitation/authentication mechanics and Staff self-service rights TBD. Initial Manager is provisioned during setup. |
-| Deactivate Staff account | **APPROVED: Allow** | **TBD** | BR-026 revokes access and retains attributable history; session timing and reactivation TBD. |
+| Securely invite/create Staff account by email | **APPROVED: Allow within assignment limits** | **TBD** | BR-023/BR-043; invitee sets own password and BR-027 restricts inventory assignment. Email delivery and invitation token expiry/reuse mechanics TBD. Initial Manager is provisioned during setup. |
+| Deactivate Staff account | **APPROVED: Allow** | **TBD** | BR-026 revokes protected access and retains attributable history, including when an old session exists. Exact invalidation mechanics and reactivation TBD. |
 | Import stock-transaction CSV | **APPROVED: Explicitly select one authorized inventory before upload** | **APPROVED: Deny** | BR-021/BR-039; every `sku,change` row applies there. BR-036 rejects expiry-tracked positive rows; BR-041 rejects exact-byte successful re-upload only in that inventory. Catalogue import excluded. |
 | View supplier lead time and safety stock | **APPROVED: Authorized scope** | **APPROVED: Authorized scope** | BR-014/BR-025; only these two reorder settings in MVP. |
 | Edit supplier lead time and safety stock | **APPROVED: Authorized scope** | **APPROVED: Deny** | BR-025; BR-010/BR-015 set validation. |
@@ -31,8 +34,8 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 
 ## Proposed authorization principles
 
-- Authenticate users before protected product, movement, history, import or forecast access; exact authentication mechanism TBD (BR-022/BR-023).
-- Enforce permissions server-side on every operation; hiding a control is not authorization (**PROPOSED security requirement**).
+- Authenticate Manager and Staff with Django-based email/password sign-in; use server-managed sessions, HttpOnly cookies, HTTPS and CSRF protection (BR-042/BR-045).
+- Enforce permissions server-side on every operation; hiding a control is not authorization. Authentication never grants inventory access beyond BR-022/BR-027.
 - Deny unlisted actions by default (**PROPOSED**).
 - Enforce Manager assignment scope against the Manager's current authorization and business boundary (BR-027); the concurrency policy remains TBD.
 - Apply BR-021–BR-025 approved cells and resolve only unlisted role/action cells and mechanics before Design.
@@ -40,4 +43,4 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 
 ## Owner decisions required
 
-Resolve unlisted action rows, initial Manager setup and Staff invitation/authentication mechanics, account reactivation, catalogue-level authorization and history-view details. BR-023 fixes who provisions the initial Manager and who invites/creates Staff; BR-024 approves authorized history viewing but does not approve export. BR-037 fixes Manager-only quarantined disposal, with reason and attributable history; exact reason format remains TBD. Any separate Staff request-for-adjustment workflow is TBD and not implied by BR-003. The remaining matrix details and complete SRS still need owner disposition.
+Resolve unlisted action rows, initial Manager credential setup, account reactivation, catalogue-level authorization and history-view details. BR-042–BR-045 fix email/password authentication, secure Manager Staff email invitations with invitee-set passwords, time-limited single-use reset links, server sessions, HttpOnly cookies, HTTPS and CSRF. Email delivery, invitation/reset token expiry duration, session timeout, rate limiting and free staging feasibility remain TBD. BR-024 approves authorized history viewing but does not approve export. Any separate Staff request-for-adjustment workflow is TBD and not implied by BR-003. The remaining matrix details and complete SRS still need owner disposition.

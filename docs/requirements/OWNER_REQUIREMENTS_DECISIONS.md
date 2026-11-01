@@ -1,8 +1,8 @@
 # Tory Owner Requirements Decisions
 
-**Decision evidence:** BR-001–BR-011: owner decisions dated 29 October 2026; BR-012–BR-025: supplementary owner-provided ChatGPT Requirements review approvals, documented/reconciled 1 November 2026 (original approval timestamp not supplied); BR-026–BR-041: owner decisions dated 1 November 2026.
+**Decision evidence:** BR-001–BR-011: owner decisions dated 29 October 2026; BR-012–BR-025: supplementary owner-provided ChatGPT Requirements review approvals, documented/reconciled 1 November 2026 (original approval timestamp not supplied); BR-026–BR-045: owner decisions dated 1 November 2026.
 **Authority:** Project owner, as supplied in the project instructions and supplementary owner-provided decision record.
-**Status:** BR-001–BR-041 approved individually. BR-042 onward have no approval recorded. Complete SRS and Requirements exit **PENDING OWNER APPROVAL**. No signature is claimed.
+**Status:** BR-001–BR-045 approved individually. BR-046 onward have no approval recorded. Complete SRS and Requirements exit **PENDING OWNER APPROVAL**. No signature is claimed.
 
 | ID | Approved rule | Related stable requirements | Still unresolved |
 |---|---|---|---|
@@ -28,10 +28,10 @@
 | BR-020 | Stock quantities use whole-number base units; packaging conversion details remain TBD. | FR-003–FR-006, NFR-003 | Packaging conversion, limits and handling of previously fractional data. |
 | BR-021 | Manager and Staff may view authorised inventory, record ordinary stock-in/out and view forecasts/reorder suggestions. Managers additionally create/edit/deactivate products, adjust physical stock, import transaction CSV and edit supplier/reorder settings. Staff may view those settings. | FR-001–FR-008, FR-010–FR-011, NFR-001 | Access remains limited by BR-022/BR-027; exact action mechanics and inactive-product behavior follow other rules. |
 | BR-022 | Users may access only assigned inventories within their own business. | FR-002–FR-007, FR-010–FR-011, NFR-001 | Assignment lifecycle, initial Manager assignments and enforcement under concurrent changes. |
-| BR-023 | Initial Manager is provisioned during setup; Managers invite/create Staff accounts. | FR-007, NFR-001 | Exact invitation, authentication and setup mechanics TBD. |
+| BR-023 | Initial Manager is provisioned during setup; Managers invite/create Staff accounts. | FR-007, NFR-001 | BR-042/BR-043 fix email/password authentication and Staff email invitation; initial Manager setup, email delivery and invitation token details TBD. |
 | BR-024 | Both roles may view transaction history for authorised inventories. | FR-002, FR-007, NFR-001 | History view fields, retention, correction and pagination TBD. |
 | BR-025 | Managers edit supplier lead time and safety stock; Staff may view settings but not edit. | FR-008, FR-007, NFR-001 | Editing workflow and validation feedback TBD. |
-| BR-026 | Managers may deactivate Staff accounts, revoking access while retaining attributable history. | FR-007, NFR-001 | Account provisioning, reactivation, session revocation timing and history retention. |
+| BR-026 | Managers may deactivate Staff accounts, revoking access while retaining attributable history. | FR-007, NFR-001 | BR-045 fixes server-managed sessions; exact session invalidation mechanics, account reactivation and history retention TBD. |
 | BR-027 | Managers assign Staff only to inventories they themselves are authorised to manage within the same business. | FR-007, NFR-001 | Business/inventory ownership model, assignment lifecycle and authorization concurrency; inventory viewing scope is separate. |
 | BR-028 | No ordinary transactions against deactivated products. Remaining stock must be resolved before deactivation. Managers can reactivate products. | FR-001, FR-003–FR-006, NFR-003 | BR-040 fixes zero physical stock across all business inventories, including quarantine; exact resolution workflow and transaction classification TBD. |
 | BR-029 | Expired batches are quarantined and unavailable for ordinary issue. | FR-004, FR-006, NFR-003 | BR-035 fixes Singapore midnight boundary; quarantine transition, implementation and audit TBD. |
@@ -47,5 +47,9 @@
 | BR-039 | Before CSV upload, a Manager explicitly selects one inventory they are authorised to access; every row applies to that selected inventory. | FR-006, FR-007, NFR-001, NFR-003 | Selection interface, authorization recheck timing and concurrent scope changes TBD. |
 | BR-040 | Deactivate a product only when every inventory in its business has zero physical stock, including quarantined units. | FR-001, FR-004, FR-007, NFR-003 | Exact remaining-stock resolution workflow, cross-inventory consistency and concurrent stock changes TBD. |
 | BR-041 | Reject a byte-identical CSV file previously imported successfully for the same inventory. Duplicate identity is inventory-scoped and compares exact file bytes, not semantically equivalent records. | FR-006, NFR-003 | Comparison/retention mechanism and concurrent-upload safeguards TBD. |
+| BR-042 | Use Django-based email and password authentication for Manager and Staff users. | FR-007, NFR-001, NFR-002 | Email identity/case policy, password policy, authentication rate limiting and initial Manager credential setup TBD. |
+| BR-043 | Managers securely invite Staff by email; invitees set their own passwords. Preserve inventory assignment restrictions. | FR-007, NFR-001, NFR-002 | Email delivery, invitation token lifetime/reuse mechanics and assignment timing TBD; BR-027 scope remains binding. |
+| BR-044 | Support time-limited, single-use password reset links. | FR-007, NFR-002 | Expiry duration, email delivery, account-enumeration response and token invalidation mechanism TBD. |
+| BR-045 | Use server-managed sessions, HttpOnly cookies, HTTPS and CSRF protection. | FR-007, NFR-001, NFR-002, NFR-009 | Session timeout, logout/deactivation invalidation mechanics, cookie settings beyond HttpOnly and free staging HTTPS/email feasibility TBD. |
 
-These approvals do not select a data schema, architecture, frontend or hosting provider. BR-012–BR-025 were supplied as supplementary owner approvals and are recorded with a documentation date, not an invented original approval timestamp. BR-042 onward remain unapproved. Earlier draft labels RD-01–RD-03 referred to BR-001–BR-003. Proposed acceptance examples are verification plans, not executed tests.
+These approvals do not select a data schema, architecture, frontend or hosting provider. BR-012–BR-025 were supplied as supplementary owner approvals and are recorded with a documentation date, not an invented original approval timestamp. BR-046 onward remain unapproved. Earlier draft labels RD-01–RD-03 referred to BR-001–BR-003. Proposed acceptance examples are verification plans, not executed tests.
