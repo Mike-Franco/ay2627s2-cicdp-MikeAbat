@@ -54,7 +54,24 @@ The owner approved [BR-001–BR-045](OWNER_REQUIREMENTS_DECISIONS.md); BR-012–
 - Keep risk scores provisional; P1 did not approve risk tolerances or contingency decisions.
 - Preserve the test evidence distinction: 14 recorded, 15 test methods in the reviewed PoC source, 16/16 owner-reported but unverified. Do not claim formal Testing completion.
 
-## 5. Requirements exit checklist
+## 5. Requirements gate-readiness checklist
+
+The [gap analysis](REQUIREMENTS_GAP_ANALYSIS.md) audits BR-001–BR-045, FR-001–FR-012 and NFR-001–NFR-011. It records **10 blocking, 8 conditional and 2 nonblocking open gaps**. Suggested defaults are proposals, not owner decisions; a gap remains open until the owner records a resolution or a bounded deferral with an owner, target stage and testable outcome. The later 1 November NFR-010 decision selects GitHub Actions for PR Django/PostgreSQL tests; dated Planning and ADR language calling the CI provider a candidate is historical. SRS §2.2 should clarify that its excluded detailed pipeline choice is workflow design, not the approved CI service.
+
+### Deterministic behavior and acceptance
+
+- [ ] G-01–G-04: Owner dispositions define tied FEFO/FIFO order, quarantine state/audit semantics, non-expiry positive CSV receiving, and a bounded `sku,change` parsing/validation contract. No additional CSV columns are assumed.
+- [ ] G-05–G-06 and G-09: Deactivation has a permitted zero-stock resolution path or explicit guarded deferral; seven-day observation coverage is demonstrable; committed inventory actions have testable audit coverage and attribution.
+- [ ] G-07–G-08: Invitation/reset/session/rate policies and the p95 benchmark envelope have measurable criteria or explicit bounded deferrals.
+- [ ] G-11–G-13, G-16–G-17: Concurrency, whole-unit/packaging boundary, assignment and catalogue scope, SKU/price/settings behavior, and available-to-issue/reorder inputs have recorded owner dispositions.
+
+### Feasibility, traceability and stage control
+
+- [ ] G-10/G-14/G-15: Owner acknowledges the S$0 feasibility risk; backup/restore, email, HTTPS Django/PostgreSQL staging and GitHub Actions PostgreSQL PR checks have evidence plans and named Design-exit decisions. No hosting provider is presumed viable.
+- [ ] G-15: SRS pipeline wording is reconciled with approved GitHub Actions NFR-010 while preserving the older Planning/ADR records as dated history.
+- [ ] G-18: Effort and 27 November gate forecast are reviewed against 10–15 hours/week; any schedule or scope change follows formal change control.
+- [ ] G-19/G-20: Proposed usability/feedback criteria are explicitly accepted or deferred, and PoC 14/15/16 evidence remains accurately labelled.
+- [ ] Each gap disposition, especially any deferral of a blocking item, names the responsible role, target stage, required verification evidence and owner acceptance. A suggested default alone closes nothing.
 
 Requirements exit remains pending until all are completed and explicitly approved by the owner:
 
