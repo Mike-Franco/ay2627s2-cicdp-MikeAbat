@@ -58,6 +58,8 @@ The owner approved [BR-001–BR-045](OWNER_REQUIREMENTS_DECISIONS.md); BR-012–
 
 The [gap analysis](REQUIREMENTS_GAP_ANALYSIS.md) audits BR-001–BR-045, FR-001–FR-012 and NFR-001–NFR-011. It records **10 blocking, 8 conditional and 2 nonblocking open gaps**. Suggested defaults are proposals, not owner decisions; a gap remains open until the owner records a resolution or a bounded deferral with an owner, target stage and testable outcome. The later 1 November NFR-010 decision selects GitHub Actions for PR Django/PostgreSQL tests; dated Planning and ADR language calling the CI provider a candidate is historical. SRS §2.2 should clarify that its excluded detailed pipeline choice is workflow design, not the approved CI service.
 
+The [draft batch-integrity owner decision package](BATCH_INTEGRITY_OWNER_DECISIONS.md) presents options and proposed acceptance examples for **G-01, G-02 and G-09**. All three remain blocking and **PENDING owner decision**; this link does not approve their recommended options or change the gap counts.
+
 ### Deterministic behavior and acceptance
 
 - [ ] G-01–G-04: Owner dispositions define tied FEFO/FIFO order, quarantine state/audit semantics, non-expiry positive CSV receiving, and a bounded `sku,change` parsing/validation contract. No additional CSV columns are assumed.
@@ -89,6 +91,7 @@ Requirements exit remains pending until all are completed and explicitly approve
 ## 6. Review and evidence references
 
 - [SRS](SOFTWARE_REQUIREMENTS_SPECIFICATION.md)
+- [Draft Batch Integrity Owner Decisions](BATCH_INTEGRITY_OWNER_DECISIONS.md)
 - [Role Permission Matrix](ROLE_PERMISSION_MATRIX.md)
 - [Business Rules and Edge Cases](BUSINESS_RULES_AND_EDGE_CASES.md)
 - [Traceability Matrix](REQUIREMENTS_TRACEABILITY_MATRIX.md)
