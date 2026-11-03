@@ -35,7 +35,7 @@ The repository retains its course-workspace name, `ay2627s2-cicdp-MikeAbat`; Tor
 
 ## Development workflow
 
-Use a minimal Kanban board: **To do → In progress → Review/Test → Done**, with a **work-in-progress limit of one item in In progress**. Prioritize stock correctness, then dependent security and delivery risks. Each Jira issue should cite relevant BR/FR/NFR and G-gap references, state acceptance criteria, and link its implementation pull request and automated test evidence when available. **No Jira issues or board are claimed to have been created.** Review changes in small pull requests and update living requirements/traceability evidence without rewriting historical approvals. See [ADR-002](docs/decisions/ADR-002-agile-kanban-delivery.md) and the [schedule](docs/planning/PROJECT_SCHEDULE.md).
+Use a minimal Kanban board: **To do → In progress → Review/Test → Done**, with a **work-in-progress limit of one item in In progress**. Prioritize stock correctness, then dependent security and delivery risks. Each Jira issue should cite relevant BR/FR/NFR and G-gap references, state acceptance criteria, and link its implementation pull request and automated test evidence when available. The project uses a Jira Kanban board under project key TORY to track implementation tasks, reviews, testing, and delivery. Jira statuses are updated as work progresses, with a work-in-progress limit of one active task. Review changes in small pull requests and update living requirements/traceability evidence without rewriting historical approvals. See [ADR-002](docs/decisions/ADR-002-agile-kanban-delivery.md) and the [schedule](docs/planning/PROJECT_SCHEDULE.md).
 
 ## Documentation CI
 
