@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Inventories · Tory{% endblock %}
+{% block content %}
+<h1>Your inventories</h1>
+{% if inventories %}
+  <ul class="list-group">{% for inventory in inventories %}<li class="list-group-item"><a href="{% url 'inventory-detail' inventory.pk %}">{{ inventory.name }}</a></li>{% endfor %}</ul>
+{% else %}
+  <p>No inventories are assigned to your account.</p>
+{% endif %}
+{% endblock %}

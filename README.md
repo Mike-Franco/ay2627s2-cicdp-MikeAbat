@@ -52,3 +52,9 @@ Run `.venv\Scripts\python manage.py check`, `.venv\Scripts\python manage.py migr
 ## Local sign-in increment
 
 Run the same migrations and tests above against PostgreSQL, then start `python manage.py runserver`. The sign-in page is at `/login/`; successful sign-in opens the authenticated home page at `/`. Sign-out is a CSRF-protected POST from that page. Email identity is unique and case-insensitive under the 3 November TORY-10 owner clarification. This increment has no account-creation route or Manager/Staff/inventory assignment; initial Manager provisioning remains an owner decision. Use only disposable test accounts in local development. The login tests cover PostgreSQL-backed throttling and server-checked session expiry; they do not establish hosted security, email delivery or stock-feature acceptance. Review TLS termination and proxy IP handling before staging.
+
+## Inventory access foundation
+
+TORY-12 adds business-scoped Manager/Staff memberships and explicit inventory assignments. After signing in, `/inventories/` lists only active assigned inventories; `/inventories/<id>/` returns 404 for an unassigned or other-business inventory. Roles alone grant no inventory access. There is no business, membership or assignment setup UI; initial Manager provisioning and assignment lifecycle/timing remain open under G-13, and concurrent assignment changes remain a G-11 Design dependency.
+
+The implemented authorization relationships and PostgreSQL same-business integrity guard are shown in the [TORY authorization ERD](docs/design/ERD.md). It covers only the current auth/business/inventory foundation; product and stock tables remain future work.

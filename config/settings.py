@@ -36,6 +36,7 @@ if DJANGO_ENV in {"staging", "production"}:
 
 INSTALLED_APPS = [
     "accounts",
+    "inventory_access",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
