@@ -6,6 +6,7 @@
 **Lifecycle:** Waterfall: Planning, Requirements, Design, Implementation, Testing, Deployment  
 **Planning baseline:** 29 October 2026  
 **Status:** Approved by project owner on 29 October 2026.
+**Subsequent methodology amendment:** Agile Kanban for remaining work, owner-approved 3 November 2026; see [ADR-002](../decisions/ADR-002-agile-kanban-delivery.md). The Waterfall lifecycle and stage wording below record the original Planning baseline.
 
 ## Business problem
 
@@ -109,3 +110,9 @@ Detailed deliverable formats and assessor requirements: TBD.
 ## Approval record
 
 The project owner approved this charter on **29 October 2026**, including its high-level scope, exclusions, deliverables and proposed success-criteria framing. The success criteria remain proposals for elaboration and formal acceptance in the Requirements-stage SRS. Stakeholder identities, cost/service feasibility, schedule estimates and other items marked TBD remain unresolved; charter approval does not constitute full Planning-stage sign-off or approval to transition stages. The accepted backend decision is recorded separately in [ADR-001](../decisions/ADR-001-backend-and-database.md).
+
+## Subsequent methodology amendment — 3 November 2026
+
+The project owner adopted lightweight Agile Kanban for **remaining delivery** on 3 November 2026, as recorded in [ADR-002](../decisions/ADR-002-agile-kanban-delivery.md). Work now proceeds in small, reviewed increments using To do, In progress, Review/Test and Done, with one item in progress. The [current schedule](PROJECT_SCHEDULE.md) supersedes the future sequential stage dates; the original dates and sign-off language remain dated historical evidence. Resolve an open gap before work that depends on it; an unrelated open gap does not prevent independent implementation.
+
+This amendment changes the **delivery method only**. The approved scope, SGD 0 ceiling, Django 5.2 LTS/PostgreSQL choice, business rules, permissions and owner requirements decisions remain authoritative. Django templates remain a frontend candidate, not a selection. The complete SRS, Requirements exit, Design entry and any other pending review were **not retroactively approved**. Hosting, risk deferrals and unfinished requirements still require their own evidence and decisions.
