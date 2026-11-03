@@ -1,6 +1,11 @@
-"""URL configuration; feature routes will arrive in later increments."""
+"""Minimal authentication routes."""
 
 from django.urls import path
 
+from accounts import views
 
-urlpatterns = []
+urlpatterns = [
+    path("", views.home, name="home"),
+    path("login/", views.login_view, name="login"),
+    path("logout/", views.logout_view, name="logout"),
+]

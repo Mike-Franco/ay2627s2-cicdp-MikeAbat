@@ -19,10 +19,10 @@ class PostgreSQLSmokeTests(TestCase):
     def test_orm_writes_and_reads(self):
         self.assertEqual(connection.vendor, "postgresql")
         user = get_user_model().objects.create_user(
-            username="tory_smoke_user", password="test-only-password"
+            email="smoke@example.test", password="test-only-password"
         )
         self.assertEqual(
-            get_user_model().objects.get(pk=user.pk).username, "tory_smoke_user"
+            get_user_model().objects.get(pk=user.pk).email, "smoke@example.test"
         )
 
     def test_fresh_test_database_applies_standard_migrations(self):
