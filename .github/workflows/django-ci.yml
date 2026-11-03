@@ -50,5 +50,5 @@ jobs:
         run: python manage.py migrate --noinput
       - name: Run Django system checks
         run: python manage.py check
-      - name: Run PostgreSQL-backed smoke tests
+      - name: Run PostgreSQL-backed Django tests
         run: python manage.py test --verbosity 2

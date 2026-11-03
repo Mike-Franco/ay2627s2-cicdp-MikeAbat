@@ -35,12 +35,14 @@ if DJANGO_ENV in {"staging", "production"}:
         raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be explicit outside development/test")
 
 INSTALLED_APPS = [
+    "accounts",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -92,5 +94,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # require explicit hostnames, TLS/proxy review, secure cookies, and secret storage.
 SESSION_COOKIE_SECURE = DJANGO_ENV in {"staging", "production"}
 CSRF_COOKIE_SECURE = DJANGO_ENV in {"staging", "production"}
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 8 * 60 * 60
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = DJANGO_ENV in {"staging", "production"}
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
