@@ -48,6 +48,8 @@ The owner approved [BR-001–BR-045](OWNER_REQUIREMENTS_DECISIONS.md); BR-012–
 
 The [stock-resolution and demand-coverage owner decision package](STOCK_DEMAND_GAP_OWNER_DECISIONS.md) records **owner-approved G-05/G-06 Option A on 3 November 2026**. G-05 still blocks SRS acceptance for physically present damaged goods outside quarantine and returned goods without approved movement category; owner disposition or a justified bounded exception is required. G-06 observable behaviour is resolved, with Design verification open. Catalogue authority (G-13), concurrency mechanism (G-11) and other open gaps remain pending.
 
+The [G-10 zero-cost staging feasibility draft](DEPLOYMENT_FEASIBILITY_GAP_OWNER_DECISIONS.md) compares published free-service terms with the account, integration, backup/restore and no-charge evidence still required. Its provider paths and bounded-deferral recommendation are **PROPOSED, NOT APPROVED**; G-10 remains **PENDING OWNER DECISION / FEASIBILITY EVIDENCE — BLOCKING**. No hosted staging, email delivery, backup, restore, or application CI result is claimed.
+
 ## 4. Planning conditions carried into Requirements
 
 - Keep the approved scope and exclusions intact; no silent reduction to compensate for schedule risk.
