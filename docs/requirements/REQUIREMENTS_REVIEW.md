@@ -67,6 +67,8 @@ The [CSV owner decision package](CSV_GAP_OWNER_DECISIONS.md) records **owner-app
 
 The [G-05/G-06 owner decision package](STOCK_DEMAND_GAP_OWNER_DECISIONS.md) records approved Option A and deterministic acceptance criteria, dated 3 November 2026. G-05 retains one blocking physical-stock disposition exception; G-06 Requirements behaviour is resolved and needs Design verification. Neither approval changes the pending complete SRS, Requirements exit or Design entry.
 
+The [draft G-07/G-08 security and performance owner decision package](SECURITY_PERFORMANCE_GAP_OWNER_DECISIONS.md) compares invitation/reset/session/abuse policies and reproducible benchmark envelopes. All new durations, limits, workloads and the recommended options are **PROPOSED, NOT APPROVED**. Both gaps remain **PENDING OWNER DECISION — BLOCKING**; the approved NFR-006 p95 limits and the SRS/Waterfall gate statuses are unchanged.
+
 ### Deterministic behavior and acceptance
 
 - [ ] G-01–G-04: Verify approved tied FEFO/FIFO, G-03 non-expiry positive CSV receipt ordering and G-04 strict contract/limits in Design; owner disposition sets G-02 maximum evidence-recording delay. No additional CSV columns are assumed.
