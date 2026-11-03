@@ -12,9 +12,9 @@ Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provi
 - **Budget:** SGD 0
 - **Available project time:** 10–15 hours per week
 - **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
-- **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. No Tory application implementation is present in this repository.
+- **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. The first Django/CI smoke-test scaffold is present; product features have not been implemented.
 
-The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). GitHub Actions is approved for pull-request Django tests against PostgreSQL under NFR-010; the application workflow has not been implemented. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
+The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). The [Django/PostgreSQL CI workflow](.github/workflows/django-ci.yml) is configured for pull requests to `develop` and `main`; hosted red/green run evidence is **pending**. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
 
 ## Repository and Tory-PoC
 
@@ -41,4 +41,10 @@ Use a minimal Kanban board: **To do → In progress → Review/Test → Done**, 
 
 The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes to `main` and `develop` and pull requests targeting either branch. It uses a read-only GitHub token, a pinned checkout action, a five-minute job timeout and no paid tools. The [checker](scripts/check_docs.py) uses only Python's standard library. Its small ruleset requires UTF-8 Markdown, one level-one heading at the start of each document, a final newline, no tab characters, no merge-conflict markers in checked text files, and the listed key project documents. It permits existing two-space Markdown line breaks and does not reformat approved Planning records. It is not a secrets scan or proof that the documents contain no secrets.
 
-Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main` or `develop`, check **Actions → Documentation CI → Check documentation** for the intended commit. The approved GitHub Actions Django/PostgreSQL pull-request test gate is separate and remains to be implemented when Tory application code exists.
+Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main` or `develop`, check **Actions → Documentation CI → Check documentation** for the intended commit. The Django/PostgreSQL workflow is separate; its GitHub pass/fail behavior still needs PR evidence.
+
+## Local Django smoke checks
+
+Create a virtual environment and install the pinned dependencies: `python -m venv .venv`, then `.venv\Scripts\python -m pip install -r requirements.txt` on Windows (use `.venv/bin/python` on Unix). Set the variables shown in [.env.example](.env.example) in your shell; Django does **not** load that file automatically. Create a local PostgreSQL database and role with permission to create a test database. A PostgreSQL server is required for every Django command here; there is **no SQLite fallback**.
+
+Run `.venv\Scripts\python manage.py check`, `.venv\Scripts\python manage.py migrate --noinput`, then `.venv\Scripts\python manage.py test --verbosity 2` (substitute the Unix interpreter path where needed). The tests use Django's built-in auth model for an ORM write/read and inspect migrations on a newly created PostgreSQL test database. These are framework smoke checks, not stock-feature acceptance tests. Use unique secrets and reviewed TLS, host and proxy settings for staging/production; local or CI-only values must never be deployed. The CI PostgreSQL service uses disposable test credentials only.
