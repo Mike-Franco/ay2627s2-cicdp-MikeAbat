@@ -30,11 +30,3 @@ class PostgreSQLSmokeTests(TestCase):
         applied = MigrationRecorder(connection).applied_migrations()
         self.assertIn(("auth", "0001_initial"), applied)
         self.assertIn(("contenttypes", "0001_initial"), applied)
-
-class IntentionalFailureTest(SimpleTestCase):
-    def test_ci_detects_failure(self):
-        self.assertEqual(
-            1,
-            2,
-            "TORY-8 intentional failure for CI verification",
-        )
