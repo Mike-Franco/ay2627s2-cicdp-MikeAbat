@@ -2,7 +2,7 @@
 
 *Inventory made simple.*
 
-Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provide explainable demand forecasts. This project is developed by one person with Codex assistance and follows six Waterfall stages: Planning, Requirements, Design, Implementation, Testing, and Deployment.
+Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provide explainable demand forecasts. One developer works with Codex assistance. The project owner adopted [lightweight Agile Kanban](docs/decisions/ADR-002-agile-kanban-delivery.md) for remaining delivery on **3 November 2026**. Earlier Planning and Requirements records retain their dated Waterfall context.
 
 ## Approved baseline
 
@@ -10,10 +10,10 @@ Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provi
 - **Database:** PostgreSQL
 - **Budget:** SGD 0
 - **Available project time:** 10–15 hours per week
-- **Deadline:** 27 November 2026
-- **Status:** Planning exit (P1) was approved with conditions on 29 October 2026. Entry to Requirements is authorised; Requirements exit and approval of the detailed requirements are still pending.
+- **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
+- **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. No Tory application implementation is present in this repository.
 
-The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md). Frontend, application architecture, hosting, deployment topology, and detailed CI/CD choices have not been approved. Candidate services in the planning documents are research candidates only.
+The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md). GitHub Actions is approved for pull-request Django tests against PostgreSQL under NFR-010; the application workflow has not been implemented. Django templates are a **frontend candidate, not selected**. Application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
 
 ## Repository and Tory-PoC
 
@@ -21,9 +21,9 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 
 ## Documentation
 
-- [Planning](docs/planning/): approved charter, schedule, risk register, feasibility assessment, review, owner decisions, and P1 gate record.
-- [Requirements](docs/requirements/): draft business rules, role permissions, traceability, review, and SRS materials. Requirements exit has not been approved.
-- [Decisions](docs/decisions/): accepted architecture and technology decision records; ADR-001 accepts Django 5.2 LTS and PostgreSQL as the Planning backend baseline.
+- [Planning](docs/planning/): original approved charter/P1 evidence, feasibility and risks, and the [current incremental schedule with original baseline retained](docs/planning/PROJECT_SCHEDULE.md).
+- [Requirements](docs/requirements/): owner-approved individual rules and decisions, living gap analysis, role permissions and traceability, plus the complete SRS awaiting approval. A pending gap is addressed before its dependent feature; unrelated gaps do not block all implementation.
+- [Decisions](docs/decisions/): ADR-001 preserves the backend choice; ADR-002 records the prospective Agile Kanban methodology decision.
 - [Technology evaluation](docs/TECHNOLOGY_EVALUATION.md): comparative assessment and remaining evidence caveats.
 - [PoC evidence](docs/POC_RESULTS.md), [technical feasibility](docs/TECHNICAL_FEASIBILITY.md), and [PoC handover](docs/POC_HANDOVER.md): historical experiment reports and limitations.
 - [Documentation provenance](docs/SOURCE_PROVENANCE.md): source workspace, transfer scope, and evidence boundary.
@@ -32,8 +32,12 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 
 The repository retains its course-workspace name, `ay2627s2-cicdp-MikeAbat`; Tory is the project documented within it. Course: Singapore Polytechnic ST0529 CA1.
 
+## Development workflow
+
+Use a minimal Kanban board: **To do → In progress → Review/Test → Done**, with a **work-in-progress limit of one item in In progress**. Prioritize stock correctness, then dependent security and delivery risks. Each Jira issue should cite relevant BR/FR/NFR and G-gap references, state acceptance criteria, and link its implementation pull request and automated test evidence when available. **No Jira issues or board are claimed to have been created.** Review changes in small pull requests and update living requirements/traceability evidence without rewriting historical approvals. See [ADR-002](docs/decisions/ADR-002-agile-kanban-delivery.md) and the [schedule](docs/planning/PROJECT_SCHEDULE.md).
+
 ## Documentation CI
 
-The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes and pull requests targeting `main`. It uses a read-only GitHub token, a pinned checkout action, a five-minute job timeout and no paid tools. The [checker](scripts/check_docs.py) uses only Python's standard library. Its small ruleset requires UTF-8 Markdown, one level-one heading at the start of each document, a final newline, no tab characters, no merge-conflict markers in checked text files, and the listed key project documents. It permits existing two-space Markdown line breaks and does not reformat approved Planning records. It is not a secrets scan or proof that the documents contain no secrets.
+The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes to `main` and `develop` and pull requests targeting either branch. It uses a read-only GitHub token, a pinned checkout action, a five-minute job timeout and no paid tools. The [checker](scripts/check_docs.py) uses only Python's standard library. Its small ruleset requires UTF-8 Markdown, one level-one heading at the start of each document, a final newline, no tab characters, no merge-conflict markers in checked text files, and the listed key project documents. It permits existing two-space Markdown line breaks and does not reformat approved Planning records. It is not a secrets scan or proof that the documents contain no secrets.
 
-Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main`, open the repository's **Actions** tab, select **Documentation CI**, and check that **Check documentation** passes for the intended commit. Django/PostgreSQL application checks are planned for a later stage when Tory application code exists; this documentation workflow does not approve a CI provider for the final application pipeline.
+Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main` or `develop`, check **Actions → Documentation CI → Check documentation** for the intended commit. The approved GitHub Actions Django/PostgreSQL pull-request test gate is separate and remains to be implemented when Tory application code exists.
