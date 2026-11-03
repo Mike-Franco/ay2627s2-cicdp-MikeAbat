@@ -7,13 +7,14 @@ Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provi
 ## Approved baseline
 
 - **Backend:** Django 5.2 LTS
+- **Frontend:** Django Templates + Bootstrap, with small amounts of JavaScript where useful ([ADR-003](docs/decisions/ADR-003-frontend-architecture.md))
 - **Database:** PostgreSQL
 - **Budget:** SGD 0
 - **Available project time:** 10–15 hours per week
 - **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
 - **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. No Tory application implementation is present in this repository.
 
-The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md). GitHub Actions is approved for pull-request Django tests against PostgreSQL under NFR-010; the application workflow has not been implemented. Django templates are a **frontend candidate, not selected**. Application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
+The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). GitHub Actions is approved for pull-request Django tests against PostgreSQL under NFR-010; the application workflow has not been implemented. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
 
 ## Repository and Tory-PoC
 
