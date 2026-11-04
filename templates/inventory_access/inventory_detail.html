@@ -3,5 +3,6 @@
 {% block content %}
 <h1>{{ inventory.name }}</h1>
 <p>Business: {{ inventory.business.name }}</p>
+<a href="{% url 'inventory-products' inventory.pk %}">View products for this inventory</a>
 <a href="{% url 'inventory-list' %}">Back to inventories</a>
 {% endblock %}

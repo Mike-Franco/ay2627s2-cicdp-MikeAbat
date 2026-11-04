@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Product catalogue · Tory{% endblock %}
+{% block content %}
+<h1>Product catalogue</h1>
+{% if product_links %}
+  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {{ link.inventory.name }}</span></li>{% endfor %}</ul>
+{% else %}
+  <p>No products are linked to your authorised inventories.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ inventory.name }} products · Tory{% endblock %}
+{% block content %}
+<h1>Products in {{ inventory.name }}</h1>
+{% if product_links %}
+  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><strong>{{ link.product.sku }}</strong> — {{ link.product.name }}{% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}{% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}</li>{% endfor %}</ul>
+{% else %}
+  <p>No products are linked to this inventory.</p>
+{% endif %}
+<a href="{% url 'inventory-detail' inventory.pk %}">Back to inventory</a>
+{% endblock %}
