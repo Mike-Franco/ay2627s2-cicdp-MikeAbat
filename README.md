@@ -57,4 +57,8 @@ Run the same migrations and tests above against PostgreSQL, then start `python m
 
 TORY-12 adds business-scoped Manager/Staff memberships and explicit inventory assignments. After signing in, `/inventories/` lists only active assigned inventories; `/inventories/<id>/` returns 404 for an unassigned or other-business inventory. Roles alone grant no inventory access. There is no business, membership or assignment setup UI; initial Manager provisioning and assignment lifecycle/timing remain open under G-13, and concurrent assignment changes remain a G-11 Design dependency.
 
-The implemented authorization relationships and PostgreSQL same-business integrity guard are shown in the [TORY authorization ERD](docs/design/ERD.md). It covers only the current auth/business/inventory foundation; product and stock tables remain future work.
+The implemented authorization and catalogue relationships and PostgreSQL same-business integrity guards are shown in the [Tory ERD](docs/design/ERD.md). It covers the current auth/business/inventory/product foundation; stock and forecast tables remain future work.
+
+## Product catalogue foundation
+
+TORY-13 adds a shared business-owned product catalogue and an inventory-product association. `/catalogue/` and `/inventories/<id>/products/` are read-only and show only products linked to inventories the signed-in user may access. Lead time and safety stock are stored per shared product; the optional inventory-specific selling-price slot has provisional numeric storage only and is not displayed as a currency. Product creation/edit/deactivation UI is deferred while G-12/G-13/G-16 authority and format questions remain unresolved. No stock, batch, CSV or forecast workflow is implemented.
