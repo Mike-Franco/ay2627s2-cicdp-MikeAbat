@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Receipt recorded · Tory{% endblock %}
+{% block content %}
+<h1>Receipt recorded</h1>
+<p>Receipt ID: <code>{{ batch.pk }}</code></p>
+<dl class="row">
+  <dt class="col-sm-3">Product</dt><dd class="col-sm-9">{{ batch.product.sku }} — {{ batch.product.name }}</dd>
+  <dt class="col-sm-3">Inventory</dt><dd class="col-sm-9">{{ batch.inventory.name }}</dd>
+  <dt class="col-sm-3">Quantity</dt><dd class="col-sm-9">{{ batch.quantity_units }} {{ batch.unit_label_snapshot }}</dd>
+  <dt class="col-sm-3">Expiry</dt><dd class="col-sm-9">{{ batch.expiry_date|default:"Undated" }}</dd>
+  <dt class="col-sm-3">Receipt sequence</dt><dd class="col-sm-9">{{ batch.receipt_sequence }}</dd>
+  <dt class="col-sm-3">Recorded by</dt><dd class="col-sm-9">{{ batch.actor.email }}</dd>
+  <dt class="col-sm-3">Recorded at</dt><dd class="col-sm-9">{{ batch.received_at }}</dd>
+</dl>
+<p class="text-muted">This receipt is recorded as non-demand.</p>
+<a class="btn btn-secondary" href="{% url 'inventory-products' batch.inventory_id %}">Back to products</a>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Receive {{ product.sku }} · Tory{% endblock %}
+{% block content %}
+<h1>Receive stock</h1>
+<p>Inventory: {{ inventory.name }}</p>
+<p>Product: <strong>{{ product.sku }} — {{ product.name }}</strong></p>
+{% if setup_required %}
+  <div class="alert alert-warning" role="status">Receiving is not configured. An operator must set the product's base-unit label and expiry policy before its first receipt.</div>
+{% else %}
+  <p>Quantity is measured in <strong>{{ product.base_unit_label }}</strong> (whole units only).</p>
+  {% if product.expiry_tracking_required %}
+    <p>Expiry date is required and must be later than today's Singapore date.</p>
+  {% else %}
+    <p>Expiry date is optional. If supplied, it must be later than today's Singapore date.</p>
+  {% endif %}
+{% endif %}
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.request_token }}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form.visible_fields %}
+    <div class="mb-3">
+      <label class="form-label" for="{{ field.id_for_label }}">{% if field.name == "quantity_units" %}Quantity ({{ product.base_unit_label|default:"base units" }}){% else %}Expiry date{% endif %}</label>
+      {{ field }}
+      {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  {% if not setup_required %}<button class="btn btn-primary" type="submit">Record receipt</button>{% endif %}
+</form>
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}
