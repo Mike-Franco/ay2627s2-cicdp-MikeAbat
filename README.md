@@ -12,7 +12,7 @@ Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provi
 - **Budget:** SGD 0
 - **Available project time:** 10–15 hours per week
 - **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
-- **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. The Django/CI scaffold and a minimal sign-in/sign-out foundation are present; inventory, CSV and forecast features are not implemented.
+- **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. The Django/CI scaffold, sign-in, inventory authorization/catalogue foundation and TORY-16 manual receiving are present; stock-out allocation, CSV and forecast features are not implemented.
 
 The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). The [Django/PostgreSQL CI workflow](.github/workflows/django-ci.yml) runs on pull requests to `develop` and `main`. The controlled failure and correction commits (`d92d838`, `e0a5b0f`) were merged in PR #20; their hosted run URLs are not recorded in this repository. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
 
@@ -61,4 +61,10 @@ The implemented authorization and catalogue relationships and PostgreSQL same-bu
 
 ## Product catalogue foundation
 
-TORY-13 adds a shared business-owned product catalogue and an inventory-product association. `/catalogue/` and `/inventories/<id>/products/` are read-only and show only products linked to inventories the signed-in user may access. Lead time and safety stock are stored per shared product; the optional inventory-specific selling-price slot has provisional numeric storage only and is not displayed as a currency. Product creation/edit/deactivation UI is deferred while G-12/G-13/G-16 authority and format questions remain unresolved. No stock, batch, CSV or forecast workflow is implemented.
+TORY-13 adds a shared business-owned product catalogue and an inventory-product association. `/catalogue/` and `/inventories/<id>/products/` are read-only and show only products linked to inventories the signed-in user may access. Lead time and safety stock are stored per shared product; the optional inventory-specific selling-price slot has provisional numeric storage only and is not displayed as a currency. General catalogue creation/edit/deactivation UI remains deferred while G-13/G-16 questions remain unresolved.
+
+## Manual receiving increment
+
+TORY-16 adds a protected POST + CSRF manual receiving form from an authorized inventory's product list. Manager and Staff can receive an active, linked product only into an active inventory to which they have an active same-business assignment. A product must first have explicit receiving setup; an operator may initialize an unconfigured product with `.venv\Scripts\python manage.py configure_receiving PRODUCT_ID --base-unit-label each --expiry-tracking-required false` (use the equivalent Unix virtual-environment path). Existing products migrate active and unconfigured. The command is not a catalogue UI or a business-role privilege.
+
+The receipt, request token, per-inventory physical balance, committed sequence and one non-demand audit event are atomic in PostgreSQL. Same-token retries return the original receipt only after current authorization is rechecked. The [ERD](docs/design/ERD.md) documents implemented receipt entities and PostgreSQL guards. Stock-out allocation, expiry transition evidence, disposal, CSV receiving, forecasting and hosted staging remain unimplemented; G-02/G-05/G-09 and G-10 dependencies remain open. Local test results do not establish GitHub CI or hosted staging feasibility.

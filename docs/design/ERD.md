@@ -1,6 +1,6 @@
-# Tory Authorization and Catalogue ERD
+# Tory Authorization, Catalogue and Receiving ERD
 
-**Scope:** Implemented TORY-10, TORY-12 and TORY-13 structures only. This is not the complete Tory product schema or approval of unresolved G-12/G-13/G-16 policy.
+**Scope:** Implemented TORY-10, TORY-12, TORY-13 and TORY-16 structures. Stock-out, expiry transition, disposal, CSV and forecasting entities remain future work; this is not the complete Tory data model or approval of the SRS/Design gate.
 
 ## Implemented entities
 
@@ -14,6 +14,15 @@ erDiagram
     INVENTORY ||--o{ INVENTORY_ASSIGNMENT : has_assignments
     PRODUCT ||--o{ INVENTORY_PRODUCT : linked_to
     INVENTORY ||--o{ INVENTORY_PRODUCT : lists
+    USER ||--o{ RECEIVING_BATCH : records
+    PRODUCT ||--o{ RECEIVING_BATCH : received_as
+    INVENTORY ||--o{ RECEIVING_BATCH : receives
+    INVENTORY_PRODUCT ||--o{ RECEIVING_BATCH : orders
+    RECEIVING_BATCH ||--|| RECEIPT_AUDIT_EVENT : evidenced_by
+    USER ||--o{ RECEIPT_AUDIT_EVENT : attributed_to
+    BUSINESS ||--o{ RECEIPT_AUDIT_EVENT : scopes
+    INVENTORY ||--o{ RECEIPT_AUDIT_EVENT : scopes
+    PRODUCT ||--o{ RECEIPT_AUDIT_EVENT : scopes
 
     USER {
         bigint id PK
@@ -51,6 +60,9 @@ erDiagram
         bigint business_id FK
         varchar sku
         text name
+        varchar base_unit_label "nullable until configured"
+        boolean expiry_tracking_required "nullable until configured"
+        boolean is_active
         integer lead_time_days
         integer safety_stock_units
     }
@@ -59,36 +71,74 @@ erDiagram
         bigint inventory_id FK
         bigint product_id FK
         decimal selling_price
+        bigint physical_quantity_units
+        bigint last_receipt_sequence
+    }
+    RECEIVING_BATCH {
+        uuid id PK
+        bigint actor_id FK
+        bigint inventory_id FK
+        bigint product_id FK
+        bigint inventory_product_id FK
+        varchar source
+        uuid request_token
+        varchar input_fingerprint
+        integer quantity_units
+        integer remaining_quantity_units
+        integer quarantined_quantity_units
+        varchar unit_label_snapshot
+        date expiry_date
+        bigint receipt_sequence
+        datetime received_at
+    }
+    RECEIPT_AUDIT_EVENT {
+        bigint id PK
+        uuid batch_id FK_UK
+        bigint actor_id FK
+        bigint business_id FK
+        bigint inventory_id FK
+        bigint product_id FK
+        varchar source
+        varchar action
+        varchar classification
+        bigint quantity_before_units
+        integer quantity_change_units
+        bigint quantity_after_units
+        datetime occurred_at
     }
 ```
 
-The diagram matches [accounts.User](../../accounts/models.py), [inventory access models](../../inventory_access/models.py), [catalogue models](../../catalogue/models.py), and migrations [inventory access 0001](../../inventory_access/migrations/0001_initial.py), [inventory access 0002](../../inventory_access/migrations/0002_enforce_assignment_business_match.py), [catalogue 0001](../../catalogue/migrations/0001_initial.py), [catalogue 0002](../../catalogue/migrations/0002_preserve_sku_and_scope_inventory_products.py). `USER` is the existing TORY-10 model. All remaining entities are implemented in TORY-12/TORY-13.
+The diagram matches [accounts.User](../../accounts/models.py), [inventory access models](../../inventory_access/models.py), [catalogue models](../../catalogue/models.py), [receiving models](../../receiving/models.py), and migrations through `catalogue/0005` and `receiving/0005`. Product active and receiving configuration fields were added in TORY-16; legacy Products migrate as active but with base unit and expiry policy unset. No default label or expiry policy is inferred.
 
-## Keys, cardinalities and integrity
+## Keys, constraints and integrity
 
-- Membership references exactly one User and one Business; `(business_id, user_id)` is unique. A user may have multiple business memberships structurally; this is not owner approval of cross-business membership policy (G-13).
-- Inventory references exactly one Business. Product is shared at the Business catalogue level (BR-016). Each Product references one Business.
-- InventoryProduct links exactly one Inventory and one Product; `(inventory_id, product_id)` is unique. It is the per-inventory catalogue association; an association can exist only when the inventory and product belong to the same business.
-- `User.email` remains unique case-insensitively. PostgreSQL also enforces one business-scoped SKU using the unique expression `(business_id, lower(trim(sku)))`.
-- PostgreSQL triggers trim outer SKU whitespace at insert, reject blank SKUs, prevent SKU or owning-business changes, and reject Product deletion. This preserves an assigned SKU on its original Product. There is no product deactivation flag or deactivation workflow in TORY-13.
-- PostgreSQL triggers check inventory/product business equality on InventoryProduct insert/update and prevent changing the business of a linked Product or Inventory. The trigger locks Inventory then Product parent rows before checking so ordinary concurrent links and parent scope changes serialize around the same-business invariant. Django model validation is an additional early check; raw SQL and bulk ORM writes are covered by the triggers.
-- BusinessMembership role values are Django choices `manager` and `staff`, not a PostgreSQL enum/check. Django `User.is_staff` remains the separate admin flag.
-- Existing unique constraints remain: one membership per `(business_id,user_id)` and one inventory assignment per `(membership_id,inventory_id)`.
+- Existing `(business_id,user_id)` membership and `(membership_id,inventory_id)` assignment uniqueness, user email uniqueness, business-scoped case-insensitive SKU uniqueness and `(inventory_id,product_id)` link uniqueness are unchanged.
+- InventoryProduct now stores the physical product/inventory balance (including any future quarantined units) and last committed receipt sequence. Database checks cap the physical balance at 2,147,483,647. Direct ORM/SQL changes to those counters are rejected; inserting a valid batch through the database trigger increments them atomically.
+- InventoryProduct parent identity cannot be reassigned. Its association can only be deleted while it has neither physical units nor receipt history; foreign keys and a trigger retain links referenced by a batch.
+- Product requires an explicit nonblank base-unit label and non-null `expiry_tracking_required` before receipt. `is_active` defaults true, preserving existing product behavior. A receiving batch snapshots the unit label so later presentation does not alter receipt evidence.
+- ReceivingBatch has a stable UUID identity, source, actor, operation-scoped request token, canonical-input SHA-256 fingerprint, whole-unit quantity, expiry, timestamp and sequence. PostgreSQL enforces token uniqueness per `(actor,source,request_token)`, unique `(inventory_product,receipt_sequence)`, positive bounded quantity, and remaining/quarantine bounds. The insert trigger checks active account/membership/assignment/inventory/product, same-business linked association, expiry policy and the aggregate balance; it advances the balance and sequence in the same transaction.
+- ReceiptAuditEvent is one-to-one with a batch. Its database trigger verifies scope, actor, source, batch quantity, non-demand classification and the after-balance against the InventoryProduct aggregate. Checks bound the before/change/after quantities. A deferred constraint trigger rejects commit unless every inserted batch has its event. Update/delete triggers and protected foreign keys prevent erasing or rewriting committed receipt identity and attribution.
+- The request token and batch are one row: validation or audit failure rolls the token back with the batch, balance and sequence. A replay first rechecks current authorization and matching product/link state. A committed replay compares the canonical input fingerprint before checking the current date, so an original receipt remains replayable after its expiry date passes.
 
-Authorization queries in [inventory access authorization](../../inventory_access/authorization.py) establish the allowed inventory scope. [Catalogue authorization](../../catalogue/authorization.py) limits catalogue rows to InventoryProduct links under those inventories. Each catalogue view also uses TORY-10 `protected_view`. A Manager role alone does not grant access to all inventories or all business catalogue data.
+## Lock protocol and authorization
 
-## Settings and provisional storage
+Receipt transactions lock active User, BusinessMembership and InventoryAssignment rows `FOR SHARE`, then Product, Inventory and InventoryProduct `FOR UPDATE`, in that order. Shared authorization locks allow independent receipts to proceed while conflicting account/membership/assignment revocation waits. If revocation commits first, the subsequent locked read rejects; if the receipt obtains the authorization locks first, revocation waits until receipt commit. Product is the cross-inventory serialization anchor; Inventory follows Product to align with the InventoryProduct trigger.
 
-- `lead_time_days` and `safety_stock_units` are on Product, reflecting the approved **per-product** scope in BR-010/BR-015 and the shared business catalogue. Lead time is either unset or a positive whole calendar-day count; safety stock is either unset or a nonnegative whole base-unit count. No maximum is encoded. This is a scope mapping from approved wording, not a new permission or product rule; if the owner interprets these settings as inventory-specific, the data model must change before settings workflows.
-- `selling_price` is on InventoryProduct, preserving BR-018's inventory-specific price distinction. `DecimalField(18,4)` is a **provisional, unapproved storage choice only**. Currency, display scale, precision, range and maintenance permission remain unresolved. The view does not display or edit it as a currency.
-- SKU `CharField(64)` is also a **provisional, unapproved storage bound** because SKU length is open under G-16. The SKU is immutable in this increment to preserve BR-038; rename/alias behavior is deferred pending owner decision. No product create/edit UI is exposed while catalogue authority remains open under G-13.
+TORY-13's former Inventory→Product trigger order was replaced in the reversible `catalogue/0004` migration with Product→Inventory. The receiving insert trigger follows the same parent order. Since an UPDATE locks InventoryProduct before its BEFORE trigger, `receiving/0004` rejects association identity changes instead of risking a link-row→parent-lock cycle against Product→Inventory→link receipt writers. InventoryProduct row locking and its database trigger serialize aggregate updates and sequence allocation. The Product lock serializes same-product receipts across inventories; the association row protects each per-inventory aggregate. Both are held through audit commit/rollback.
 
-## Read-only views and boundaries
+These locks protect only compliant receipt/balance operations and the checked scope rows. They do not implement future stock-out allocation, expiry transitions, disposal, deactivation, CSV import or forecast consistency. Those writers must share/review the lock protocol and maintain audit evidence before they are implemented. Deadlocks and serialization failures are not silently retried; a new attempt must submit the same token and pass current authorization again.
 
-The read-only `/catalogue/` page shows only products linked to inventories the signed-in user may access. `/inventories/<id>/products/` first resolves that inventory through TORY-12 authorization, then lists its linked Products. Neither route displays unlinked business-wide products or price values. No Manager create/edit/deactivate control or Staff write action is added.
+Authorization remains server-side. `receiving.services._lock_authorized_scope` rechecks active account, same-business active membership, explicit active assignment, active inventory/product and linked InventoryProduct inside the transaction. Protected views also use TORY-10 `protected_view`; forms are POST + CSRF; form IDs are never treated as authority. Manager role alone grants no inventory-wide or cross-business access.
 
-Initial Manager provisioning, assignment add/remove lifecycle and effective timing, Staff reactivation and catalogue-wide Manager authority remain unresolved under G-13. SKU character set/length and alias policy remain G-16 questions. Settings maxima, price currency/precision/validation and maintenance workflow remain unresolved. G-12/G-13 decisions must be settled before product mutation or deactivation workflows; BR-040 still requires an atomic all-business physical-stock-zero check before any future deactivation.
+## Provisional and unresolved details
+
+- `base_unit_label` is stored in a 40-character field and validated as nonblank; 40 is a technical storage limit, not a separately approved label-length rule. Packaging conversion remains deferred.
+- InventoryProduct's physical balance is initialized to zero on migration. There were no prior stock quantities in TORY-13 to migrate; no historical balance is fabricated.
+- The operator-only `configure_receiving` command initializes a product's label and expiry policy before first receipt. There is no catalogue configuration UI or new Manager catalogue authority.
+- `remaining_quantity_units` begins equal to receipt quantity and `quarantined_quantity_units` begins at zero. TORY-16 does not change them after receipt. The immutable batch trigger must be deliberately revised alongside future movement/audit logic before stock-out, expiry transition or disposal work.
+- The `source` field currently permits the declared manual/CSV values in model state, but the TORY-16 database insert trigger accepts manual source only. CSV behavior and its use of the same committed ordering remain future work under G-03/G-04.
+- G-02 expiry-boundary evidence delay, G-05 damaged/returned-stock disposition and disposal reason format, G-09 rejected-attempt logging, G-11 broader concurrency, G-13 lifecycle/authority and G-10 hosting feasibility remain open as recorded. Receipt audit is implemented; no other history feature is claimed.
 
 ## Future entities (not implemented)
 
-Receiving batches, stock movements and audit records, CSV import records, demand observation coverage, forecasts and reorder results remain future work. TORY-13 adds no stock quantity, batch, history, CSV, expiry or forecast tables.
+Stock-out movements and allocation rows, expiry transition evidence, disposal/count-adjustment events, CSV import batches, demand-observation coverage, forecasts and reorder results remain future work. Their relationships must extend this ERD when implemented; the current batch's remaining/quarantined columns are not evidence that those workflows exist.

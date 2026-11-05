@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "accounts",
     "inventory_access",
     "catalogue",
+    "receiving",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

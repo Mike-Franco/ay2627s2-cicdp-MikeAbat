@@ -11,6 +11,10 @@ class Product(models.Model):
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="products")
     sku = models.CharField(max_length=64)
     name = models.TextField()
+    # NULL means the legacy product has not had its receiving setup completed.
+    base_unit_label = models.CharField(max_length=40, null=True, blank=True)
+    expiry_tracking_required = models.BooleanField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
     safety_stock_units = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
@@ -22,6 +26,10 @@ class Product(models.Model):
                 condition=Q(lead_time_days__isnull=True) | Q(lead_time_days__gte=1),
                 name="product_lead_time_positive_or_unset",
             ),
+            models.CheckConstraint(
+                condition=Q(base_unit_label__isnull=True) | Q(base_unit_label__regex=r"\S"),
+                name="product_unit_label_nonblank_or_unset",
+            ),
         ]
     lead_time_days = models.PositiveIntegerField(
         null=True, blank=True, validators=[MinValueValidator(1)]
@@ -30,6 +38,8 @@ class Product(models.Model):
     def clean(self):
         super().clean()
         self.sku = self.sku.strip()
+        if self.base_unit_label is not None:
+            self.base_unit_label = self.base_unit_label.strip()
         if not self.sku:
             raise ValidationError({"sku": "SKU is required."})
 
@@ -43,10 +53,16 @@ class InventoryProduct(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="inventory_links")
     # Provisional storage only: currency, scale and precision are not approved.
     selling_price = models.DecimalField(max_digits=18, decimal_places=4, null=True, blank=True)
+    physical_quantity_units = models.PositiveBigIntegerField(default=0)
+    last_receipt_sequence = models.PositiveBigIntegerField(default=0)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["inventory", "product"], name="unique_inventory_product_link")
+            models.UniqueConstraint(fields=["inventory", "product"], name="unique_inventory_product_link"),
+            models.CheckConstraint(
+                condition=Q(physical_quantity_units__lte=2147483647),
+                name="inventory_product_physical_quantity_cap",
+            ),
         ]
 
     def clean(self):
