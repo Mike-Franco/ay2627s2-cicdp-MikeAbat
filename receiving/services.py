@@ -12,6 +12,9 @@ from inventory_access.models import BusinessMembership, Inventory, InventoryAssi
 from .models import MAX_RECEIPT_UNITS, ReceiptAuditEvent, ReceivingBatch
 
 
+EXPIRY_CONSTRAINT_NAME = "receiving_expiry_after_singapore_today"
+
+
 class ReceiptRejected(Exception):
     def __init__(self, field, message):
         self.field = field
@@ -98,6 +101,11 @@ def _is_token_unique_error(error):
     return getattr(getattr(cause, "diag", None), "constraint_name", None) == "unique_actor_receipt_request_token"
 
 
+def _has_constraint(error, name):
+    cause = getattr(error, "__cause__", None)
+    return getattr(getattr(cause, "diag", None), "constraint_name", None) == name
+
+
 def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity_units, expiry_date):
     """Commit a manual receipt, audit, balance and sequence as one operation."""
     if type(quantity_units) is not int:
@@ -144,6 +152,12 @@ def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity
             _create_receipt_audit(batch, before)
             return batch, False
     except IntegrityError as error:
+        # The exception escapes transaction.atomic first, so every tentative
+        # row/counter is rolled back before it becomes a form-level rejection.
+        if _has_constraint(error, EXPIRY_CONSTRAINT_NAME):
+            raise ReceiptRejected(
+                "expiry_date", "Expiry must be later than today's Singapore date."
+            ) from error
         if not _is_token_unique_error(error):
             raise
 

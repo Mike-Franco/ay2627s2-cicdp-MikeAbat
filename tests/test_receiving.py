@@ -268,6 +268,47 @@ class ReceivingTests(TestCase):
                     [second_inventory.pk, self.link.pk],
                 )
 
+    def test_new_inventory_product_links_require_zero_initial_stock_and_sequence(self):
+        orm_inventory = Inventory.objects.create(business=self.business, name="ORM bypass shelf")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            InventoryProduct.objects.create(
+                inventory=orm_inventory,
+                product=self.product,
+                physical_quantity_units=1,
+                last_receipt_sequence=0,
+            )
+
+        bulk_inventory = Inventory.objects.create(business=self.business, name="Bulk bypass shelf")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            InventoryProduct.objects.bulk_create(
+                [InventoryProduct(
+                    inventory=bulk_inventory,
+                    product=self.product,
+                    physical_quantity_units=0,
+                    last_receipt_sequence=1,
+                )]
+            )
+
+        sql_inventory = Inventory.objects.create(business=self.business, name="SQL bypass shelf")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO catalogue_inventoryproduct "
+                    "(inventory_id, product_id, selling_price, physical_quantity_units, last_receipt_sequence) "
+                    "VALUES (%s, %s, NULL, 1, 1)",
+                    [sql_inventory.pk, self.product.pk],
+                )
+
+        valid_inventory = Inventory.objects.create(business=self.business, name="Zero initial shelf")
+        InventoryAssignment.objects.create(membership=self.manager_membership, inventory=valid_inventory)
+        valid_link = InventoryProduct.objects.create(inventory=valid_inventory, product=self.product)
+        self.assertEqual((valid_link.physical_quantity_units, valid_link.last_receipt_sequence), (0, 0))
+        batch, replayed = self.receive(inventory=valid_inventory, quantity=3)
+        self.assertFalse(replayed)
+        valid_link.refresh_from_db()
+        self.assertEqual((valid_link.physical_quantity_units, valid_link.last_receipt_sequence), (3, 1))
+        self.assertEqual(ReceiptAuditEvent.objects.get(batch=batch).quantity_after_units, 3)
+
     def test_database_rejects_cross_business_batch_even_with_raw_sql(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
             with connection.cursor() as cursor:
@@ -300,6 +341,37 @@ class ReceivingTests(TestCase):
         self.assertEqual(accepted.status_code, 302)
         self.assertEqual(accepted.url, reverse("receipt-confirmation", args=[ReceivingBatch.objects.get().pk]))
         self.assertEqual(client.get(accepted.url).status_code, 200)
+
+    def test_database_expiry_rejection_is_a_field_error_and_rolls_back_all_state(self):
+        today = timezone.localdate()
+        client = self.authenticate(self.manager)
+        url = reverse("receive-batch", args=[self.inventory.pk, self.product.pk])
+        get_response = client.get(url)
+        token = get_response.context["form"]["request_token"].value()
+        form_data = {
+            "request_token": str(token),
+            "quantity_units": "5",
+            "expiry_date": today.isoformat(),
+        }
+        # Simulate the app-side date check occurring just before the database
+        # observes Singapore midnight; PostgreSQL remains the final safeguard.
+        with patch("receiving.services.timezone.localdate", return_value=today - timedelta(days=1)):
+            response = client.post(url, form_data)
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(response.context["form"]["expiry_date"].errors)
+        self.assertEqual(ReceivingBatch.objects.count(), 0)
+        self.assertEqual(ReceiptAuditEvent.objects.count(), 0)
+        self.assertFalse(ReceivingBatch.objects.filter(request_token=token).exists())
+        self.link.refresh_from_db()
+        self.assertEqual((self.link.physical_quantity_units, self.link.last_receipt_sequence), (0, 0))
+
+    def test_unrelated_integrity_error_is_not_translated_to_expiry_error(self):
+        with patch("receiving.services._create_receipt_audit", side_effect=IntegrityError("other constraint")):
+            with self.assertRaises(IntegrityError):
+                self.receive(quantity=4)
+        self.link.refresh_from_db()
+        self.assertEqual((self.link.physical_quantity_units, self.link.last_receipt_sequence), (0, 0))
+        self.assertEqual(ReceivingBatch.objects.count(), 0)
 
 
 class ReceivingConcurrencyTests(TransactionTestCase):
