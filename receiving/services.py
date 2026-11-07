@@ -220,9 +220,9 @@ def issue_stock(*, user_id, inventory_id, product_id, quantity_units):
             if left == 0:
                 break
             allocated = min(left, batch.remaining_quantity_units - batch.quarantined_quantity_units)
+            StockOutAllocation.objects.create(stock_out=stock_out, batch=batch, quantity_units=allocated)
             batch.remaining_quantity_units -= allocated
             batch.save(update_fields=["remaining_quantity_units"])
-            StockOutAllocation.objects.create(stock_out=stock_out, batch=batch, quantity_units=allocated)
             left -= allocated
         link.physical_quantity_units = physical_before - quantity_units
         link.save(update_fields=["physical_quantity_units"])

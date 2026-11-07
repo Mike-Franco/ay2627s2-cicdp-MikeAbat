@@ -17,10 +17,18 @@ BEGIN
        AND NEW.unit_label_snapshot = OLD.unit_label_snapshot AND NEW.expiry_date IS NOT DISTINCT FROM OLD.expiry_date
        AND NEW.receipt_sequence = OLD.receipt_sequence AND NEW.received_at = OLD.received_at
        AND ((NEW.remaining_quantity_units < OLD.remaining_quantity_units
-             AND NEW.quarantined_quantity_units = OLD.quarantined_quantity_units)
+             AND NEW.quarantined_quantity_units = OLD.quarantined_quantity_units
+             AND EXISTS (
+                SELECT 1 FROM receiving_stockoutallocation a
+                JOIN receiving_stockout s ON s.id = a.stock_out_id
+                WHERE a.batch_id = OLD.id AND a.applied = FALSE AND s.balance_applied = FALSE
+                  AND s.inventory_product_id = OLD.inventory_product_id
+                  AND a.quantity_units = OLD.remaining_quantity_units - NEW.remaining_quantity_units
+             ))
             OR (NEW.remaining_quantity_units = OLD.remaining_quantity_units
                 AND NEW.quarantined_quantity_units > OLD.quarantined_quantity_units))
-       AND NEW.remaining_quantity_units >= NEW.quarantined_quantity_units THEN
+       AND NEW.remaining_quantity_units >= NEW.quarantined_quantity_units
+       THEN
         RETURN NEW;
     END IF;
     RAISE EXCEPTION 'receipt batch identity is immutable' USING ERRCODE = '23514';
@@ -29,6 +37,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE FUNCTION receiving_allow_stock_out_batch_update()
 RETURNS trigger AS $$
+DECLARE allocation_id bigint;
 BEGIN
     IF NEW.id <> OLD.id OR NEW.actor_id <> OLD.actor_id OR NEW.inventory_id <> OLD.inventory_id
        OR NEW.product_id <> OLD.product_id OR NEW.inventory_product_id <> OLD.inventory_product_id
@@ -45,6 +54,19 @@ BEGIN
        OR NEW.remaining_quantity_units < NEW.quarantined_quantity_units THEN
         RAISE EXCEPTION 'only stock-out decrements or quarantine additions may update batch quantities' USING ERRCODE = '23514';
     END IF;
+    IF NEW.remaining_quantity_units < OLD.remaining_quantity_units THEN
+        SELECT a.id INTO allocation_id
+          FROM receiving_stockoutallocation a
+          JOIN receiving_stockout s ON s.id = a.stock_out_id
+         WHERE a.batch_id = OLD.id AND a.applied = FALSE AND s.balance_applied = FALSE
+           AND s.inventory_product_id = OLD.inventory_product_id
+           AND a.quantity_units = OLD.remaining_quantity_units - NEW.remaining_quantity_units
+         FOR UPDATE OF a, s;
+        IF allocation_id IS NULL THEN
+            RAISE EXCEPTION 'batch decrement requires an unapplied matching stock-out allocation' USING ERRCODE = '23514';
+        END IF;
+        UPDATE receiving_stockoutallocation SET applied = TRUE WHERE id = allocation_id;
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -53,6 +75,7 @@ FOR EACH ROW EXECUTE FUNCTION receiving_allow_stock_out_batch_update();
 
 CREATE FUNCTION receiving_allow_stock_out_balance_update()
 RETURNS trigger AS $$
+DECLARE stock_out_id uuid;
 BEGIN
     IF NEW.id <> OLD.id OR NEW.inventory_id <> OLD.inventory_id OR NEW.product_id <> OLD.product_id
        OR NEW.physical_quantity_units < 0
@@ -62,11 +85,14 @@ BEGIN
             AND EXISTS (
                 SELECT 1 FROM receiving_stockout s
                 WHERE s.inventory_product_id = OLD.id
+                  AND s.balance_applied = FALSE
                   AND s.quantity_before_units = OLD.physical_quantity_units
                   AND s.quantity_after_units = NEW.physical_quantity_units
                   AND s.quantity_units = OLD.physical_quantity_units - NEW.physical_quantity_units
                   AND (SELECT COALESCE(SUM(a.quantity_units), 0)
-                       FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id) = s.quantity_units
+                       FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id AND a.applied) = s.quantity_units
+                  AND (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id)
+                      = (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id AND a.applied)
             ))
            OR
            (NEW.physical_quantity_units > OLD.physical_quantity_units
@@ -74,6 +100,23 @@ BEGIN
             AND pg_trigger_depth() >= 2)
        ) THEN
         RAISE EXCEPTION 'inventory product balance identity or range is invalid' USING ERRCODE = '23514';
+    END IF;
+    IF NEW.physical_quantity_units < OLD.physical_quantity_units THEN
+        SELECT s.id INTO stock_out_id
+          FROM receiving_stockout s
+         WHERE s.inventory_product_id = OLD.id AND s.balance_applied = FALSE
+           AND s.quantity_before_units = OLD.physical_quantity_units
+           AND s.quantity_after_units = NEW.physical_quantity_units
+           AND s.quantity_units = OLD.physical_quantity_units - NEW.physical_quantity_units
+           AND (SELECT COALESCE(SUM(a.quantity_units), 0) FROM receiving_stockoutallocation a
+                 WHERE a.stock_out_id = s.id AND a.applied) = s.quantity_units
+           AND (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id)
+               = (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id AND a.applied)
+         FOR UPDATE OF s;
+        IF stock_out_id IS NULL THEN
+            RAISE EXCEPTION 'balance decrement requires an unapplied fully allocated stock-out' USING ERRCODE='23514';
+        END IF;
+        UPDATE receiving_stockout SET balance_applied = TRUE WHERE id = stock_out_id;
     END IF;
     RETURN NEW;
 END;
@@ -94,11 +137,14 @@ BEGIN
            AND EXISTS (
                 SELECT 1 FROM receiving_stockout s
                 WHERE s.inventory_product_id = OLD.id
+                  AND s.balance_applied = FALSE
                   AND s.quantity_before_units = OLD.physical_quantity_units
                   AND s.quantity_after_units = NEW.physical_quantity_units
                   AND s.quantity_units = OLD.physical_quantity_units - NEW.physical_quantity_units
                   AND (SELECT COALESCE(SUM(a.quantity_units), 0)
-                       FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id) = s.quantity_units
+                       FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id AND a.applied) = s.quantity_units
+                  AND (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id)
+                      = (SELECT COUNT(*) FROM receiving_stockoutallocation a WHERE a.stock_out_id = s.id AND a.applied)
            ) THEN
             RETURN NEW;
         END IF;
@@ -108,6 +154,46 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+CREATE FUNCTION receiving_guard_stockout_allocation_update()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.id <> OLD.id OR NEW.stock_out_id <> OLD.stock_out_id OR NEW.batch_id <> OLD.batch_id
+       OR NEW.quantity_units <> OLD.quantity_units OR OLD.applied OR NOT NEW.applied
+       OR pg_trigger_depth() < 2 THEN
+        RAISE EXCEPTION 'stock-out allocation can be applied exactly once by its batch trigger' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER receiving_stockoutallocation_apply_guard BEFORE UPDATE ON receiving_stockoutallocation
+FOR EACH ROW EXECUTE FUNCTION receiving_guard_stockout_allocation_update();
+
+CREATE FUNCTION receiving_guard_stockout_balance_applied()
+RETURNS trigger AS $$
+DECLARE actual_balance bigint;
+BEGIN
+    SELECT physical_quantity_units INTO actual_balance FROM catalogue_inventoryproduct WHERE id=NEW.inventory_product_id;
+    IF NEW.id <> OLD.id OR NEW.actor_id <> OLD.actor_id OR NEW.inventory_id <> OLD.inventory_id
+       OR NEW.product_id <> OLD.product_id OR NEW.inventory_product_id <> OLD.inventory_product_id
+       OR NEW.quantity_units <> OLD.quantity_units OR NEW.quantity_before_units <> OLD.quantity_before_units
+       OR NEW.quantity_after_units <> OLD.quantity_after_units OR NEW.occurred_at <> OLD.occurred_at
+       OR OLD.balance_applied OR NOT NEW.balance_applied OR pg_trigger_depth() < 2
+       OR actual_balance <> NEW.quantity_after_units
+       OR (SELECT COALESCE(SUM(quantity_units),0) FROM receiving_stockoutallocation WHERE stock_out_id=NEW.id AND applied) <> NEW.quantity_units
+       OR (SELECT COUNT(*) FROM receiving_stockoutallocation WHERE stock_out_id=NEW.id)
+          <> (SELECT COUNT(*) FROM receiving_stockoutallocation WHERE stock_out_id=NEW.id AND applied) THEN
+        RAISE EXCEPTION 'stock-out balance can be applied exactly once after all allocations' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER receiving_stockout_balance_applied_guard BEFORE UPDATE ON receiving_stockout
+FOR EACH ROW EXECUTE FUNCTION receiving_guard_stockout_balance_applied();
+
+CREATE FUNCTION receiving_protect_stockout_allocation_delete()
+RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'stock-out allocations are immutable' USING ERRCODE='23514'; END; $$ LANGUAGE plpgsql;
+CREATE TRIGGER receiving_stockoutallocation_delete_guard BEFORE DELETE ON receiving_stockoutallocation
+FOR EACH ROW EXECUTE FUNCTION receiving_protect_stockout_allocation_delete();
 CREATE FUNCTION receiving_validate_demand_audit()
 RETURNS trigger AS $$
 DECLARE s receiving_stockout%ROWTYPE; balance bigint;
@@ -118,7 +204,7 @@ BEGIN
        OR NEW.product_id <> s.product_id OR NEW.business_id <> (SELECT business_id FROM catalogue_product WHERE id=s.product_id)
        OR NEW.quantity_change_units <> s.quantity_units OR NEW.quantity_before_units <> s.quantity_before_units
        OR NEW.quantity_after_units <> s.quantity_after_units OR NEW.quantity_after_units <> balance
-       OR NEW.occurred_at <> s.occurred_at THEN
+       OR NEW.occurred_at <> s.occurred_at OR s.balance_applied IS DISTINCT FROM TRUE THEN
         RAISE EXCEPTION 'demand audit must match committed stock-out and balance' USING ERRCODE='23514';
     END IF;
     RETURN NEW;
@@ -160,6 +246,12 @@ DROP TRIGGER IF EXISTS receiving_stock_out_balance_guard ON catalogue_inventoryp
 DROP FUNCTION IF EXISTS receiving_allow_stock_out_balance_update();
 DROP TRIGGER IF EXISTS receiving_batch_stock_out_guard ON receiving_receivingbatch;
 DROP FUNCTION IF EXISTS receiving_allow_stock_out_batch_update();
+DROP TRIGGER IF EXISTS receiving_stockoutallocation_apply_guard ON receiving_stockoutallocation;
+DROP FUNCTION IF EXISTS receiving_guard_stockout_allocation_update();
+DROP TRIGGER IF EXISTS receiving_stockoutallocation_delete_guard ON receiving_stockoutallocation;
+DROP FUNCTION IF EXISTS receiving_protect_stockout_allocation_delete();
+DROP TRIGGER IF EXISTS receiving_stockout_balance_applied_guard ON receiving_stockout;
+DROP FUNCTION IF EXISTS receiving_guard_stockout_balance_applied();
 """
 
 
@@ -179,11 +271,13 @@ class Migration(migrations.Migration):
             ('product', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='stock_outs', to='catalogue.product')),
             ('inventory_product', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='stock_outs', to='catalogue.inventoryproduct')),
         ], options={'constraints': [models.CheckConstraint(condition=Q(quantity_units__gte=1) & Q(quantity_units__lte=2147483647), name='stock_out_quantity_range'), models.CheckConstraint(condition=Q(quantity_after_units=F('quantity_before_units') - F('quantity_units')), name='stock_out_quantity_reconciles')]}),
+        migrations.AddField(model_name='stockout', name='balance_applied', field=models.BooleanField(default=False)),
         migrations.CreateModel(name='StockOutAllocation', fields=[
             ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')), ('quantity_units', models.PositiveIntegerField()),
             ('batch', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='stock_out_allocations', to='receiving.receivingbatch')),
             ('stock_out', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='allocations', to='receiving.stockout')),
         ], options={'constraints': [models.UniqueConstraint(fields=('stock_out', 'batch'), name='unique_stock_out_batch_allocation'), models.CheckConstraint(condition=Q(quantity_units__gte=1), name='stock_out_allocation_positive')]}),
+        migrations.AddField(model_name='stockoutallocation', name='applied', field=models.BooleanField(default=False)),
         migrations.CreateModel(name='DemandAuditEvent', fields=[
             ('id', models.BigAutoField(primary_key=True, serialize=False)), ('quantity_before_units', models.PositiveBigIntegerField()),
             ('quantity_change_units', models.PositiveIntegerField()), ('quantity_after_units', models.PositiveBigIntegerField()), ('occurred_at', models.DateTimeField()),

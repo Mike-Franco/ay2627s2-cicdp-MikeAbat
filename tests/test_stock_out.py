@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
-from receiving.models import DemandAuditEvent, ReceivingBatch, StockOut, StockOutAllocation
+from receiving.models import DemandAuditEvent, ReceiptAuditEvent, ReceivingBatch, StockOut, StockOutAllocation
 from receiving.services import ReceiptRejected, issue_stock, receive_manual
 
 
@@ -105,6 +105,42 @@ class StockOutTests(TestCase):
                 cursor.execute("UPDATE catalogue_inventoryproduct SET last_receipt_sequence=2 WHERE id=%s", [self.link.pk])
         self.link.refresh_from_db()
         self.assertEqual((self.link.physical_quantity_units, self.link.last_receipt_sequence), (4, 1))
+
+    def test_old_stock_out_allocation_cannot_authorize_second_balance_decrement(self):
+        self.receive(6)
+        self.issue(3)
+        self.receive(3)
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 6)
+        issued_batch = ReceivingBatch.objects.order_by("receipt_sequence").first()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE receiving_receivingbatch SET remaining_quantity_units=0 WHERE id=%s", [str(issued_batch.pk)])
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE catalogue_inventoryproduct SET physical_quantity_units=3 WHERE id=%s", [self.link.pk])
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 6)
+        self.assertEqual(StockOut.objects.count(), 1)
+        self.assertEqual(StockOutAllocation.objects.count(), 1)
+        self.assertEqual(DemandAuditEvent.objects.count(), 1)
+        self.assertEqual(ReceivingBatch.objects.count(), 2)
+        self.assertEqual(ReceiptAuditEvent.objects.count(), 2)
+
+    def test_raw_batch_decrement_without_stock_out_is_rejected(self):
+        batch = self.receive(5)
+        receipt_count = ReceiptAuditEvent.objects.count()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE receiving_receivingbatch SET remaining_quantity_units=2 WHERE id=%s", [str(batch.pk)])
+        batch.refresh_from_db()
+        self.link.refresh_from_db()
+        self.assertEqual(batch.remaining_quantity_units, 5)
+        self.assertEqual(self.link.physical_quantity_units, 5)
+        self.assertEqual(StockOut.objects.count(), 0)
+        self.assertEqual(StockOutAllocation.objects.count(), 0)
+        self.assertEqual(ReceivingBatch.objects.count(), 1)
+        self.assertEqual(ReceiptAuditEvent.objects.count(), receipt_count)
 
     def test_issue_action_and_confirmation_list_batches(self):
         self.receive(2)

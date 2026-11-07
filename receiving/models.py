@@ -108,6 +108,7 @@ class StockOut(models.Model):
     quantity_before_units = models.PositiveBigIntegerField()
     quantity_after_units = models.PositiveBigIntegerField()
     occurred_at = models.DateTimeField()
+    balance_applied = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
@@ -120,6 +121,7 @@ class StockOutAllocation(models.Model):
     stock_out = models.ForeignKey(StockOut, on_delete=models.PROTECT, related_name="allocations")
     batch = models.ForeignKey(ReceivingBatch, on_delete=models.PROTECT, related_name="stock_out_allocations")
     quantity_units = models.PositiveIntegerField()
+    applied = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
