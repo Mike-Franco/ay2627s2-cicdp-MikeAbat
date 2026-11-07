@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Stock count saved · Tory{% endblock %}
+{% block content %}
+<h1>Stock count saved</h1>
+<p>{{ adjustment.product.sku }} · {{ adjustment.inventory.name }}</p>
+<p>Physical units: {{ adjustment.quantity_before_units }} → {{ adjustment.quantity_after_units }} (change {{ adjustment.quantity_change_units }})</p>
+<p>Reason: {{ adjustment.reason }}</p>
+<h2>Counted batches</h2>
+<ul>
+  {% for allocation in allocations %}
+    <li>Batch {{ allocation.batch.receipt_sequence }} · {{ allocation.batch.id }}:
+      {{ allocation.quantity_before_units }} → {{ allocation.counted_quantity_units }} {{ adjustment.product.base_unit_label }}
+      {% if allocation.batch.expiry_date %}· expiry {{ allocation.batch.expiry_date }}{% else %}· undated{% endif %}
+    </li>
+  {% endfor %}
+</ul>
+<p>This adjustment is recorded as non-demand inventory evidence.</p>
+<a href="{% url 'inventory-products' adjustment.inventory_id %}">Back to products</a>
+{% endblock %}

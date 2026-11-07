@@ -45,8 +45,8 @@ class ReceivingBatch(models.Model):
                 name="receiving_batch_quantity_range",
             ),
             models.CheckConstraint(
-                condition=Q(remaining_quantity_units__lte=F("quantity_units")),
-                name="receiving_batch_remaining_lte_received",
+                condition=Q(remaining_quantity_units__lte=MAX_RECEIPT_UNITS),
+                name="receiving_batch_remaining_cap",
             ),
             models.CheckConstraint(
                 condition=Q(quarantined_quantity_units__lte=F("remaining_quantity_units")),
@@ -146,5 +146,71 @@ class DemandAuditEvent(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") - F("quantity_change_units")), name="demand_audit_quantity_reconciles"),
             models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_change_units__lte=MAX_RECEIPT_UNITS), name="demand_audit_quantity_cap"),
+        ]
+
+
+class StockAdjustment(models.Model):
+    """Manager's absolute batch count, kept separate from demand events."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_adjustments")
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="stock_adjustments")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="stock_adjustments")
+    inventory_product = models.ForeignKey(InventoryProduct, on_delete=models.PROTECT, related_name="stock_adjustments")
+    quantity_before_units = models.PositiveBigIntegerField()
+    quantity_after_units = models.PositiveBigIntegerField()
+    quantity_change_units = models.BigIntegerField()
+    reason = models.TextField()
+    occurred_at = models.DateTimeField()
+    balance_applied = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS), name="stock_adjustment_quantity_cap"),
+            models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") + F("quantity_change_units")), name="stock_adjustment_quantity_reconciles"),
+            models.CheckConstraint(condition=~Q(reason=""), name="stock_adjustment_reason_nonblank"),
+        ]
+
+
+class StockAdjustmentAllocation(models.Model):
+    adjustment = models.ForeignKey(StockAdjustment, on_delete=models.PROTECT, related_name="allocations")
+    batch = models.ForeignKey(ReceivingBatch, on_delete=models.PROTECT, related_name="adjustment_allocations")
+    quantity_before_units = models.PositiveIntegerField()
+    counted_quantity_units = models.PositiveIntegerField()
+    quantity_change_units = models.IntegerField()
+    manager_confirmed_identity = models.BooleanField(default=False)
+    applied = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["adjustment", "batch"], name="unique_adjustment_batch_allocation"),
+            models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(counted_quantity_units__lte=MAX_RECEIPT_UNITS), name="stock_adjustment_allocation_cap"),
+            models.CheckConstraint(condition=Q(counted_quantity_units=F("quantity_before_units") + F("quantity_change_units")), name="stock_adjustment_allocation_reconciles"),
+            models.CheckConstraint(condition=Q(manager_confirmed_identity=True), name="stock_adjustment_identity_confirmed"),
+        ]
+
+
+class StockAdjustmentAuditEvent(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    adjustment = models.OneToOneField(StockAdjustment, on_delete=models.PROTECT, related_name="audit_event")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_adjustment_audit_events")
+    business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="stock_adjustment_audit_events")
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="stock_adjustment_audit_events")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="stock_adjustment_audit_events")
+    quantity_before_units = models.PositiveBigIntegerField()
+    quantity_after_units = models.PositiveBigIntegerField()
+    quantity_change_units = models.BigIntegerField()
+    reason = models.TextField()
+    action = models.CharField(max_length=20, default="adjustment")
+    classification = models.CharField(max_length=16, default="non_demand")
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS), name="stock_adjustment_audit_cap"),
+            models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") + F("quantity_change_units")), name="stock_adjustment_audit_reconciles"),
+            models.CheckConstraint(condition=Q(action="adjustment"), name="stock_adjustment_audit_action"),
+            models.CheckConstraint(condition=Q(classification="non_demand"), name="stock_adjustment_audit_non_demand"),
+            models.CheckConstraint(condition=~Q(reason=""), name="stock_adjustment_audit_reason_nonblank"),
         ]
 

@@ -3,7 +3,21 @@
 {% block content %}
 <h1>Products in {{ inventory.name }}</h1>
 {% if product_links %}
-  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><strong>{{ link.product.sku }}</strong> — {{ link.product.name }}{% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}{% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}<span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>{% if link.product.is_active %}<a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>{% endif %}</li>{% endfor %}</ul>
+  <ul class="list-group">
+    {% for link in product_links %}
+      <li class="list-group-item">
+        <strong>{{ link.product.sku }}</strong> — {{ link.product.name }}
+        {% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}
+        {% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}
+        <span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>
+        {% if link.product.is_active %}
+          <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
+          <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
+          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a>{% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
 {% else %}
   <p>No products are linked to this inventory.</p>
 {% endif %}

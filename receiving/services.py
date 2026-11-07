@@ -1,5 +1,6 @@
 import hashlib
 import json
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
@@ -11,7 +12,9 @@ from catalogue.models import InventoryProduct, Product
 from inventory_access.models import BusinessMembership, Inventory, InventoryAssignment
 
 from .models import (MAX_RECEIPT_UNITS, DemandAuditEvent, ReceiptAuditEvent,
-                     ReceivingBatch, StockOut, StockOutAllocation)
+                     ReceivingBatch, StockOut, StockOutAllocation,
+                     StockAdjustment, StockAdjustmentAllocation,
+                     StockAdjustmentAuditEvent)
 
 
 EXPIRY_CONSTRAINT_NAME = "receiving_expiry_after_singapore_today"
@@ -33,12 +36,13 @@ def _fingerprint(inventory_id, product_id, quantity_units, expiry_date):
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def _lock_authorized_scope(user_id, inventory_id, product_id):
+def _lock_authorized_scope(user_id, inventory_id, product_id, *, allowed_roles=None):
     """Lock in membership/assignment then Product→Inventory→link order.
 
     The product-first parent order matches the revised InventoryProduct trigger;
     assignment locks make receipt-first versus revocation-first observable.
     """
+    allowed_roles = allowed_roles or (BusinessMembership.Role.MANAGER, BusinessMembership.Role.STAFF)
     try:
         inventory_hint = Inventory.objects.only("business_id").get(pk=inventory_id)
         # Shared row locks block account/membership/assignment revocation while
@@ -59,7 +63,7 @@ def _lock_authorized_scope(user_id, inventory_id, product_id):
             if (
                 not membership_state
                 or not membership_state[2]
-                or membership_state[1] not in (BusinessMembership.Role.MANAGER, BusinessMembership.Role.STAFF)
+                or membership_state[1] not in allowed_roles
             ):
                 raise ReceiptRejected("__all__", "This inventory or product is unavailable.")
             cursor.execute(
@@ -238,4 +242,78 @@ def _create_demand_audit(stock_out):
         quantity_change_units=stock_out.quantity_units, quantity_after_units=stock_out.quantity_after_units,
         occurred_at=stock_out.occurred_at,
     )
+
+
+def adjust_stock(*, user_id, inventory_id, product_id, batch_counts, reason):
+    """Apply Manager-confirmed absolute counts to existing eligible batches."""
+    reason = reason.strip() if isinstance(reason, str) else ""
+    if not reason or len(reason) > 2000:
+        raise ReceiptRejected("reason", "Enter a reason of no more than 2,000 characters.")
+    if not isinstance(batch_counts, (list, tuple)) or not batch_counts:
+        raise ReceiptRejected("batch_counts", "Select and confirm at least one batch count.")
+    normalized = {}
+    for row in batch_counts:
+        try:
+            batch_id, count = row["batch_id"], row["counted_quantity_units"]
+            confirmed = row["manager_confirmed_identity"]
+        except (TypeError, KeyError):
+            raise ReceiptRejected("batch_counts", "Enter a valid count for each confirmed batch.")
+        if confirmed is not True:
+            raise ReceiptRejected("batch_counts", "Confirm the identity and physical count of each selected batch.")
+        if type(count) is not int or not 0 <= count <= MAX_RECEIPT_UNITS:
+            raise ReceiptRejected("batch_counts", "Counts must be whole units within the approved limit.")
+        try:
+            batch_id = uuid.UUID(str(batch_id))
+        except (TypeError, ValueError, AttributeError) as error:
+            raise ReceiptRejected("batch_counts", "Select a valid existing batch.") from error
+        if batch_id in normalized:
+            raise ReceiptRejected("batch_counts", "A batch can be counted only once per adjustment.")
+        normalized[batch_id] = count
+
+    with transaction.atomic():
+        user, _, _, product, inventory, link = _lock_authorized_scope(
+            user_id, inventory_id, product_id, allowed_roles=(BusinessMembership.Role.MANAGER,)
+        )
+        # Same Product → Inventory → InventoryProduct parent order as receive/issue;
+        # stable batch-PK ordering keeps any multi-batch adjustment deterministic.
+        batches = list(ReceivingBatch.objects.select_for_update().filter(
+            inventory_product=link, pk__in=normalized.keys()
+        ).order_by("pk"))
+        if len(batches) != len(normalized):
+            raise ReceiptRejected("batch_counts", "One or more batches are no longer available for this product.")
+        today = timezone.localdate()
+        for batch in batches:
+            if batch.quarantined_quantity_units or (batch.expiry_date and batch.expiry_date <= today):
+                raise ReceiptRejected("batch_counts", "Expired or quarantined batches cannot be adjusted here.")
+        before = link.physical_quantity_units
+        change = sum(normalized[batch.pk] - batch.remaining_quantity_units for batch in batches)
+        after = before + change
+        if after < 0 or after > MAX_RECEIPT_UNITS:
+            raise ReceiptRejected("batch_counts", "The resulting physical balance is outside the approved limit.")
+        now = timezone.now()
+        adjustment = StockAdjustment.objects.create(
+            actor=user, inventory=inventory, product=product, inventory_product=link,
+            quantity_before_units=before, quantity_after_units=after,
+            quantity_change_units=change, reason=reason, occurred_at=now,
+        )
+        for batch in batches:
+            count = normalized[batch.pk]
+            delta = count - batch.remaining_quantity_units
+            StockAdjustmentAllocation.objects.create(
+                adjustment=adjustment, batch=batch,
+                quantity_before_units=batch.remaining_quantity_units,
+                counted_quantity_units=count, quantity_change_units=delta,
+                manager_confirmed_identity=True,
+            )
+            batch.remaining_quantity_units = count
+            batch.save(update_fields=["remaining_quantity_units"])
+        link.physical_quantity_units = after
+        link.save(update_fields=["physical_quantity_units"])
+        StockAdjustmentAuditEvent.objects.create(
+            adjustment=adjustment, actor=user, business_id=product.business_id,
+            inventory=inventory, product=product,
+            quantity_before_units=before, quantity_after_units=after,
+            quantity_change_units=change, reason=reason, occurred_at=now,
+        )
+        return adjustment
 
