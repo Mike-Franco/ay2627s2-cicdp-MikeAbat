@@ -1,6 +1,7 @@
 import uuid
 
 from django import forms
+from django.forms import formset_factory
 
 from .models import MAX_RECEIPT_UNITS
 
@@ -30,4 +31,33 @@ class ManualStockOutForm(forms.Form):
     quantity_units = forms.IntegerField(
         min_value=1, max_value=MAX_RECEIPT_UNITS,
         widget=forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
+    )
+
+
+class BatchCountForm(forms.Form):
+    batch_id = forms.UUIDField(widget=forms.HiddenInput)
+    counted_quantity_units = forms.IntegerField(
+        required=False, min_value=0, max_value=MAX_RECEIPT_UNITS,
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "1", "min": "0"}),
+    )
+    confirmed = forms.BooleanField(required=False)
+
+    def clean(self):
+        cleaned = super().clean()
+        count = cleaned.get("counted_quantity_units")
+        confirmed = cleaned.get("confirmed")
+        if count is not None and not confirmed:
+            self.add_error("confirmed", "Confirm that this is the batch you physically counted.")
+        if confirmed and count is None:
+            self.add_error("counted_quantity_units", "Enter the observed whole-unit count.")
+        return cleaned
+
+
+BatchCountFormSet = formset_factory(BatchCountForm, extra=0, max_num=500, validate_max=True)
+
+
+class ManualStockAdjustmentForm(forms.Form):
+    reason = forms.CharField(
+        max_length=2000,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
     )

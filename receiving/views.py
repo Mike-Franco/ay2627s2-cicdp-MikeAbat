@@ -1,15 +1,18 @@
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from accounts.sessions import protected_view
 from catalogue.models import InventoryProduct
 from inventory_access.authorization import get_authorized_inventory
-from inventory_access.models import Inventory
+from inventory_access.models import BusinessMembership, Inventory
 
-from .forms import ManualReceiptForm, ManualStockOutForm
-from .models import DemandAuditEvent, ReceiptAuditEvent, ReceivingBatch, StockOut
-from .services import ReceiptRejected, issue_stock, receive_manual
+from .forms import (BatchCountFormSet, ManualReceiptForm, ManualStockAdjustmentForm,
+                    ManualStockOutForm)
+from .models import ReceivingBatch, StockOut, StockAdjustment
+from .services import ReceiptRejected, adjust_stock, issue_stock, receive_manual
 
 
 def _load_receivable(user, inventory_id, product_id):
@@ -135,4 +138,97 @@ def stock_out_confirmation(request, stock_out_id):
     if not InventoryProduct.objects.filter(inventory=inventory, product=stock_out.product, product__business_id=inventory.business_id).exists():
         raise Http404
     return render(request, "receiving/stock_out_confirmation.html", {"stock_out": stock_out, "allocations": stock_out.allocations.select_related("batch").order_by("batch__expiry_date", "batch__receipt_sequence", "batch_id")})
+
+
+def _load_manager_scope(user, inventory_id, product_id):
+    inventory, link = _load_receivable(user, inventory_id, product_id)
+    manager_assigned = BusinessMembership.objects.filter(
+        user=user, business=inventory.business, role=BusinessMembership.Role.MANAGER,
+        is_active=True, inventory_assignments__inventory=inventory,
+        inventory_assignments__is_active=True,
+    ).exists()
+    if not manager_assigned:
+        raise Http404
+    return inventory, link
+
+
+def _adjustment_batches(link):
+    return list(ReceivingBatch.objects.filter(
+        inventory_product=link, quarantined_quantity_units=0,
+    ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=timezone.localdate())).order_by(
+        "receipt_sequence", "id"
+    ))
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def adjust_stock_view(request, inventory_id, product_id):
+    try:
+        inventory, link = _load_manager_scope(request.user, inventory_id, product_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    except InventoryProduct.DoesNotExist as error:
+        raise Http404 from error
+    eligible_batches = _adjustment_batches(link)
+    form = ManualStockAdjustmentForm(request.POST or None)
+    if request.method == "POST":
+        prefix = "batches"
+        try:
+            submitted_total = min(int(request.POST.get(f"{prefix}-TOTAL_FORMS", "0")), 500)
+        except (TypeError, ValueError):
+            submitted_total = 0
+        submitted_ids = [request.POST.get(f"{prefix}-{index}-batch_id") for index in range(submitted_total)]
+        batch_lookup = {str(batch.pk): batch for batch in ReceivingBatch.objects.filter(inventory_product=link, pk__in=submitted_ids)}
+        initial_rows = [{"batch_id": value, "batch": batch_lookup.get(value)} for value in submitted_ids]
+    else:
+        initial_rows = [{"batch_id": batch.pk, "batch": batch} for batch in eligible_batches]
+    formset = BatchCountFormSet(
+        request.POST or None,
+        initial=initial_rows,
+        prefix="batches",
+    )
+    if request.method == "POST" and form.is_valid() and formset.is_valid():
+        batch_counts = [
+            {"batch_id": row.cleaned_data["batch_id"],
+             "counted_quantity_units": row.cleaned_data["counted_quantity_units"],
+             "manager_confirmed_identity": True}
+            for row in formset.forms
+            if row.cleaned_data and row.cleaned_data.get("confirmed")
+        ]
+        try:
+            adjustment = adjust_stock(
+                user_id=request.user.pk, inventory_id=inventory_id,
+                product_id=product_id, batch_counts=batch_counts,
+                reason=form.cleaned_data["reason"],
+            )
+        except ReceiptRejected as error:
+            form.add_error(None, str(error))
+        else:
+            return redirect("stock-adjustment-confirmation", adjustment_id=adjustment.pk)
+    return render(request, "receiving/adjust_stock.html", {
+        "inventory": inventory, "product": link.product, "link": link, "form": form,
+        "formset": formset, "batches": eligible_batches,
+    }, status=400 if request.method == "POST" and (form.errors or formset.errors or formset.non_form_errors()) else 200)
+
+
+@protected_view
+@require_GET
+def stock_adjustment_confirmation(request, adjustment_id):
+    adjustment = get_object_or_404(
+        StockAdjustment.objects.select_related("inventory", "product", "actor", "audit_event")
+        .prefetch_related("allocations__batch"), pk=adjustment_id,
+    )
+    try:
+        inventory = get_authorized_inventory(request.user, adjustment.inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    if not InventoryProduct.objects.filter(
+        inventory=inventory, product=adjustment.product,
+        product__business_id=inventory.business_id,
+    ).exists():
+        raise Http404
+    return render(request, "receiving/stock_adjustment_confirmation.html", {
+        "adjustment": adjustment,
+        "allocations": adjustment.allocations.select_related("batch").order_by("batch__receipt_sequence", "batch_id"),
+    })
 
