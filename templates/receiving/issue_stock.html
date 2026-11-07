@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Issue stock · Tory{% endblock %}
+{% block content %}
+<h1>Issue stock</h1>
+<p>{{ product.sku }} — {{ product.name }} in {{ inventory.name }}</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button class="btn btn-primary" type="submit">Issue stock</button>
+  <a class="btn btn-secondary" href="{% url 'inventory-products' inventory.pk %}">Cancel</a>
+</form>
+{% endblock %}
