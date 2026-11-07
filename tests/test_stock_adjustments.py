@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
-from threading import Barrier
+from threading import Barrier, Event
 from unittest.mock import patch
 import uuid
 
@@ -162,6 +162,25 @@ class StockAdjustmentTests(TestCase):
                     [str(adjustment.pk), str(batch.pk)],
                 )
 
+    def test_completed_adjustment_rejects_late_unapplied_allocation(self):
+        counted = self.receive(4)
+        other = self.receive(3)
+        adjustment = self.adjust([{"batch_id": counted.pk, "counted_quantity_units": 2}])
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO receiving_stockadjustmentallocation "
+                    "(adjustment_id,batch_id,quantity_before_units,counted_quantity_units,"
+                    "quantity_change_units,manager_confirmed_identity,applied) "
+                    "VALUES (%s,%s,3,3,0,TRUE,FALSE)",
+                    [str(adjustment.pk), str(other.pk)],
+                )
+        adjustment.refresh_from_db()
+        self.assertTrue(adjustment.balance_applied)
+        self.assertEqual(list(adjustment.allocations.values_list("batch_id", flat=True)), [counted.pk])
+        self.assertEqual(StockAdjustmentAuditEvent.objects.filter(adjustment=adjustment).count(), 1)
+        self.assertEqual(InventoryProduct.objects.get(pk=self.link.pk).physical_quantity_units, 5)
+
     def test_audit_failure_rolls_back_batch_balance_allocations_and_header(self):
         batch = self.receive(5)
         with patch("receiving.services.StockAdjustmentAuditEvent.objects.create", side_effect=RuntimeError("audit unavailable")):
@@ -267,3 +286,62 @@ class StockAdjustmentConcurrencyTests(TransactionTestCase):
         self.run_race("issue")
         self.assertEqual(StockOut.objects.count(), 1)
         self.assertEqual(DemandAuditEvent.objects.count(), 1)
+
+    def test_late_allocation_waits_for_finalization_then_rejects(self):
+        other = receive_manual(user_id=self.user.pk, inventory_id=self.inventory.pk,
+                               product_id=self.product.pk, request_token=uuid.uuid4(),
+                               quantity_units=2, expiry_date=None)[0]
+        finalizing = Event()
+        release = Event()
+        started = Event()
+        adjustment_id = []
+        original_create = StockAdjustmentAuditEvent.objects.create
+
+        def pause_after_balance(**kwargs):
+            adjustment_id.append(kwargs["adjustment"].pk)
+            finalizing.set()
+            if not release.wait(timeout=10):
+                raise TimeoutError("adjustment finalization was not released")
+            return original_create(**kwargs)
+
+        def writer():
+            close_old_connections()
+            try:
+                return adjust_stock(user_id=self.user.pk, inventory_id=self.inventory.pk,
+                                    product_id=self.product.pk,
+                                    batch_counts=[{"batch_id": self.batch.pk, "counted_quantity_units": 4,
+                                                   "manager_confirmed_identity": True}], reason="count")
+            finally:
+                close_old_connections()
+
+        def late_insert():
+            close_old_connections()
+            try:
+                started.set()
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute(
+                            "INSERT INTO receiving_stockadjustmentallocation "
+                            "(adjustment_id,batch_id,quantity_before_units,counted_quantity_units,"
+                            "quantity_change_units,manager_confirmed_identity,applied) "
+                            "VALUES (%s,%s,2,2,0,TRUE,FALSE)",
+                            [str(adjustment_id[0]), str(other.pk)],
+                        )
+            finally:
+                close_old_connections()
+
+        with patch("receiving.services.StockAdjustmentAuditEvent.objects.create", side_effect=pause_after_balance):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                committed = pool.submit(writer)
+                try:
+                    self.assertTrue(finalizing.wait(timeout=10))
+                    rejected = pool.submit(late_insert)
+                    self.assertTrue(started.wait(timeout=5))
+                    self.assertFalse(rejected.done())
+                finally:
+                    release.set()
+                committed.result(timeout=15)
+                with self.assertRaises(IntegrityError):
+                    rejected.result(timeout=15)
+        self.assertEqual(StockAdjustmentAllocation.objects.count(), 1)
+        self.assertEqual(StockAdjustmentAuditEvent.objects.count(), 1)
