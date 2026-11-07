@@ -96,3 +96,55 @@ class ReceiptAuditEvent(models.Model):
             ),
         ]
 
+
+class StockOut(models.Model):
+    """One attributable manual issue; allocation rows identify consumed batches."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_outs")
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="stock_outs")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="stock_outs")
+    inventory_product = models.ForeignKey(InventoryProduct, on_delete=models.PROTECT, related_name="stock_outs")
+    quantity_units = models.PositiveIntegerField()
+    quantity_before_units = models.PositiveBigIntegerField()
+    quantity_after_units = models.PositiveBigIntegerField()
+    occurred_at = models.DateTimeField()
+    balance_applied = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity_units__gte=1) & Q(quantity_units__lte=MAX_RECEIPT_UNITS), name="stock_out_quantity_range"),
+            models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") - F("quantity_units")), name="stock_out_quantity_reconciles"),
+        ]
+
+
+class StockOutAllocation(models.Model):
+    stock_out = models.ForeignKey(StockOut, on_delete=models.PROTECT, related_name="allocations")
+    batch = models.ForeignKey(ReceivingBatch, on_delete=models.PROTECT, related_name="stock_out_allocations")
+    quantity_units = models.PositiveIntegerField()
+    applied = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["stock_out", "batch"], name="unique_stock_out_batch_allocation"),
+            models.CheckConstraint(condition=Q(quantity_units__gte=1), name="stock_out_allocation_positive"),
+        ]
+
+
+class DemandAuditEvent(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    stock_out = models.OneToOneField(StockOut, on_delete=models.PROTECT, related_name="audit_event")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="demand_audit_events")
+    business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="demand_audit_events")
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="demand_audit_events")
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="demand_audit_events")
+    quantity_before_units = models.PositiveBigIntegerField()
+    quantity_change_units = models.PositiveIntegerField()
+    quantity_after_units = models.PositiveBigIntegerField()
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") - F("quantity_change_units")), name="demand_audit_quantity_reconciles"),
+            models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_change_units__lte=MAX_RECEIPT_UNITS), name="demand_audit_quantity_cap"),
+        ]
+

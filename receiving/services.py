@@ -4,12 +4,14 @@ import json
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, connection, transaction
+from django.db.models import F, Q
 from django.utils import timezone
 
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import BusinessMembership, Inventory, InventoryAssignment
 
-from .models import MAX_RECEIPT_UNITS, ReceiptAuditEvent, ReceivingBatch
+from .models import (MAX_RECEIPT_UNITS, DemandAuditEvent, ReceiptAuditEvent,
+                     ReceivingBatch, StockOut, StockOutAllocation)
 
 
 EXPIRY_CONSTRAINT_NAME = "receiving_expiry_after_singapore_today"
@@ -189,5 +191,51 @@ def _create_receipt_audit(batch, quantity_before):
         quantity_change_units=batch.quantity_units,
         quantity_after_units=quantity_before + batch.quantity_units,
         occurred_at=batch.received_at,
+    )
+
+
+def issue_stock(*, user_id, inventory_id, product_id, quantity_units):
+    """Issue eligible stock using approved dated FEFO then undated FIFO."""
+    if type(quantity_units) is not int or not 1 <= quantity_units <= MAX_RECEIPT_UNITS:
+        raise ReceiptRejected("quantity_units", "Enter a positive whole quantity in base units.")
+    with transaction.atomic():
+        user, _, _, product, inventory, link = _lock_authorized_scope(user_id, inventory_id, product_id)
+        candidates = list(ReceivingBatch.objects.select_for_update().filter(
+            inventory_product=link,
+            remaining_quantity_units__gt=F("quarantined_quantity_units"),
+        ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=timezone.localdate()))
+          .order_by("expiry_date", "receipt_sequence", "id"))
+        physical_before = link.physical_quantity_units
+        eligible_total = sum(b.remaining_quantity_units - b.quarantined_quantity_units for b in candidates)
+        if eligible_total < quantity_units:
+            raise ReceiptRejected("quantity_units", "There is not enough eligible, non-quarantined stock.")
+        now = timezone.now()
+        stock_out = StockOut.objects.create(
+            actor=user, inventory=inventory, product=product, inventory_product=link,
+            quantity_units=quantity_units, quantity_before_units=physical_before,
+            quantity_after_units=physical_before - quantity_units, occurred_at=now,
+        )
+        left = quantity_units
+        for batch in candidates:
+            if left == 0:
+                break
+            allocated = min(left, batch.remaining_quantity_units - batch.quarantined_quantity_units)
+            StockOutAllocation.objects.create(stock_out=stock_out, batch=batch, quantity_units=allocated)
+            batch.remaining_quantity_units -= allocated
+            batch.save(update_fields=["remaining_quantity_units"])
+            left -= allocated
+        link.physical_quantity_units = physical_before - quantity_units
+        link.save(update_fields=["physical_quantity_units"])
+        _create_demand_audit(stock_out)
+        return stock_out
+
+
+def _create_demand_audit(stock_out):
+    DemandAuditEvent.objects.create(
+        stock_out=stock_out, actor=stock_out.actor,
+        business_id=stock_out.product.business_id, inventory=stock_out.inventory,
+        product=stock_out.product, quantity_before_units=stock_out.quantity_before_units,
+        quantity_change_units=stock_out.quantity_units, quantity_after_units=stock_out.quantity_after_units,
+        occurred_at=stock_out.occurred_at,
     )
 

@@ -24,3 +24,10 @@ class ManualReceiptForm(forms.Form):
     @classmethod
     def new_form(cls, **kwargs):
         return cls(initial={"request_token": uuid.uuid4()}, **kwargs)
+
+
+class ManualStockOutForm(forms.Form):
+    quantity_units = forms.IntegerField(
+        min_value=1, max_value=MAX_RECEIPT_UNITS,
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
+    )
