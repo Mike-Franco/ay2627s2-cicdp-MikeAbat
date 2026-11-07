@@ -142,6 +142,72 @@ class StockOutTests(TestCase):
         self.assertEqual(ReceivingBatch.objects.count(), 1)
         self.assertEqual(ReceiptAuditEvent.objects.count(), receipt_count)
 
+    def test_stockout_balance_marker_must_start_false_for_sql_and_bulk_inserts(self):
+        now = timezone.now()
+        fields = [str(uuid.uuid4()), self.manager.pk, self.inventory.pk, self.product.pk, self.link.pk, now]
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO receiving_stockout "
+                    "(id, actor_id, inventory_id, product_id, inventory_product_id, quantity_units, "
+                    "quantity_before_units, quantity_after_units, occurred_at, balance_applied) "
+                    "VALUES (%s,%s,%s,%s,%s,3,6,3,%s,TRUE)", fields,
+                )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            StockOut.objects.bulk_create([StockOut(
+                id=uuid.uuid4(), actor=self.manager, inventory=self.inventory, product=self.product,
+                inventory_product=self.link, quantity_units=3, quantity_before_units=6,
+                quantity_after_units=3, occurred_at=now, balance_applied=True,
+            )])
+
+    def test_allocation_applied_marker_must_start_false_for_sql_and_bulk_inserts(self):
+        batch = self.receive(6)
+        stock_out = self.issue(3)
+        raw_batch = self.receive(1)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO receiving_stockoutallocation (stock_out_id,batch_id,quantity_units,applied) "
+                    "VALUES (%s,%s,1,TRUE)", [str(stock_out.pk), str(raw_batch.pk)],
+                )
+        bulk_batch = self.receive(1)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            StockOutAllocation.objects.bulk_create([StockOutAllocation(
+                stock_out=stock_out, batch=bulk_batch, quantity_units=1, applied=True,
+            )])
+        stock_out.refresh_from_db()
+        self.assertTrue(stock_out.balance_applied)
+
+    def test_preapplied_allocation_cannot_authorize_balance_without_batch_decrement(self):
+        batch = self.receive(6)
+        now = timezone.now()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            with connection.cursor() as cursor:
+                stock_out_id = uuid.uuid4()
+                cursor.execute(
+                    "INSERT INTO receiving_stockout "
+                    "(id,actor_id,inventory_id,product_id,inventory_product_id,quantity_units,"
+                    "quantity_before_units,quantity_after_units,occurred_at,balance_applied) "
+                    "VALUES (%s,%s,%s,%s,%s,3,6,3,%s,FALSE)",
+                    [str(stock_out_id), self.manager.pk, self.inventory.pk, self.product.pk, self.link.pk, now],
+                )
+                cursor.execute(
+                    "INSERT INTO receiving_stockoutallocation (stock_out_id,batch_id,quantity_units,applied) "
+                    "VALUES (%s,%s,3,TRUE)", [str(stock_out_id), str(batch.pk)],
+                )
+                cursor.execute("UPDATE catalogue_inventoryproduct SET physical_quantity_units=3 WHERE id=%s", [self.link.pk])
+                DemandAuditEvent.objects.create(
+                    stock_out_id=stock_out_id, actor=self.manager, business=self.business,
+                    inventory=self.inventory, product=self.product, quantity_before_units=6,
+                    quantity_change_units=3, quantity_after_units=3, occurred_at=now,
+                )
+        self.link.refresh_from_db()
+        batch.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 6)
+        self.assertEqual(batch.remaining_quantity_units, 6)
+        self.assertEqual(StockOut.objects.count(), 0)
+        self.assertEqual(StockOutAllocation.objects.count(), 0)
+
     def test_issue_action_and_confirmation_list_batches(self):
         self.receive(2)
         client = Client()

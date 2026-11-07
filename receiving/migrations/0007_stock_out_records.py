@@ -194,6 +194,30 @@ CREATE FUNCTION receiving_protect_stockout_allocation_delete()
 RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'stock-out allocations are immutable' USING ERRCODE='23514'; END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER receiving_stockoutallocation_delete_guard BEFORE DELETE ON receiving_stockoutallocation
 FOR EACH ROW EXECUTE FUNCTION receiving_protect_stockout_allocation_delete();
+
+CREATE FUNCTION receiving_require_stockout_unapplied_insert()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.balance_applied IS DISTINCT FROM FALSE THEN
+        RAISE EXCEPTION 'stock-out balance marker must start false' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER receiving_stockout_initial_state_guard BEFORE INSERT ON receiving_stockout
+FOR EACH ROW EXECUTE FUNCTION receiving_require_stockout_unapplied_insert();
+
+CREATE FUNCTION receiving_require_stockout_allocation_unapplied_insert()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.applied IS DISTINCT FROM FALSE THEN
+        RAISE EXCEPTION 'stock-out allocation marker must start false' USING ERRCODE='23514';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER receiving_stockoutallocation_initial_state_guard BEFORE INSERT ON receiving_stockoutallocation
+FOR EACH ROW EXECUTE FUNCTION receiving_require_stockout_allocation_unapplied_insert();
 CREATE FUNCTION receiving_validate_demand_audit()
 RETURNS trigger AS $$
 DECLARE s receiving_stockout%ROWTYPE; balance bigint;
@@ -252,6 +276,10 @@ DROP TRIGGER IF EXISTS receiving_stockoutallocation_delete_guard ON receiving_st
 DROP FUNCTION IF EXISTS receiving_protect_stockout_allocation_delete();
 DROP TRIGGER IF EXISTS receiving_stockout_balance_applied_guard ON receiving_stockout;
 DROP FUNCTION IF EXISTS receiving_guard_stockout_balance_applied();
+DROP TRIGGER IF EXISTS receiving_stockout_initial_state_guard ON receiving_stockout;
+DROP FUNCTION IF EXISTS receiving_require_stockout_unapplied_insert();
+DROP TRIGGER IF EXISTS receiving_stockoutallocation_initial_state_guard ON receiving_stockoutallocation;
+DROP FUNCTION IF EXISTS receiving_require_stockout_allocation_unapplied_insert();
 """
 
 
