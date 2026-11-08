@@ -1,6 +1,6 @@
 # Tory Authorization, Catalogue and Receiving ERD
 
-**Scope:** Implemented TORY-10, TORY-12, TORY-13, TORY-16 and TORY-17/TORY-18 structures. Expiry transition, disposal, CSV and forecasting entities remain future work; this is not the complete Tory data model or approval of the SRS/Design gate.
+**Scope:** Implemented TORY-10, TORY-12, TORY-13, TORY-16 and TORY-17/TORY-18 structures. CSV and forecasting entities remain future work; this is not the complete Tory data model or approval of the SRS/Design gate.
 
 ## Implemented entities
 
@@ -210,13 +210,17 @@ Authorization remains server-side. `receiving.services._lock_authorized_scope` r
 
 ## Provisional and unresolved details
 
+TORY-19 adds a one-to-one ExpiryQuarantineEvent for each expired ReceivingBatch. It stores explicit system attribution, business/inventory/product, effective Singapore-midnight timestamp, PostgreSQL-recorded timestamp, and residual physical/available/quarantine quantities. PostgreSQL checks expiry scope and quantity reconciliation, requires the batch's stored quarantine state to commit with the event, and prevents event edits/deletion. Available-to-issue and displayed quarantine are derived from expiry at read time even before this event exists. The retryable command uses the existing Product → Inventory → InventoryProduct → Batch lock order. A deferred allocation guard rechecks expiry at commit, including transactions that cross midnight. See [TORY-19 implementation note](../decisions/TORY-19-expiry-quarantine.md).
+
+TORY-19 also adds StockDisposal and a one-to-one DisposalAuditEvent. An assigned Manager's expired-batch disposal deducts remaining batch units and physical balance, plus stored quarantine when the transition was recorded. PostgreSQL links both deductions to the one-time disposal marker and requires the non-demand audit at commit. The audit retains Manager, scope, batch, quantities, approved reason code and note. If disposal precedes expiry evidence, the later system event reconciles disposed units and residual stock. The Damaged reason code applies only to quarantined units; nonquarantined damaged goods remain outside this operation.
+
 - `base_unit_label` is stored in a 40-character field and validated as nonblank; 40 is a technical storage limit, not a separately approved label-length rule. Packaging conversion remains deferred.
 - InventoryProduct's physical balance is initialized to zero on migration. There were no prior stock quantities in TORY-13 to migrate; no historical balance is fabricated.
 - The operator-only `configure_receiving` command initializes a product's label and expiry policy before first receipt. There is no catalogue configuration UI or new Manager catalogue authority.
 - `remaining_quantity_units` begins equal to receipt quantity and `quarantined_quantity_units` begins at zero. TORY-17 stock-out may decrement remaining eligible units; TORY-18 may set remaining units to an absolute count up to the physical-unit cap on existing eligible batches. Both operations preserve receipt identity, sequence and expiry and carry one-time database-bound operation/allocation evidence. Count adjustments reject expired and quarantined batches; they neither create batches nor implement BR-037 disposal.
 - The `source` field currently permits the declared manual/CSV values in model state, but the TORY-16 database insert trigger accepts manual source only. CSV behavior and its use of the same committed ordering remain future work under G-03/G-04.
-- G-02 expiry-boundary evidence delay, G-05 damaged/returned-stock disposition and disposal reason format, G-09 rejected-attempt logging, G-11 broader concurrency, G-13 lifecycle/authority and G-10 hosting feasibility remain open as recorded. Receipt, demand and adjustment audit records are implemented; expiry-transition and disposal history are not.
+- G-02 one-hour scheduler/staging verification, G-05 damaged/returned-stock disposition, G-09 rejected-attempt logging, G-11 broader concurrency, G-13 lifecycle/authority and G-10 hosting feasibility remain open as recorded. Receipt, demand, adjustment, expiry-transition and Manager disposal audit records are implemented.
 
 ## Future entities (not implemented)
 
-Expiry transition evidence, disposal events, CSV import batches, demand-observation coverage, forecasts and reorder results remain future work. Their relationships must extend this ERD when implemented; the current batch's remaining/quarantined columns are not evidence that those workflows exist.
+CSV import batches, demand-observation coverage, forecasts and reorder results remain future work. Their relationships must extend this ERD when implemented.

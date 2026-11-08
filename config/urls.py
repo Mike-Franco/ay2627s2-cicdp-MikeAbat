@@ -21,4 +21,6 @@ urlpatterns = [
     path("stock-outs/<uuid:stock_out_id>/", receiving_views.stock_out_confirmation, name="stock-out-confirmation"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/adjust/", receiving_views.adjust_stock_view, name="adjust-stock"),
     path("stock-adjustments/<uuid:adjustment_id>/", receiving_views.stock_adjustment_confirmation, name="stock-adjustment-confirmation"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/dispose/", receiving_views.dispose_stock_view, name="dispose-stock"),
+    path("stock-disposals/<uuid:disposal_id>/", receiving_views.disposal_confirmation, name="disposal-confirmation"),
 ]

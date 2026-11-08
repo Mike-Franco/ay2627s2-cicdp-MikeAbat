@@ -10,10 +10,13 @@
         {% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}
         {% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}
         <span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>
+        <span class="text-muted"> · Available to issue: {{ link.display_available_units }}</span>
+        <span class="text-muted"> · Quarantined: {{ link.display_quarantine_units }}</span>
         {% if link.product.is_active %}
           <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
           <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
           {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a>{% endif %}
+          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-danger ms-2" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose quarantine</a>{% endif %}
         {% endif %}
       </li>
     {% endfor %}

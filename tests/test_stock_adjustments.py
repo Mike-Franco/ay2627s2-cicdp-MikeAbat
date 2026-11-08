@@ -88,7 +88,7 @@ class StockAdjustmentTests(TestCase):
                          [(first.pk, 6), (second.pk, 1)])
         self.assertEqual(InventoryProduct.objects.get(pk=self.link.pk).physical_quantity_units, 7)
 
-    def test_expired_or_quarantined_batch_is_rejected_atomically(self):
+    def test_expired_batch_is_rejected_and_unlinked_quarantine_is_blocked(self):
         today = timezone.localdate()
         expired = self.receive(3, today + timedelta(days=1))
         quarantined = self.receive(2, today + timedelta(days=2))
@@ -97,14 +97,15 @@ class StockAdjustmentTests(TestCase):
             cursor.execute("ALTER TABLE receiving_receivingbatch DISABLE TRIGGER receiving_batch_immutable_guard")
             cursor.execute("ALTER TABLE receiving_receivingbatch DISABLE TRIGGER receiving_batch_stock_out_guard")
             cursor.execute("UPDATE receiving_receivingbatch SET expiry_date=%s WHERE id=%s", [today, str(expired.pk)])
-            cursor.execute("UPDATE receiving_receivingbatch SET quarantined_quantity_units=1 WHERE id=%s", [str(quarantined.pk)])
             cursor.execute("ALTER TABLE receiving_receivingbatch ENABLE TRIGGER receiving_batch_stock_out_guard")
             cursor.execute("ALTER TABLE receiving_receivingbatch ENABLE TRIGGER receiving_batch_immutable_guard")
             cursor.execute("SET CONSTRAINTS ALL DEFERRED")
         before = StockAdjustment.objects.count()
-        for batch in (expired, quarantined):
-            with self.assertRaises(ReceiptRejected):
-                self.adjust([{"batch_id": batch.pk, "counted_quantity_units": 0}])
+        with self.assertRaises(ReceiptRejected):
+            self.adjust([{"batch_id": expired.pk, "counted_quantity_units": 0}])
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ReceivingBatch.objects.filter(pk=quarantined.pk).update(quarantined_quantity_units=1)
         self.link.refresh_from_db()
         self.assertEqual(self.link.physical_quantity_units, 5)
         self.assertEqual(StockAdjustment.objects.count(), before)

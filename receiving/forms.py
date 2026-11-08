@@ -3,7 +3,7 @@ import uuid
 from django import forms
 from django.forms import formset_factory
 
-from .models import MAX_RECEIPT_UNITS
+from .models import MAX_RECEIPT_UNITS, StockDisposal
 
 
 class ManualReceiptForm(forms.Form):
@@ -61,3 +61,32 @@ class ManualStockAdjustmentForm(forms.Form):
         max_length=2000,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
     )
+
+
+class ManualStockDisposalForm(forms.Form):
+    batch_id = forms.ChoiceField(widget=forms.Select(attrs={"class": "form-select"}))
+    quantity_units = forms.IntegerField(
+        min_value=1, max_value=MAX_RECEIPT_UNITS,
+        widget=forms.NumberInput(attrs={"class": "form-control", "step": "1"}),
+    )
+    reason_code = forms.ChoiceField(
+        choices=StockDisposal.ReasonCode.choices,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    reason_note = forms.CharField(
+        required=False, max_length=2000, strip=True,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+    )
+
+    def __init__(self, *args, batches, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["batch_id"].choices = [
+            (str(batch.pk), f"Batch {batch.receipt_sequence} · expires {batch.expiry_date} · {batch.remaining_quantity_units} units")
+            for batch in batches
+        ]
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("reason_code") == StockDisposal.ReasonCode.OTHER and not cleaned.get("reason_note"):
+            self.add_error("reason_note", "Enter a note for Other.")
+        return cleaned

@@ -52,7 +52,7 @@ class StockOutTests(TestCase):
         self.assertEqual(out.audit_event.quantity_change_units, 8)
         self.assertEqual(self.link.__class__.objects.get(pk=self.link.pk).physical_quantity_units, 1)
 
-    def test_excludes_expired_and_quarantined_units_and_applies_midnight_rule(self):
+    def test_excludes_expired_units_and_applies_midnight_rule(self):
         today = timezone.localdate()
         expired = self.receive(3, today + timedelta(days=1))
         with connection.cursor() as cursor:
@@ -64,10 +64,8 @@ class StockOutTests(TestCase):
             cursor.execute("ALTER TABLE receiving_receivingbatch ENABLE TRIGGER receiving_batch_immutable_guard")
             cursor.execute("SET CONSTRAINTS ALL DEFERRED")
         eligible = self.receive(5, today + timedelta(days=1))
-        with connection.cursor() as cursor:
-            cursor.execute("UPDATE receiving_receivingbatch SET quarantined_quantity_units=2 WHERE id=%s", [str(eligible.pk)])
-        out = self.issue(3)
-        self.assertEqual(list(out.allocations.values_list("batch_id", "quantity_units")), [(eligible.pk, 3)])
+        out = self.issue(5)
+        self.assertEqual(list(out.allocations.values_list("batch_id", "quantity_units")), [(eligible.pk, 5)])
         with self.assertRaises(ReceiptRejected):
             self.issue(1)
 
