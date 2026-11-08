@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Stock history for {{ product.sku }} · Tory{% endblock %}
+{% block content %}
+<h1>Stock history for {{ product.sku }}</h1>
+<p>{{ product.name }} · {{ inventory.name }}</p>
+<p class="text-muted">Times are shown in Asia/Singapore.</p>
+{% if events %}
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead><tr>
+        <th scope="col">Action</th>
+        <th scope="col">Time</th>
+        <th scope="col">Actor</th>
+        <th scope="col">Quantities</th>
+        <th scope="col">Details and reason</th>
+      </tr></thead>
+      <tbody>
+        {% for event in events %}
+          {% with audit=event.audit %}
+            <tr>
+              {% if event.kind == "receipt" %}
+                <th scope="row">Receipt</th>
+                <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor.email }}</td>
+                <td>+{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
+                <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt</td>
+              {% elif event.kind == "issue" %}
+                <th scope="row">Issue</th>
+                <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor.email }}</td>
+                <td>−{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
+                <td>{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+              {% elif event.kind == "adjustment" %}
+                <th scope="row">Adjustment</th>
+                <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor.email }}</td>
+                <td>Change: {% if audit.quantity_change_units > 0 %}+{% endif %}{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
+                <td>Reason: {{ audit.reason }}{% for allocation in audit.adjustment.allocations.all %}<br>Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_before_units }} → {{ allocation.counted_quantity_units }}{% endfor %}</td>
+              {% elif event.kind == "quarantine" %}
+                <th scope="row">Expiry quarantine</th>
+                <td>Effective: {{ audit.effective_at|date:"Y-m-d H:i:s T" }}<br>Recorded: {{ audit.recorded_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor_identity }}</td>
+                <td>Physical at recording: {{ audit.physical_quantity_units }}<br>Available at boundary: {{ audit.available_before_units }} → {{ audit.available_after_units }}<br>Quarantined: {{ audit.quarantine_before_units }} → {{ audit.quarantine_after_units }}</td>
+                <td>Batch {{ audit.batch.receipt_sequence }}{% if audit.disposed_before_recording_units %}<br>Disposed before recording: {{ audit.disposed_before_recording_units }} units{% endif %}</td>
+              {% elif event.kind == "disposal" %}
+                <th scope="row">Disposal</th>
+                <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor.email }}</td>
+                <td>−{{ audit.quantity_units }} units<br>Physical: {{ audit.physical_before_units }} → {{ audit.physical_after_units }}<br>Batch: {{ audit.batch_before_units }} → {{ audit.batch_after_units }}</td>
+                <td>Batch {{ audit.batch.receipt_sequence }} · Reason: {{ audit.reason_code }}{% if audit.reason_note %}<br>Note: {{ audit.reason_note }}{% endif %}</td>
+              {% endif %}
+            </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p>No stock history has been recorded for this product in this inventory.</p>
+{% endif %}
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}
