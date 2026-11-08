@@ -23,13 +23,13 @@
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
                 <td>{{ audit.actor.email }}</td>
                 <td>+{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
-                <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt</td>
+                <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt{% if audit.batch.import_record_id %}<br>Import {{ audit.batch.import_record_id }} · row {{ audit.batch.import_row_number }}{% endif %}</td>
               {% elif event.kind == "issue" %}
                 <th scope="row">Issue</th>
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
                 <td>{{ audit.actor.email }}</td>
                 <td>−{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
-                <td>{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+                <td>{% if audit.stock_out.import_record_id %}Import {{ audit.stock_out.import_record_id }} · row {{ audit.stock_out.import_row_number }}<br>{% endif %}{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
               {% elif event.kind == "adjustment" %}
                 <th scope="row">Adjustment</th>
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>

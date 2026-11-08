@@ -66,7 +66,7 @@ def stock_history(request, inventory_id, product_id):
 
     for audit in ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"):
         events.append({"kind": "receipt", "at": audit.occurred_at, "audit": audit})
-    for audit in DemandAuditEvent.objects.filter(**scope).select_related("actor").prefetch_related(
+    for audit in DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(
         "stock_out__allocations__batch"
     ):
         events.append({"kind": "issue", "at": audit.occurred_at, "audit": audit})

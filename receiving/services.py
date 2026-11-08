@@ -322,7 +322,8 @@ def _create_receipt_audit(batch, quantity_before):
     )
 
 
-def issue_stock(*, user_id, inventory_id, product_id, quantity_units):
+def issue_stock(*, user_id, inventory_id, product_id, quantity_units,
+                import_record=None, import_row_number=None):
     """Issue eligible stock using approved dated FEFO then undated FIFO."""
     if type(quantity_units) is not int or not 1 <= quantity_units <= MAX_RECEIPT_UNITS:
         raise ReceiptRejected("quantity_units", "Enter a positive whole quantity in base units.")
@@ -342,6 +343,7 @@ def issue_stock(*, user_id, inventory_id, product_id, quantity_units):
             actor=user, inventory=inventory, product=product, inventory_product=link,
             quantity_units=quantity_units, quantity_before_units=physical_before,
             quantity_after_units=physical_before - quantity_units, occurred_at=now,
+            import_record=import_record, import_row_number=import_row_number,
         )
         left = quantity_units
         for batch in candidates:

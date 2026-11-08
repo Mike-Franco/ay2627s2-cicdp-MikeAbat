@@ -2,6 +2,7 @@
 {% block title %}{{ inventory.name }} products · Tory{% endblock %}
 {% block content %}
 <h1>Products in {{ inventory.name }}</h1>
+{% if can_adjust_stock %}<p><a class="btn btn-outline-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import stock CSV</a></p>{% endif %}
 {% if product_links %}
   <ul class="list-group">
     {% for link in product_links %}

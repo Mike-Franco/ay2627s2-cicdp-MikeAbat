@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Import stock CSV · Tory{% endblock %}
+{% block content %}
+<h1>Import stock CSV</h1>
+<p>Selected inventory: <strong>{{ inventory.name }}</strong></p>
+<p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>. Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>
+{% if imported %}<div class="alert alert-success" role="status">Import recorded: {{ imported.pk }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="mb-3">{{ form.file.label_tag }}{{ form.file }}{{ form.file.errors }}</div>
+  <button class="btn btn-primary" type="submit">Import CSV</button>
+</form>
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}

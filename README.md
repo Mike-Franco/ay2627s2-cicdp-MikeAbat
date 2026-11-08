@@ -67,7 +67,11 @@ TORY-13 adds a shared business-owned product catalogue and an inventory-product 
 
 TORY-16 adds a protected POST + CSRF manual receiving form from an authorized inventory's product list. Manager and Staff can receive an active, linked product only into an active inventory to which they have an active same-business assignment. A product must first have explicit receiving setup; an operator may initialize an unconfigured product with `.venv\Scripts\python manage.py configure_receiving PRODUCT_ID --base-unit-label each --expiry-tracking-required false` (use the equivalent Unix virtual-environment path). Existing products migrate active and unconfigured. The command is not a catalogue UI or a business-role privilege.
 
-The receipt, request token, per-inventory physical balance, committed sequence and one non-demand audit event are atomic in PostgreSQL. Same-token retries return the original receipt only after current authorization is rechecked. The [ERD](docs/design/ERD.md) documents implemented receipt entities and PostgreSQL guards. CSV receiving, forecasting and hosted staging remain unimplemented. Local test results do not establish GitHub CI or hosted staging feasibility.
+The receipt, request token, per-inventory physical balance, committed sequence and one non-demand audit event are atomic in PostgreSQL. Same-token retries return the original receipt only after current authorization is rechecked. The [ERD](docs/design/ERD.md) documents implemented receipt entities and PostgreSQL guards. Forecasting and hosted staging remain unimplemented. Local test results do not establish GitHub CI or hosted staging feasibility.
+
+## Stock CSV import
+
+An assigned Manager selects an inventory and opens `/inventories/<inventory_id>/import/`. The upload accepts the approved strict UTF-8 `sku,change` contract, up to 262,144 raw bytes and 1,000 data rows. Each non-tracked positive row creates a separate undated receiving batch; negative rows use eligible FEFO/FIFO stock. Rows apply sequentially in one PostgreSQL transaction. A successful import retains the exact raw bytes for same-inventory duplicate checking and links each receipt or issue to its import and row number. Invalid or duplicate files leave no successful import, stock or audit mutation. The Stock history page shows the import identity and row for CSV movements. This does not add historical correction or daily demand verification; those remain TORY-23 scope.
 
 ## Stock balances and history
 
