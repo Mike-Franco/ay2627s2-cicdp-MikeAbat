@@ -1,3 +1,7 @@
+from collections import defaultdict
+
+from django.core.paginator import Paginator
+from django.db.models import CharField, F, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 
@@ -62,24 +66,40 @@ def stock_history(request, inventory_id, product_id):
     )
     scope = {"business_id": inventory.business_id,
              "inventory_id": inventory.pk, "product_id": link.product_id}
-    events = []
+    audit_sources = {
+        "receipt": ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
+        "issue": DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(
+            "stock_out__allocations__batch"
+        ),
+        "adjustment": StockAdjustmentAuditEvent.objects.filter(**scope).select_related("actor").prefetch_related(
+            "adjustment__allocations__batch"
+        ),
+        "quarantine": ExpiryQuarantineEvent.objects.filter(**scope).select_related("batch"),
+        "disposal": DisposalAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
+    }
 
-    for audit in ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"):
-        events.append({"kind": "receipt", "at": audit.occurred_at, "audit": audit})
-    for audit in DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(
-        "stock_out__allocations__batch"
-    ):
-        events.append({"kind": "issue", "at": audit.occurred_at, "audit": audit})
-    for audit in StockAdjustmentAuditEvent.objects.filter(**scope).select_related("actor").prefetch_related(
-        "adjustment__allocations__batch"
-    ):
-        events.append({"kind": "adjustment", "at": audit.occurred_at, "audit": audit})
-    for audit in ExpiryQuarantineEvent.objects.filter(**scope).select_related("batch"):
-        events.append({"kind": "quarantine", "at": audit.recorded_at, "audit": audit})
-    for audit in DisposalAuditEvent.objects.filter(**scope).select_related("actor", "batch"):
-        events.append({"kind": "disposal", "at": audit.occurred_at, "audit": audit})
+    def event_keys(kind, timestamp):
+        return audit_sources[kind].order_by().annotate(
+            event_time=F(timestamp), event_kind=Value(kind, output_field=CharField()),
+            event_id=F("id"),
+        ).values("event_time", "event_kind", "event_id")
 
-    events.sort(key=lambda event: (event["at"], event["audit"].pk, event["kind"]), reverse=True)
+    keys = event_keys("receipt", "occurred_at").union(
+        event_keys("issue", "occurred_at"),
+        event_keys("adjustment", "occurred_at"),
+        event_keys("quarantine", "recorded_at"),
+        event_keys("disposal", "occurred_at"),
+        all=True,
+    ).order_by("-event_time", "-event_kind", "-event_id")
+    page = Paginator(keys, 50).get_page(request.GET.get("page"))
+    page_keys = list(page.object_list)
+    ids_by_kind = defaultdict(list)
+    for key in page_keys:
+        ids_by_kind[key["event_kind"]].append(key["event_id"])
+    audits = {kind: audit_sources[kind].filter(pk__in=ids).in_bulk()
+              for kind, ids in ids_by_kind.items()}
+    events = [{"kind": key["event_kind"], "audit": audits[key["event_kind"]][key["event_id"]]}
+              for key in page_keys]
     return render(request, "catalogue/stock_history.html", {
-        "inventory": inventory, "product": link.product, "events": events,
+        "inventory": inventory, "product": link.product, "events": events, "page": page,
     })

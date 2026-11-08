@@ -58,5 +58,18 @@
 {% else %}
   <p>No stock history has been recorded for this product in this inventory.</p>
 {% endif %}
+<nav aria-label="Stock history pages" class="d-flex align-items-center gap-3 mb-3">
+  {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}">Previous</a>
+  {% else %}
+    <span class="text-muted">Previous</span>
+  {% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}">Next</a>
+  {% else %}
+    <span class="text-muted">Next</span>
+  {% endif %}
+</nav>
 <a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
 {% endblock %}
