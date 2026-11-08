@@ -97,6 +97,104 @@ class ReceiptAuditEvent(models.Model):
         ]
 
 
+class ExpiryQuarantineEvent(models.Model):
+    """One system transition per immutable batch expiry boundary."""
+
+    id = models.BigAutoField(primary_key=True)
+    batch = models.OneToOneField(ReceivingBatch, on_delete=models.PROTECT, related_name="expiry_event")
+    business = models.ForeignKey(Business, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    actor_identity = models.CharField(max_length=32, default="system:expiry_quarantine")
+    action = models.CharField(max_length=32, default="expiry_quarantine")
+    classification = models.CharField(max_length=16, default="non_demand")
+    effective_at = models.DateTimeField()
+    recorded_at = models.DateTimeField()
+    physical_quantity_units = models.PositiveIntegerField()
+    disposed_before_recording_units = models.PositiveIntegerField(default=0)
+    available_before_units = models.PositiveIntegerField()
+    available_after_units = models.PositiveIntegerField(default=0)
+    quarantine_before_units = models.PositiveIntegerField()
+    quarantine_after_units = models.PositiveIntegerField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(actor_identity="system:expiry_quarantine"), name="expiry_event_system_actor"),
+            models.CheckConstraint(condition=Q(action="expiry_quarantine"), name="expiry_event_action"),
+            models.CheckConstraint(condition=Q(classification="non_demand"), name="expiry_event_non_demand"),
+            models.CheckConstraint(condition=Q(recorded_at__gte=F("effective_at")), name="expiry_event_recorded_after_effective"),
+            models.CheckConstraint(condition=Q(available_after_units=0), name="expiry_event_zero_available"),
+            models.CheckConstraint(condition=Q(quarantine_after_units=F("physical_quantity_units")), name="expiry_event_quarantine_reconciles"),
+            models.CheckConstraint(condition=Q(available_before_units=F("physical_quantity_units") + F("disposed_before_recording_units") - F("quarantine_before_units")), name="expiry_event_boundary_reconciles"),
+        ]
+
+
+class StockDisposal(models.Model):
+    """One Manager physical disposal from an expired quarantined batch."""
+
+    class ReasonCode(models.TextChoices):
+        EXPIRED = "Expired", "Expired"
+        DAMAGED = "Damaged", "Damaged"
+        OTHER = "Other", "Other"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    inventory_product = models.ForeignKey(InventoryProduct, on_delete=models.PROTECT)
+    batch = models.ForeignKey(ReceivingBatch, on_delete=models.PROTECT, related_name="disposals")
+    quantity_units = models.PositiveIntegerField()
+    batch_before_units = models.PositiveIntegerField()
+    batch_after_units = models.PositiveIntegerField()
+    stored_quarantine_before_units = models.PositiveIntegerField()
+    stored_quarantine_after_units = models.PositiveIntegerField()
+    physical_before_units = models.PositiveBigIntegerField()
+    physical_after_units = models.PositiveBigIntegerField()
+    reason_code = models.CharField(max_length=16, choices=ReasonCode.choices)
+    reason_note = models.TextField(blank=True)
+    occurred_at = models.DateTimeField()
+    batch_applied = models.BooleanField(default=False)
+    balance_applied = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(quantity_units__gte=1) & Q(quantity_units__lte=MAX_RECEIPT_UNITS), name="disposal_quantity_range"),
+            models.CheckConstraint(condition=Q(batch_after_units=F("batch_before_units") - F("quantity_units")), name="disposal_batch_reconciles"),
+            models.CheckConstraint(condition=Q(physical_after_units=F("physical_before_units") - F("quantity_units")), name="disposal_balance_reconciles"),
+            models.CheckConstraint(condition=Q(stored_quarantine_after_units__lte=F("batch_after_units")), name="disposal_stored_quarantine_bound"),
+            models.CheckConstraint(condition=Q(reason_code__in=("Expired", "Damaged", "Other")), name="disposal_reason_code_valid"),
+            models.CheckConstraint(condition=~Q(reason_code="Other") | ~Q(reason_note__regex=r"^\s*$"), name="disposal_other_note_required"),
+        ]
+
+
+class DisposalAuditEvent(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    disposal = models.OneToOneField(StockDisposal, on_delete=models.PROTECT, related_name="audit_event")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    business = models.ForeignKey(Business, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    batch = models.ForeignKey(ReceivingBatch, on_delete=models.PROTECT)
+    action = models.CharField(max_length=16, default="disposal")
+    classification = models.CharField(max_length=16, default="non_demand")
+    quantity_units = models.PositiveIntegerField()
+    batch_before_units = models.PositiveIntegerField()
+    batch_after_units = models.PositiveIntegerField()
+    physical_before_units = models.PositiveBigIntegerField()
+    physical_after_units = models.PositiveBigIntegerField()
+    reason_code = models.CharField(max_length=16)
+    reason_note = models.TextField(blank=True)
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(action="disposal"), name="disposal_audit_action"),
+            models.CheckConstraint(condition=Q(classification="non_demand"), name="disposal_audit_non_demand"),
+            models.CheckConstraint(condition=Q(batch_after_units=F("batch_before_units") - F("quantity_units")), name="disposal_audit_batch_reconciles"),
+            models.CheckConstraint(condition=Q(physical_after_units=F("physical_before_units") - F("quantity_units")), name="disposal_audit_balance_reconciles"),
+        ]
+
+
 class StockOut(models.Model):
     """One attributable manual issue; allocation rows identify consumed batches."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

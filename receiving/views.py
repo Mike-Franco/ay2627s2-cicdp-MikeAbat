@@ -10,9 +10,9 @@ from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
 
 from .forms import (BatchCountFormSet, ManualReceiptForm, ManualStockAdjustmentForm,
-                    ManualStockOutForm)
-from .models import ReceivingBatch, StockOut, StockAdjustment
-from .services import ReceiptRejected, adjust_stock, issue_stock, receive_manual
+                    ManualStockDisposalForm, ManualStockOutForm)
+from .models import ReceivingBatch, StockOut, StockAdjustment, StockDisposal
+from .services import ReceiptRejected, adjust_stock, dispose_quarantined, issue_stock, receive_manual
 
 
 def _load_receivable(user, inventory_id, product_id):
@@ -231,4 +231,54 @@ def stock_adjustment_confirmation(request, adjustment_id):
         "adjustment": adjustment,
         "allocations": adjustment.allocations.select_related("batch").order_by("batch__receipt_sequence", "batch_id"),
     })
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def dispose_stock_view(request, inventory_id, product_id):
+    try:
+        inventory, link = _load_manager_scope(request.user, inventory_id, product_id)
+    except (Inventory.DoesNotExist, InventoryProduct.DoesNotExist) as error:
+        raise Http404 from error
+    batches = list(ReceivingBatch.objects.filter(
+        inventory_product=link, expiry_date__lte=timezone.localdate(),
+        remaining_quantity_units__gt=0,
+    ).order_by("expiry_date", "receipt_sequence", "id"))
+    form = ManualStockDisposalForm(request.POST or None, batches=batches)
+    if request.method == "POST" and form.is_valid():
+        try:
+            disposal = dispose_quarantined(
+                user_id=request.user.pk, inventory_id=inventory_id,
+                product_id=product_id, batch_id=form.cleaned_data["batch_id"],
+                quantity_units=form.cleaned_data["quantity_units"],
+                reason_code=form.cleaned_data["reason_code"],
+                reason_note=form.cleaned_data["reason_note"],
+            )
+        except ReceiptRejected as error:
+            form.add_error(error.field, str(error))
+        else:
+            return redirect("disposal-confirmation", disposal_id=disposal.pk)
+    return render(request, "receiving/dispose_stock.html", {
+        "inventory": inventory, "product": link.product, "form": form,
+        "batches": batches,
+    }, status=400 if request.method == "POST" else 200)
+
+
+@protected_view
+@require_GET
+def disposal_confirmation(request, disposal_id):
+    disposal = get_object_or_404(
+        StockDisposal.objects.select_related("inventory", "product", "batch", "actor", "audit_event"),
+        pk=disposal_id,
+    )
+    try:
+        inventory = get_authorized_inventory(request.user, disposal.inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    if not InventoryProduct.objects.filter(
+        inventory=inventory, product=disposal.product,
+        product__business_id=inventory.business_id,
+    ).exists():
+        raise Http404
+    return render(request, "receiving/disposal_confirmation.html", {"disposal": disposal})
 

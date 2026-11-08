@@ -1,5 +1,13 @@
 # Tory batch integrity owner decision package
 
+## G-02 addendum — owner approval, 8 November 2026
+
+The expiry quarantine audit event must be recorded **within one hour of 00:00 Asia/Singapore on the expiry date**. Store both the effective expiry timestamp (the midnight boundary) and the actual recording timestamp. Expired stock becomes unavailable immediately at the boundary, independently of evidence recording. Keep one system-attributed event per batch and expiry boundary. This resolves the G-02 delay parameter described as pending in the 1 November record below. Scheduler reliability and staging verification remain Design work. The 1 November G-02 acceptance case already permits authorised disposal before evidence recording and requires later reconciliation.
+
+**Owner disposal reason approval, 8 November 2026:** BR-037 disposal uses a controlled reason code plus a note. Initial codes: **Expired**, **Damaged**, **Other**. The note is required after trimming for Other and optional for Expired or Damaged. Store both in the disposal audit. The Damaged code does not expand disposal beyond quarantined units or resolve G-05's damaged nonquarantined-stock exception. See [TORY-19 implementation](../decisions/TORY-19-expiry-quarantine.md).
+
+The 1 November status statements and tables below are preserved as dated history; the G-02 delay is no longer an open owner decision.
+
 **Status:** Owner-approved Options A for G-01, G-02 and G-09, supplied **1 November 2026**. G-01's observable ordering decision is resolved; G-02 remains blocking pending a maximum evidence-recording delay, and G-09 remains blocking pending disposition of separate rejected-attempt logging. This decision record does not add a BR ID, approve the complete SRS or authorise Requirements exit or Design entry. BR-001–BR-045 and the six earlier owner-approved NFR decisions remain as recorded in [Owner Requirements Decisions](OWNER_REQUIREMENTS_DECISIONS.md).
 
 The option tables preserve the alternatives presented before the owner decision. The acceptance examples below are **proposed tests, not executed results**. Outstanding owner decisions require a recorded resolution or bounded deferral with responsible role, target stage, observable outcome and evidence under the [Requirements gate checklist](REQUIREMENTS_REVIEW.md#5-requirements-gate-readiness-checklist). Storage, locking, scheduler and interface designs belong to a later authorised stage.

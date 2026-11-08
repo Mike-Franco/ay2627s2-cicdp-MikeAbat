@@ -1,29 +1,153 @@
 import hashlib
 import json
 import uuid
+from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, connection, transaction
 from django.db.models import F, Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import BusinessMembership, Inventory, InventoryAssignment
 
-from .models import (MAX_RECEIPT_UNITS, DemandAuditEvent, ReceiptAuditEvent,
+from .models import (MAX_RECEIPT_UNITS, DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent, ReceiptAuditEvent,
                      ReceivingBatch, StockOut, StockOutAllocation,
                      StockAdjustment, StockAdjustmentAllocation,
-                     StockAdjustmentAuditEvent)
+                     StockAdjustmentAuditEvent, StockDisposal)
 
 
 EXPIRY_CONSTRAINT_NAME = "receiving_expiry_after_singapore_today"
+SINGAPORE = ZoneInfo("Asia/Singapore")
 
 
 class ReceiptRejected(Exception):
     def __init__(self, field, message):
         self.field = field
         super().__init__(message)
+
+
+def expiry_boundary(expiry_date):
+    return datetime.combine(expiry_date, time.min, tzinfo=SINGAPORE)
+
+
+def quarantine_quantity(batch, *, at=None):
+    """The displayed quarantine is date-derived even before evidence is written."""
+    local_date = (at or timezone.now()).astimezone(SINGAPORE).date()
+    if batch.expiry_date is not None and batch.expiry_date <= local_date:
+        return batch.remaining_quantity_units
+    return batch.quarantined_quantity_units
+
+
+def process_expiry_quarantine():
+    """Reconcile due batches; one transaction and one immutable event per batch."""
+    due_ids = list(ReceivingBatch.objects.filter(
+        expiry_date__lte=timezone.localdate(), expiry_event__isnull=True,
+    ).order_by("expiry_date", "id").values_list("id", flat=True))
+    created = 0
+    for batch_id in due_ids:
+        # Match the Product -> Inventory -> InventoryProduct -> Batch order used
+        # by receipt, issue and count operations, then recheck after locking.
+        hint = ReceivingBatch.objects.only("product_id", "inventory_id", "inventory_product_id").get(pk=batch_id)
+        with transaction.atomic():
+            Product.objects.select_for_update().get(pk=hint.product_id)
+            Inventory.objects.select_for_update().get(pk=hint.inventory_id)
+            InventoryProduct.objects.select_for_update().get(pk=hint.inventory_product_id)
+            batch = ReceivingBatch.objects.select_for_update().get(pk=batch_id)
+            if batch.expiry_date is None or batch.expiry_date > timezone.localdate():
+                continue
+            if ExpiryQuarantineEvent.objects.filter(batch=batch).exists():
+                continue
+            before_quarantine = batch.quarantined_quantity_units
+            remaining = batch.remaining_quantity_units
+            disposed_before = sum(batch.disposals.values_list("quantity_units", flat=True))
+            ExpiryQuarantineEvent.objects.create(
+                batch=batch, business_id=batch.product.business_id,
+                inventory_id=batch.inventory_id, product_id=batch.product_id,
+                effective_at=expiry_boundary(batch.expiry_date), recorded_at=Now(),
+                physical_quantity_units=remaining,
+                disposed_before_recording_units=disposed_before,
+                available_before_units=remaining + disposed_before - before_quarantine,
+                quarantine_before_units=before_quarantine,
+                quarantine_after_units=remaining,
+            )
+            if before_quarantine != remaining:
+                batch.quarantined_quantity_units = remaining
+                batch.save(update_fields=["quarantined_quantity_units"])
+            created += 1
+    return created
+
+
+def dispose_quarantined(*, user_id, inventory_id, product_id, batch_id,
+                        quantity_units, reason_code, reason_note=""):
+    """Remove quarantined physical units with one Manager-attributed audit."""
+    if type(quantity_units) is not int or not 1 <= quantity_units <= MAX_RECEIPT_UNITS:
+        raise ReceiptRejected("quantity_units", "Enter a positive whole quantity in base units.")
+    if reason_code not in StockDisposal.ReasonCode.values:
+        raise ReceiptRejected("reason_code", "Choose Expired, Damaged, or Other.")
+    if not isinstance(reason_note, str):
+        raise ReceiptRejected("reason_note", "Enter a valid note.")
+    reason_note = reason_note.strip()
+    if len(reason_note) > 2000:
+        raise ReceiptRejected("reason_note", "Enter a note of no more than 2,000 characters.")
+    if reason_code == StockDisposal.ReasonCode.OTHER and not reason_note:
+        raise ReceiptRejected("reason_note", "Enter a note for Other.")
+    try:
+        batch_id = uuid.UUID(str(batch_id))
+    except (TypeError, ValueError, AttributeError) as error:
+        raise ReceiptRejected("batch_id", "Select an expired quarantined batch.") from error
+
+    with transaction.atomic():
+        user, _, _, product, inventory, link = _lock_authorized_scope(
+            user_id, inventory_id, product_id,
+            allowed_roles=(BusinessMembership.Role.MANAGER,),
+        )
+        try:
+            batch = ReceivingBatch.objects.select_for_update().get(
+                pk=batch_id, inventory_product=link,
+            )
+        except ReceivingBatch.DoesNotExist as error:
+            raise ReceiptRejected("batch_id", "Select an expired quarantined batch.") from error
+        if batch.expiry_date is None or batch.expiry_date > timezone.localdate():
+            raise ReceiptRejected("batch_id", "Only quarantined units may be disposed.")
+        if quantity_units > quarantine_quantity(batch):
+            raise ReceiptRejected("quantity_units", "Disposal exceeds the quarantined units remaining.")
+        if batch.quarantined_quantity_units not in (0, batch.remaining_quantity_units):
+            raise ReceiptRejected("batch_id", "The batch quarantine state requires review.")
+        physical_before = link.physical_quantity_units
+        if quantity_units > physical_before:
+            raise ReceiptRejected("quantity_units", "Disposal exceeds physical stock.")
+        batch_before = batch.remaining_quantity_units
+        stored_before = batch.quarantined_quantity_units
+        stored_after = stored_before - quantity_units if stored_before else 0
+        disposal = StockDisposal.objects.create(
+            actor=user, inventory=inventory, product=product, inventory_product=link,
+            batch=batch, quantity_units=quantity_units,
+            batch_before_units=batch_before, batch_after_units=batch_before-quantity_units,
+            stored_quarantine_before_units=stored_before,
+            stored_quarantine_after_units=stored_after,
+            physical_before_units=physical_before,
+            physical_after_units=physical_before-quantity_units,
+            reason_code=reason_code, reason_note=reason_note, occurred_at=timezone.now(),
+        )
+        batch.remaining_quantity_units -= quantity_units
+        batch.quarantined_quantity_units = stored_after
+        batch.save(update_fields=["remaining_quantity_units", "quarantined_quantity_units"])
+        link.physical_quantity_units -= quantity_units
+        link.save(update_fields=["physical_quantity_units"])
+        DisposalAuditEvent.objects.create(
+            disposal=disposal, actor=user, business_id=product.business_id,
+            inventory=inventory, product=product, batch=batch,
+            quantity_units=quantity_units,
+            batch_before_units=batch_before, batch_after_units=batch.remaining_quantity_units,
+            physical_before_units=physical_before,
+            physical_after_units=link.physical_quantity_units,
+            reason_code=reason_code, reason_note=reason_note, occurred_at=disposal.occurred_at,
+        )
+        return disposal
 
 
 def _fingerprint(inventory_id, product_id, quantity_units, expiry_date):

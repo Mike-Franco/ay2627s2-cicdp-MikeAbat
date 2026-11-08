@@ -3,6 +3,8 @@ from django.shortcuts import render
 
 from accounts.sessions import protected_view
 from inventory_access.models import BusinessMembership, Inventory
+from django.utils import timezone
+from receiving.services import quarantine_quantity
 
 from .authorization import visible_inventory_product_links, visible_product_links
 
@@ -19,9 +21,16 @@ def product_catalogue(request):
 @protected_view
 def inventory_products(request, inventory_id):
     try:
-        inventory, product_links = visible_inventory_product_links(request.user, inventory_id)
+        inventory, links = visible_inventory_product_links(request.user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
+    product_links = list(links.prefetch_related("receiving_batches"))
+    now = timezone.now()
+    for link in product_links:
+        link.display_quarantine_units = sum(
+            quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all()
+        )
+        link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
     return render(
         request,
         "catalogue/inventory_products.html",
