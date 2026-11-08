@@ -11,6 +11,17 @@ from inventory_access.models import Business, Inventory
 MAX_RECEIPT_UNITS = 2_147_483_647
 
 
+class StockImport(models.Model):
+    """A successful, inventory-scoped CSV file; failed files leave no row."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    raw_bytes = models.BinaryField()
+    sha256 = models.CharField(max_length=64, db_index=True)
+    committed_at = models.DateTimeField()
+
+
 class ReceivingBatch(models.Model):
     class Source(models.TextChoices):
         MANUAL = "manual", "Manual"
@@ -31,6 +42,8 @@ class ReceivingBatch(models.Model):
     expiry_date = models.DateField(null=True, blank=True)
     receipt_sequence = models.PositiveBigIntegerField()
     received_at = models.DateTimeField()
+    import_record = models.ForeignKey(StockImport, null=True, blank=True, on_delete=models.PROTECT)
+    import_row_number = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -207,6 +220,8 @@ class StockOut(models.Model):
     quantity_after_units = models.PositiveBigIntegerField()
     occurred_at = models.DateTimeField()
     balance_applied = models.BooleanField(default=False)
+    import_record = models.ForeignKey(StockImport, null=True, blank=True, on_delete=models.PROTECT)
+    import_row_number = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         constraints = [

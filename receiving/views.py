@@ -10,9 +10,39 @@ from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
 
 from .forms import (BatchCountFormSet, ManualReceiptForm, ManualStockAdjustmentForm,
-                    ManualStockDisposalForm, ManualStockOutForm)
+                    ManualStockDisposalForm, ManualStockOutForm, StockCsvImportForm)
+from .csv_import import CsvImportRejected, MAX_BYTES, import_stock_csv
 from .models import ReceivingBatch, StockOut, StockAdjustment, StockDisposal
 from .services import ReceiptRejected, adjust_stock, dispose_quarantined, issue_stock, receive_manual
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def import_stock_csv_view(request, inventory_id):
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    if not BusinessMembership.objects.filter(
+        user=request.user, business=inventory.business, role=BusinessMembership.Role.MANAGER,
+        is_active=True, inventory_assignments__inventory=inventory,
+        inventory_assignments__is_active=True,
+    ).exists():
+        raise Http404
+    form = StockCsvImportForm(request.POST or None, request.FILES or None)
+    imported = None
+    if request.method == "POST" and form.is_valid():
+        try:
+            raw = form.cleaned_data["file"].read(MAX_BYTES + 1)
+            imported = import_stock_csv(user_id=request.user.pk, inventory_id=inventory.pk, raw_bytes=raw)
+        except CsvImportRejected as error:
+            location = f"Row {error.row}, {error.field}: " if error.row and error.field else (
+                f"Row {error.row}: " if error.row else f"{error.category}: "
+            )
+            form.add_error("file", location + str(error))
+    return render(request, "receiving/import_csv.html", {
+        "inventory": inventory, "form": form, "imported": imported,
+    }, status=400 if request.method == "POST" and (form.errors or not imported) else 200)
 
 
 def _load_receivable(user, inventory_id, product_id):

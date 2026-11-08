@@ -6,6 +6,10 @@ from django.forms import formset_factory
 from .models import MAX_RECEIPT_UNITS, StockDisposal
 
 
+class StockCsvImportForm(forms.Form):
+    file = forms.FileField(widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": ".csv,text/csv"}))
+
+
 class ManualReceiptForm(forms.Form):
     request_token = forms.UUIDField(widget=forms.HiddenInput)
     quantity_units = forms.IntegerField(

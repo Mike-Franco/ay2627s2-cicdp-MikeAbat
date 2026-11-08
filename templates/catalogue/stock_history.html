@@ -23,13 +23,13 @@
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
                 <td>{{ audit.actor.email }}</td>
                 <td>+{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
-                <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt</td>
+                <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt{% if audit.batch.import_record_id %}<br>Import {{ audit.batch.import_record_id }} · row {{ audit.batch.import_row_number }}{% endif %}</td>
               {% elif event.kind == "issue" %}
                 <th scope="row">Issue</th>
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
                 <td>{{ audit.actor.email }}</td>
                 <td>−{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
-                <td>{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
+                <td>{% if audit.stock_out.import_record_id %}Import {{ audit.stock_out.import_record_id }} · row {{ audit.stock_out.import_row_number }}<br>{% endif %}{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
               {% elif event.kind == "adjustment" %}
                 <th scope="row">Adjustment</th>
                 <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
@@ -58,5 +58,18 @@
 {% else %}
   <p>No stock history has been recorded for this product in this inventory.</p>
 {% endif %}
+<nav aria-label="Stock history pages" class="d-flex align-items-center gap-3 mb-3">
+  {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}">Previous</a>
+  {% else %}
+    <span class="text-muted">Previous</span>
+  {% endif %}
+  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}
+    <a href="?page={{ page.next_page_number }}">Next</a>
+  {% else %}
+    <span class="text-muted">Next</span>
+  {% endif %}
+</nav>
 <a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
 {% endblock %}
