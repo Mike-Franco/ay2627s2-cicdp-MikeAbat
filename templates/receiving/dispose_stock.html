@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Dispose quarantined stock · Tory{% endblock %}
+{% block content %}
+<h1>Dispose quarantined stock</h1>
+<p>{{ inventory.name }} · {{ product.sku }} — {{ product.name }}</p>
+{% if batches %}
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="mb-3">{{ form.batch_id.label_tag }}{{ form.batch_id }}{{ form.batch_id.errors }}</div>
+  <div class="mb-3">{{ form.quantity_units.label_tag }}{{ form.quantity_units }}{{ form.quantity_units.errors }}</div>
+  <div class="mb-3">{{ form.reason_code.label_tag }}{{ form.reason_code }}{{ form.reason_code.errors }}</div>
+  <div class="mb-3">{{ form.reason_note.label_tag }}{{ form.reason_note }}{{ form.reason_note.errors }}<div class="form-text">Required for Other.</div></div>
+  <button class="btn btn-danger" type="submit">Record disposal</button>
+</form>
+{% else %}
+<p>No quarantined units are available for disposal.</p>
+{% endif %}
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}
