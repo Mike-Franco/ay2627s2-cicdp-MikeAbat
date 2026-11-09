@@ -1,9 +1,12 @@
 from collections import defaultdict
 
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import CharField, F, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
+from django.shortcuts import redirect
+from django.views.decorators.http import require_http_methods
 
 from accounts.sessions import protected_view
 from catalogue.models import InventoryProduct
@@ -11,8 +14,11 @@ from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
 from django.utils import timezone
 from receiving.models import (DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent,
-                              ReceiptAuditEvent, StockAdjustmentAuditEvent)
+                              ObservationActivation, ReceiptAuditEvent, StockAdjustmentAuditEvent)
 from receiving.services import quarantine_quantity
+from receiving.demand import mark_demand_day_incomplete, seven_day_forecast, verify_demand_day
+from receiving.forms import DemandCoverageActionForm
+from receiving.services import ReceiptRejected
 
 from .authorization import visible_inventory_product_links, visible_product_links
 
@@ -103,3 +109,55 @@ def stock_history(request, inventory_id, product_id):
     return render(request, "catalogue/stock_history.html", {
         "inventory": inventory, "product": link.product, "events": events, "page": page,
     })
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def demand_forecast(request, inventory_id, product_id):
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    link = get_object_or_404(
+        InventoryProduct.objects.select_related("product"),
+        inventory=inventory, product_id=product_id,
+        product__business_id=inventory.business_id,
+    )
+    is_manager = BusinessMembership.objects.filter(
+        user=request.user, business=inventory.business,
+        role=BusinessMembership.Role.MANAGER, is_active=True,
+        inventory_assignments__inventory=inventory,
+        inventory_assignments__is_active=True,
+    ).exists()
+    observation_active = ObservationActivation.objects.filter(
+        environment=settings.DJANGO_ENV, state="active",
+    ).exists()
+    form = DemandCoverageActionForm(request.POST or None)
+    if request.method == "POST":
+        if not is_manager:
+            raise Http404
+        if form.is_valid():
+            try:
+                if form.cleaned_data["action"] == "verify":
+                    verify_demand_day(user_id=request.user.pk, inventory_id=inventory_id,
+                                      product_id=product_id, day=form.cleaned_data["day"])
+                else:
+                    mark_demand_day_incomplete(
+                        user_id=request.user.pk, inventory_id=inventory_id,
+                        product_id=product_id, day=form.cleaned_data["day"],
+                        reason=form.cleaned_data["reason"],
+                    )
+            except ReceiptRejected as error:
+                form.add_error(error.field, str(error))
+            else:
+                return redirect("demand-forecast", inventory_id=inventory_id, product_id=product_id)
+    try:
+        forecast = seven_day_forecast(user_id=request.user.pk, inventory_id=inventory_id,
+                                      product_id=product_id)
+    except ReceiptRejected as error:
+        raise Http404 from error
+    return render(request, "catalogue/demand_forecast.html", {
+        "inventory": inventory, "product": link.product, "forecast": forecast,
+        "form": form, "is_manager": is_manager,
+        "observation_active": observation_active,
+    }, status=400 if request.method == "POST" else 200)

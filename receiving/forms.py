@@ -10,6 +10,12 @@ class StockCsvImportForm(forms.Form):
     file = forms.FileField(widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": ".csv,text/csv"}))
 
 
+class DemandCoverageActionForm(forms.Form):
+    day = forms.DateField(widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}))
+    action = forms.ChoiceField(choices=(("verify", "Verify"), ("incomplete", "Mark incomplete")))
+    reason = forms.CharField(required=False, max_length=2000, widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}))
+
+
 class ManualReceiptForm(forms.Form):
     request_token = forms.UUIDField(widget=forms.HiddenInput)
     quantity_units = forms.IntegerField(

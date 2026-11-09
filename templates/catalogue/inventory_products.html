@@ -14,6 +14,7 @@
         <span class="text-muted"> · Available to issue: {{ link.display_available_units }}</span>
         <span class="text-muted"> · Quarantined: {{ link.display_quarantine_units }}</span>
         <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'stock-history' inventory.pk link.product_id %}">Stock history</a>
+        <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Demand forecast</a>
         {% if link.product.is_active %}
           <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
           <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
