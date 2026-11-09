@@ -46,6 +46,17 @@ jobs:
           cache: pip
       - name: Install pinned dependencies
         run: python -m pip install -r requirements.txt
+      - name: Enable actual commit timestamps in disposable PostgreSQL
+        env:
+          PG_SERVICE_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -u postgres "$PG_SERVICE_ID" psql -U tory_ci -d tory_ci -c "ALTER SYSTEM SET track_commit_timestamp = on"
+          docker restart "$PG_SERVICE_ID"
+          for attempt in $(seq 1 30); do
+            if docker exec "$PG_SERVICE_ID" pg_isready -U tory_ci -d tory_ci; then break; fi
+            sleep 1
+          done
+          test "$(docker exec -u postgres "$PG_SERVICE_ID" psql -U tory_ci -d tory_ci -At -c 'SHOW track_commit_timestamp')" = on
       - name: Apply migrations to fresh PostgreSQL database
         run: python manage.py migrate --noinput
       - name: Run Django system checks

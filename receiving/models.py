@@ -19,7 +19,62 @@ class StockImport(models.Model):
     inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
     raw_bytes = models.BinaryField()
     sha256 = models.CharField(max_length=64, db_index=True)
+    # TORY-22's committed_at is a pre-commit completion sample. Keep it for
+    # existing history; only actual_committed_at may attribute CSV demand.
     committed_at = models.DateTimeField()
+    origin_xid = models.CharField(max_length=20, null=True, blank=True)
+    actual_committed_at = models.DateTimeField(null=True, blank=True)
+    commit_attribution = models.CharField(max_length=16, default="legacy", choices=[
+        ("legacy", "Legacy, unresolved"), ("pending", "Pending finalization"),
+        ("resolved", "Actual commit time recorded"), ("unavailable", "Unavailable"),
+    ])
+    observation_eligible = models.BooleanField(default=False)
+
+
+class ObservationActivation(models.Model):
+    """One environment-wide observation boundary, finalized after commit."""
+
+    environment = models.CharField(max_length=32)
+    first_observed_date = models.DateField()
+    origin_xid = models.CharField(max_length=20)
+    actual_committed_at = models.DateTimeField(null=True, blank=True)
+    state = models.CharField(max_length=16, default="pending", choices=[
+        ("pending", "Pending"), ("active", "Active"), ("invalid", "Invalid"),
+    ])
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["environment"], condition=Q(state__in=("pending", "active")),
+            name="one_current_demand_activation_per_environment",
+        )]
+
+
+class DemandCoverageDay(models.Model):
+    inventory_product = models.ForeignKey(InventoryProduct, on_delete=models.PROTECT)
+    day = models.DateField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["inventory_product", "day"], name="unique_demand_coverage_day",
+        )]
+
+
+class DemandCoverageEvent(models.Model):
+    """Append-only Manager evidence; the latest event determines day state."""
+
+    coverage_day = models.ForeignKey(DemandCoverageDay, on_delete=models.PROTECT, related_name="events")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    action = models.CharField(max_length=16, choices=[("verified", "Verified"), ("incomplete", "Incomplete")])
+    reason = models.TextField(blank=True)
+    recorded_at = models.DateTimeField()
+    verified_total_units = models.PositiveBigIntegerField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(
+            condition=(Q(action="verified", reason="", verified_total_units__isnull=False)
+                       | (Q(action="incomplete", verified_total_units__isnull=True) & ~Q(reason__regex=r"^\s*$"))),
+            name="demand_coverage_event_reason",
+        )]
 
 
 class ReceivingBatch(models.Model):

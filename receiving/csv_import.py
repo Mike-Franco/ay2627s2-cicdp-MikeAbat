@@ -6,6 +6,7 @@ import io
 import re
 import uuid
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection, transaction
 from django.utils import timezone
@@ -13,7 +14,8 @@ from django.utils import timezone
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import BusinessMembership, Inventory
 
-from .models import MAX_RECEIPT_UNITS, ReceivingBatch, StockImport
+from .commit_times import current_xid, finalize_stock_import, lock_activation, tracking_enabled
+from .models import MAX_RECEIPT_UNITS, ObservationActivation, ReceivingBatch, StockImport
 from .services import ReceiptRejected, _create_receipt_audit, _fingerprint, issue_stock
 
 
@@ -114,6 +116,11 @@ def import_stock_csv(*, user_id, inventory_id, raw_bytes):
     rows = parse_csv(raw_bytes)
     digest = hashlib.sha256(raw_bytes).hexdigest()
     with transaction.atomic():
+        # Shared activation lock lets imports in different inventories proceed
+        # together while an environment activation waits for all open imports.
+        lock_activation(shared=True)
+        observation_eligible = ObservationActivation.objects.filter(environment=settings.DJANGO_ENV).exists()
+        capture_commit_time = tracking_enabled()
         try:
             hint = Inventory.objects.only("business_id").get(pk=inventory_id, is_active=True)
         except Inventory.DoesNotExist as error:
@@ -166,7 +173,13 @@ def import_stock_csv(*, user_id, inventory_id, raw_bytes):
         import_record = StockImport.objects.create(
             actor=user, inventory=inventory, raw_bytes=raw_bytes,
             sha256=digest, committed_at=timezone.now(),
+            commit_attribution="pending" if capture_commit_time else "unavailable",
+            observation_eligible=observation_eligible,
         )
+        if capture_commit_time:
+            import_record.origin_xid = current_xid()
+            import_record.save(update_fields=["origin_xid"])
+            transaction.on_commit(lambda: finalize_stock_import(import_record.pk), robust=True)
         for number, sku, change in rows:
             product = products[sku.casefold()]
             link = links[product.pk]

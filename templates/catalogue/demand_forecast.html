@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Demand forecast for {{ product.sku }} · Tory{% endblock %}
+{% block content %}
+<h1>Demand forecast for {{ product.sku }}</h1>
+<p>{{ product.name }} · {{ inventory.name }}</p>
+<p>Previous seven complete Asia/Singapore dates. Each date needs explicit Manager verification, including a zero-demand date.</p>
+{% if forecast.available %}
+  <p>Average daily demand: <strong>{{ forecast.displayed_average }} units</strong></p>
+{% else %}
+  <div class="alert alert-secondary" role="status">
+    Forecast unavailable: {{ forecast.reason }}<br>
+    Dependent reorder recommendation unavailable.
+  </div>
+{% endif %}
+<ul>
+  {% for day, state in forecast.days %}
+    <li>{{ day|date:"Y-m-d" }}: {{ state }}</li>
+  {% endfor %}
+</ul>
+{% if is_manager and observation_active %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">{{ form.day.label_tag }}{{ form.day }}{{ form.day.errors }}</div>
+    <div class="mb-3">{{ form.reason.label_tag }}{{ form.reason }}{{ form.reason.errors }}<div class="form-text">Required when marking a previously verified day incomplete.</div></div>
+    {{ form.action.errors }}
+    <button class="btn btn-primary" name="action" value="verify" type="submit">Verify complete day</button>
+    <button class="btn btn-outline-danger" name="action" value="incomplete" type="submit">Mark verified day incomplete</button>
+  </form>
+{% endif %}
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}

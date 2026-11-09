@@ -23,6 +23,15 @@ An **assigned Manager** may mark a **previously verified product, inventory and 
 
 This is the operational path for reporting a newly discovered gap without inventing a correction transaction or treating an adjustment as demand. It preserves G-06's verified-zero, missing-day and after-day-end rules. It does not alter the CSV timestamp contract or permit historical backdating. Reason field format, evidence retention, the procedure and authority for any external approved correction, and concurrent invalidation/reverification mechanics remain Design questions. If no approved correction exists, the day cannot be reverified as complete merely to restore a numeric result.
 
+## TORY-23 owner decisions — 9 November 2026
+
+- Manual issues use the existing action timestamp (`occurred_at`) for their Singapore demand day, including an action before midnight committed afterward. Negative CSV issues use the **actual PostgreSQL transaction commit time**, not their row audit time or TORY-22's pre-commit `StockImport.committed_at` sample.
+- Coverage begins at each environment's activation. Earlier dates are not observed or backfilled; a partial Singapore date cannot be counted as a complete observed date. Seven complete post-activation dates still require explicit assigned-Manager verification.
+- CSV stock imports continue when commit-time tracking is unavailable, but unresolved attribution or unavailable tracking suppresses numeric forecast and dependent recommendation output. No pre-commit timestamp substitutes for actual commit time.
+- The bounded CA1 deferral above remains: no in-app historical correction or unsupported reverification. An invalidated date without approved external correction stays incomplete.
+
+**TORY-23 implementation and verification boundary:** `StockImport.committed_at` retains its existing pre-commit meaning. New imports store a transaction ID and finalize a separate actual commit timestamp after commit, with a retryable recovery command; pending and unavailable attribution never becomes numeric demand. Coverage activation uses a future Singapore date and actual commit-time validation, with no historical backfill. PostgreSQL 18.3 in the local Tory database currently has `track_commit_timestamp=off`; tracking-dependent tests are skipped there and require a separately enabled environment. The disposable GitHub CI service is configured to enable tracking, but no hosted CI result is claimed by this note. Reason validation uses nonblank trimmed text of at most 2,000 characters as a Design choice consistent with existing movement reasons. External correction authority/evidence and later reverification remain unresolved.
+
 ## Planned acceptance examples and implementation mapping
 
 | Ticket | Example to verify | Expected result |
