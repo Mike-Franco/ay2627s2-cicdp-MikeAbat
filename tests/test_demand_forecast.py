@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from fractions import Fraction
 from threading import Barrier
 from types import SimpleNamespace
@@ -201,6 +201,35 @@ class DemandForecastTests(TestCase):
             with self.assertRaises(ReceiptRejected):
                 self.verify(day)
         self.assertEqual(StockImport.objects.count(), 1)
+
+    def test_csv_actual_commit_day_on_both_sides_of_singapore_midnight(self):
+        self.now = datetime(2026, 11, 9, 12, tzinfo=SINGAPORE)
+        self.today = self.now.date()
+        self.activation.first_observed_date = date(2026, 11, 2)
+        self.activation.save(update_fields=["first_observed_date"])
+        receive_manual(user_id=self.manager.pk, inventory_id=self.inventory.pk,
+                       product_id=self.product.pk, request_token=uuid.uuid4(),
+                       quantity_units=3, expiry_date=None)
+        boundary = datetime(2026, 11, 8, 0, tzinfo=SINGAPORE)
+        samples = (
+            (b"sku,change\nD,-1\n", boundary - timedelta(microseconds=1), boundary),
+            (b"sku,change\nD,-2\n", boundary, boundary - timedelta(microseconds=1)),
+        )
+        for raw, actual_commit, row_time in samples:
+            with patch("receiving.services.timezone", SimpleNamespace(
+                now=lambda: row_time, localdate=timezone.localdate,
+            )):
+                record = import_stock_csv(user_id=self.manager.pk, inventory_id=self.inventory.pk,
+                                          raw_bytes=raw)
+            # Synthetic finalized timestamps isolate PostgreSQL day attribution;
+            # Actual PostgreSQL commit-time capture has its own integration test.
+            StockImport.objects.filter(pk=record.pk).update(
+                committed_at=row_time, actual_committed_at=actual_commit,
+                commit_attribution="resolved",
+            )
+        self.assertEqual(DemandAuditEvent.objects.count(), 2)
+        self.assertEqual(self.verify(date(2026, 11, 7)).verified_total_units, 1)
+        self.assertEqual(self.verify(date(2026, 11, 8)).verified_total_units, 2)
 
 
 class ActualCommitTimeTests(TransactionTestCase):
