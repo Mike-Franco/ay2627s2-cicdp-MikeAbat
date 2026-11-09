@@ -4,6 +4,11 @@
 <h1>Demand forecast for {{ product.sku }}</h1>
 <p>{{ product.name }} · {{ inventory.name }}</p>
 <p>Previous seven complete Asia/Singapore dates. Each date needs explicit Manager verification, including a zero-demand date.</p>
+<h2>Reorder settings and stock</h2>
+<p>Lead time: {% if reorder.lead_time_days != None %}{{ reorder.lead_time_days }} calendar days{% else %}unset{% endif %}.
+Safety stock: {% if reorder.safety_stock_units != None %}{{ reorder.safety_stock_units }} units{% else %}unset{% endif %}.
+Available to issue: {{ reorder.available_units }} units ({{ reorder.quarantined_units }} quarantined).</p>
+{% if can_edit_reorder %}<p><a href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a></p>{% endif %}
 {% if forecast.available %}
   <p>Average daily demand: <strong>{{ forecast.displayed_average }} units</strong></p>
 {% else %}
@@ -11,6 +16,15 @@
     Forecast unavailable: {{ forecast.reason }}<br>
     Dependent reorder recommendation unavailable.
   </div>
+{% endif %}
+{% if reorder.missing_settings %}
+  <p role="status">Reorder recommendation unavailable: set {{ reorder.missing_settings|join:", " }}.</p>
+{% endif %}
+{% if reorder.reorder_point != None %}
+  <h2>Reorder recommendation</h2>
+  <p>Reorder point: {{ forecast.average }} units/day × {{ reorder.lead_time_days }} days + {{ reorder.safety_stock_units }} safety units = {{ reorder.reorder_point }} units.</p>
+  <p>{% if reorder.alert %}<strong>Reorder alert</strong>: available stock is at or below the point.{% else %}No reorder alert: available stock is above the point.{% endif %}</p>
+  <p>Suggested quantity: <strong>{{ reorder.suggested_units }} units</strong> (maximum of zero and the ceiling of reorder point minus {{ reorder.available_units }} available units). Pending deliveries are excluded.</p>
 {% endif %}
 <ul>
   {% for day, state in forecast.days %}

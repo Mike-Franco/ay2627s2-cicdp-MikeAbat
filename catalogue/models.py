@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Lower, Trim
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from inventory_access.models import Business, Inventory
 
@@ -15,7 +15,9 @@ class Product(models.Model):
     base_unit_label = models.CharField(max_length=40, null=True, blank=True)
     expiry_tracking_required = models.BooleanField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
-    safety_stock_units = models.PositiveIntegerField(null=True, blank=True)
+    safety_stock_units = models.PositiveIntegerField(
+        null=True, blank=True, validators=[MaxValueValidator(2_147_483_647)],
+    )
 
     class Meta:
         constraints = [
@@ -27,12 +29,20 @@ class Product(models.Model):
                 name="product_lead_time_positive_or_unset",
             ),
             models.CheckConstraint(
+                condition=Q(lead_time_days__isnull=True) | Q(lead_time_days__lte=365),
+                name="product_lead_time_max_365_or_unset",
+            ),
+            models.CheckConstraint(
+                condition=Q(safety_stock_units__isnull=True) | Q(safety_stock_units__lte=2_147_483_647),
+                name="product_safety_stock_cap_or_unset",
+            ),
+            models.CheckConstraint(
                 condition=Q(base_unit_label__isnull=True) | Q(base_unit_label__regex=r"\S"),
                 name="product_unit_label_nonblank_or_unset",
             ),
         ]
     lead_time_days = models.PositiveIntegerField(
-        null=True, blank=True, validators=[MinValueValidator(1)]
+        null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(365)]
     )
 
     def clean(self):

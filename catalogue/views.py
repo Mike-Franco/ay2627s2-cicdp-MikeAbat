@@ -16,11 +16,13 @@ from django.utils import timezone
 from receiving.models import (DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent,
                               ObservationActivation, ReceiptAuditEvent, StockAdjustmentAuditEvent)
 from receiving.services import quarantine_quantity
-from receiving.demand import mark_demand_day_incomplete, seven_day_forecast, verify_demand_day
+from receiving.demand import mark_demand_day_incomplete, verify_demand_day
 from receiving.forms import DemandCoverageActionForm
 from receiving.services import ReceiptRejected
 
 from .authorization import visible_inventory_product_links, visible_product_links
+from .forms import ReorderSettingsForm
+from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
 
 
 @protected_view
@@ -152,12 +154,45 @@ def demand_forecast(request, inventory_id, product_id):
             else:
                 return redirect("demand-forecast", inventory_id=inventory_id, product_id=product_id)
     try:
-        forecast = seven_day_forecast(user_id=request.user.pk, inventory_id=inventory_id,
-                                      product_id=product_id)
+        reorder = recommendation(user_id=request.user.pk, inventory_id=inventory_id,
+                                 product_id=product_id)
     except ReceiptRejected as error:
         raise Http404 from error
     return render(request, "catalogue/demand_forecast.html", {
-        "inventory": inventory, "product": link.product, "forecast": forecast,
+        "inventory": inventory, "product": link.product, "forecast": reorder.forecast,
+        "reorder": reorder,
         "form": form, "is_manager": is_manager,
         "observation_active": observation_active,
+        "can_edit_reorder": can_edit_shared_settings(request.user, link.product),
+    }, status=400 if request.method == "POST" else 200)
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def reorder_settings(request, inventory_id, product_id):
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    link = get_object_or_404(
+        InventoryProduct.objects.select_related("product"),
+        inventory=inventory, product_id=product_id,
+        product__business_id=inventory.business_id,
+    )
+    if not can_edit_shared_settings(request.user, link.product):
+        raise Http404
+    form = ReorderSettingsForm(request.POST or None, instance=link.product)
+    if request.method == "POST" and form.is_valid():
+        try:
+            save_shared_settings(
+                user_id=request.user.pk, inventory_id=inventory_id, product_id=product_id,
+                lead_time_days=form.cleaned_data["lead_time_days"],
+                safety_stock_units=form.cleaned_data["safety_stock_units"],
+            )
+        except ReceiptRejected as error:
+            form.add_error(error.field if error.field != "__all__" else None, str(error))
+        else:
+            return redirect("demand-forecast", inventory_id=inventory_id, product_id=product_id)
+    return render(request, "catalogue/reorder_settings.html", {
+        "inventory": inventory, "product": link.product, "form": form,
     }, status=400 if request.method == "POST" else 200)

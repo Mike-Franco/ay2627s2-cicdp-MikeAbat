@@ -4,6 +4,10 @@
 **Authority:** Project owner, as supplied in the project instructions and supplementary owner-provided decision record.
 **Status:** BR-001–BR-045 approved individually. BR-046 onward have no approval recorded. Complete SRS and Requirements exit **PENDING OWNER APPROVAL**. No signature is claimed.
 
+## TORY-24 reorder refinements — owner approval, 9 November 2026
+
+Lead time and safety stock are Product-level settings shared across the business. A Manager may edit them only when assigned to **every active inventory in that business containing the product**; Staff may view but not edit. Either setting may be cleared to unset. Lead time is 1–365 whole calendar days, and safety stock is 0–2,147,483,647 whole units, including zero. Missing either setting or an unavailable seven-day forecast withholds the numeric recommendation and identifies the missing input. The point uses the full-precision average × lead time + safety stock; alert at or below the point, while the separately displayed suggestion is `max(0, ceil(point − available-to-issue))`. Pending deliveries are ignored. Use the existing expiry-aware available-to-issue quantity; no other stock hold is approved by this refinement.
+
 ## Batch-integrity owner decisions — owner-provided approval, 1 November 2026
 
 These three approvals select Option A in the [batch-integrity decision package](BATCH_INTEGRITY_OWNER_DECISIONS.md). They refine existing FR/NFR acceptance semantics and do **not** create BR-046 or another BR ID, alter BR-001–BR-045, approve the full SRS, or authorise Design entry. No earlier approval time is inferred.
