@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Reorder settings for {{ product.sku }} · Tory{% endblock %}
+{% block content %}
+<h1>Reorder settings for {{ product.sku }}</h1>
+<p>{{ product.name }} · {{ inventory.name }}</p>
+<p>These Product settings apply to every inventory in this business containing the product. Leave either field blank to unset it; numeric reorder advice then becomes unavailable.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="mb-3">{{ form.lead_time_days.label_tag }}{{ form.lead_time_days }}{{ form.lead_time_days.errors }}<div class="form-text">1 to 365 whole calendar days.</div></div>
+  <div class="mb-3">{{ form.safety_stock_units.label_tag }}{{ form.safety_stock_units }}{{ form.safety_stock_units.errors }}<div class="form-text">0 to 2,147,483,647 whole units; zero is valid.</div></div>
+  <button class="btn btn-primary" type="submit">Save settings</button>
+</form>
+<a href="{% url 'demand-forecast' inventory.pk product.pk %}">Back to forecast</a>
+{% endblock %}

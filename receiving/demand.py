@@ -123,39 +123,43 @@ def seven_day_forecast(*, user_id, inventory_id, product_id, at=None):
     """Serialize with stock writers; never infer zero from absent coverage."""
     with transaction.atomic():
         _, _, _, product, inventory, link = _lock_authorized_scope(user_id, inventory_id, product_id)
-        today = _today(at)
-        dates = tuple(today - timedelta(days=offset) for offset in range(7, 0, -1))
-        activation = _activation()
-        statuses = {}
-        latest_events = {}
-        if activation:
-            for coverage in DemandCoverageDay.objects.filter(
-                inventory_product=link, day__in=dates,
-            ).prefetch_related(Prefetch("events", queryset=DemandCoverageEvent.objects.order_by("pk"))):
-                events = list(coverage.events.all())
-                statuses[coverage.day] = events[-1].action if events else "missing"
-                if events:
-                    latest_events[coverage.day] = events[-1]
-        days = tuple((day, statuses.get(day, "missing")) for day in dates)
-        if not tracking_enabled():
-            return ForecastResult(False, "PostgreSQL commit-time tracking is unavailable.", days)
-        if not activation:
-            return ForecastResult(False, "Demand observation has not been activated.", days)
-        if dates[0] < activation.first_observed_date:
-            return ForecastResult(False, "Seven complete dates after activation are required.", days)
-        if _resolve_pending(link):
-            return ForecastResult(False, "CSV demand attribution is unresolved.", days)
-        if any(state != "verified" for _, state in days):
-            return ForecastResult(False, "Every date needs explicit Manager verification.", days)
-        totals = _totals({"business_id": inventory.business_id,
-                          "inventory_id": inventory.pk, "product_id": product.pk},
-                         dates[0], today)
-        late_days = [day for day in dates
-                     if latest_events[day].verified_total_units != totals.get(day, 0)]
-        if late_days:
-            days = tuple((day, "invalidated" if day in late_days else state) for day, state in days)
-            return ForecastResult(False, "Later issue evidence changed a verified date.", days)
-        total = sum(totals.get(day, 0) for day in dates)
-        average = Fraction(total, 7)
-        displayed = f"{Decimal(total) / Decimal(7):.2f}"
-        return ForecastResult(True, "", days, average, displayed)
+        return _forecast_locked(product, inventory, link, at=at or timezone.now())
+
+
+def _forecast_locked(product, inventory, link, *, at):
+    today = _today(at)
+    dates = tuple(today - timedelta(days=offset) for offset in range(7, 0, -1))
+    activation = _activation()
+    statuses = {}
+    latest_events = {}
+    if activation:
+        for coverage in DemandCoverageDay.objects.filter(
+            inventory_product=link, day__in=dates,
+        ).prefetch_related(Prefetch("events", queryset=DemandCoverageEvent.objects.order_by("pk"))):
+            events = list(coverage.events.all())
+            statuses[coverage.day] = events[-1].action if events else "missing"
+            if events:
+                latest_events[coverage.day] = events[-1]
+    days = tuple((day, statuses.get(day, "missing")) for day in dates)
+    if not tracking_enabled():
+        return ForecastResult(False, "PostgreSQL commit-time tracking is unavailable.", days)
+    if not activation:
+        return ForecastResult(False, "Demand observation has not been activated.", days)
+    if dates[0] < activation.first_observed_date:
+        return ForecastResult(False, "Seven complete dates after activation are required.", days)
+    if _resolve_pending(link):
+        return ForecastResult(False, "CSV demand attribution is unresolved.", days)
+    if any(state != "verified" for _, state in days):
+        return ForecastResult(False, "Every date needs explicit Manager verification.", days)
+    totals = _totals({"business_id": inventory.business_id,
+                      "inventory_id": inventory.pk, "product_id": product.pk},
+                     dates[0], today)
+    late_days = [day for day in dates
+                 if latest_events[day].verified_total_units != totals.get(day, 0)]
+    if late_days:
+        days = tuple((day, "invalidated" if day in late_days else state) for day, state in days)
+        return ForecastResult(False, "Later issue evidence changed a verified date.", days)
+    total = sum(totals.get(day, 0) for day in dates)
+    average = Fraction(total, 7)
+    displayed = f"{Decimal(total) / Decimal(7):.2f}"
+    return ForecastResult(True, "", days, average, displayed)
