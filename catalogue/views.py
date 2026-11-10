@@ -9,7 +9,7 @@ from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 
 from accounts.sessions import protected_view
-from catalogue.models import InventoryProduct
+from catalogue.models import InventoryProduct, ProductLifecycleAuditEvent
 from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
 from django.utils import timezone
@@ -122,6 +122,7 @@ def stock_history(request, inventory_id, product_id):
         ),
         "quarantine": ExpiryQuarantineEvent.objects.filter(**scope).select_related("batch"),
         "disposal": DisposalAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
+        "lifecycle": ProductLifecycleAuditEvent.objects.filter(**scope).select_related("actor"),
     }
 
     def event_keys(kind, timestamp):
@@ -135,6 +136,7 @@ def stock_history(request, inventory_id, product_id):
         event_keys("adjustment", "occurred_at"),
         event_keys("quarantine", "recorded_at"),
         event_keys("disposal", "occurred_at"),
+        event_keys("lifecycle", "occurred_at"),
         all=True,
     ).order_by("-event_time", "-event_kind", "-event_id")
     page = Paginator(keys, 50).get_page(request.GET.get("page"))

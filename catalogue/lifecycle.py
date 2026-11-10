@@ -1,10 +1,11 @@
 """Business-wide product lifecycle changes under the stock writers' Product lock."""
 
 from django.db import connection, transaction
+from django.utils import timezone
 
 from inventory_access.models import BusinessMembership, Inventory
 
-from .models import InventoryProduct, Product
+from .models import InventoryProduct, Product, ProductLifecycleAuditEvent
 
 
 class ProductLifecycleRejected(Exception):
@@ -60,6 +61,14 @@ def set_product_active(*, user_id, inventory_id, product_id, active):
                 "Physical stock must be zero in every inventory before deactivation."
             )
         if product.is_active != active:
+            previous = product.is_active
             product.is_active = active
             product.save(update_fields=["is_active"])
+            ProductLifecycleAuditEvent.objects.create(
+                actor_id=user_id, business_id=product.business_id,
+                inventory_id=inventory_id, product=product,
+                action="reactivate" if active else "deactivate",
+                previous_is_active=previous, new_is_active=active,
+                occurred_at=timezone.now(),
+            )
         return product

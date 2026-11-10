@@ -6,14 +6,14 @@ from unittest.mock import patch
 import uuid
 
 from django.contrib.auth import get_user_model
-from django.db import close_old_connections, connection
+from django.db import IntegrityError, close_old_connections, connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
 from catalogue.lifecycle import ProductLifecycleRejected, set_product_active
-from catalogue.models import InventoryProduct, Product
+from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.csv_import import CsvImportRejected, import_stock_csv
 from receiving.models import ReceiptAuditEvent, ReceivingBatch
@@ -80,6 +80,77 @@ class ProductLifecycleTests(TestCase):
         self.product.refresh_from_db()
         self.assertTrue(self.product.is_active)
         self.assertEqual(self.product.sku, "LIFE")
+
+    def test_lifecycle_audit_contents_history_scope_and_no_ops(self):
+        self.change(False)
+        event = ProductLifecycleAuditEvent.objects.get()
+        self.assertEqual(event.actor_id, self.manager.pk)
+        self.assertEqual(event.business_id, self.business.pk)
+        self.assertEqual(event.inventory_id, self.first.pk)
+        self.assertEqual(event.product_id, self.product.pk)
+        self.assertEqual((event.action, event.classification), ("deactivate", "non_demand"))
+        self.assertEqual((event.previous_is_active, event.new_is_active), (True, False))
+        self.assertIsNotNone(event.occurred_at)
+        self.change(False)
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 1)
+
+        self.login(self.staff)
+        first_history = self.client.get(reverse("stock-history", args=[self.first.pk, self.product.pk]))
+        self.assertContains(first_history, "Product deactivated")
+        self.assertContains(first_history, "Active → Inactive")
+        self.assertContains(first_history, self.manager.email)
+        self.assertContains(first_history, "Initiated from First")
+        self.login(self.manager)
+        second_history = self.client.get(reverse("stock-history", args=[self.second.pk, self.product.pk]))
+        self.assertNotContains(second_history, "Product deactivated")
+
+        set_product_active(user_id=self.manager.pk, inventory_id=self.second.pk,
+                           product_id=self.product.pk, active=True)
+        events = list(ProductLifecycleAuditEvent.objects.order_by("pk"))
+        self.assertEqual(len(events), 2)
+        restored = events[1]
+        self.assertEqual((restored.action, restored.previous_is_active, restored.new_is_active),
+                         ("reactivate", False, True))
+        self.assertEqual(restored.inventory_id, self.second.pk)
+        self.change(True)
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 2)
+        second_history = self.client.get(reverse("stock-history", args=[self.second.pk, self.product.pk]))
+        self.assertContains(second_history, "Product reactivated")
+        self.assertContains(second_history, "Inactive → Active")
+        self.assertNotContains(second_history, "Product deactivated")
+
+    def test_audit_failure_rolls_back_status_and_failed_status_leaves_no_audit(self):
+        with patch.object(ProductLifecycleAuditEvent.objects, "create", side_effect=RuntimeError("audit failed")):
+            with self.assertRaisesRegex(RuntimeError, "audit failed"):
+                self.change(False)
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.is_active)
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 0)
+
+        with self.assertRaisesRegex(RuntimeError, "outer transaction failed"):
+            with transaction.atomic():
+                self.change(False)
+                self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 1)
+                raise RuntimeError("outer transaction failed")
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.is_active)
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 0)
+
+        with patch.object(Product, "save", side_effect=RuntimeError("status failed")):
+            with self.assertRaisesRegex(RuntimeError, "status failed"):
+                self.change(False)
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.is_active)
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 0)
+
+    def test_lifecycle_audit_is_immutable_in_postgresql(self):
+        self.change(False)
+        event = ProductLifecycleAuditEvent.objects.get()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ProductLifecycleAuditEvent.objects.filter(pk=event.pk).update(action="reactivate")
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            ProductLifecycleAuditEvent.objects.filter(pk=event.pk).delete()
+        self.assertEqual(ProductLifecycleAuditEvent.objects.count(), 1)
 
     def test_any_business_inventory_physical_stock_blocks_even_if_inactive(self):
         second_manager = get_user_model().objects.create_user(email="second-manager@example.test", password="pass")

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
@@ -84,3 +85,30 @@ class InventoryProduct(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class ProductLifecycleAuditEvent(models.Model):
+    """Immutable evidence of an actual Product status transition."""
+
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    business = models.ForeignKey(Business, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="lifecycle_audit_events")
+    action = models.CharField(max_length=16)
+    classification = models.CharField(max_length=16, default="non_demand")
+    previous_is_active = models.BooleanField()
+    new_is_active = models.BooleanField()
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(Q(action="deactivate", previous_is_active=True, new_is_active=False)
+                           | Q(action="reactivate", previous_is_active=False, new_is_active=True)),
+                name="product_lifecycle_audit_transition",
+            ),
+            models.CheckConstraint(
+                condition=Q(classification="non_demand"),
+                name="product_lifecycle_audit_non_demand",
+            ),
+        ]
