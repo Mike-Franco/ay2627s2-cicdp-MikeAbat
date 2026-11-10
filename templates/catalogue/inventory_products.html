@@ -8,6 +8,7 @@
     {% for link in product_links %}
       <li class="list-group-item">
         <strong>{{ link.product.sku }}</strong> — {{ link.product.name }}
+        {% if not link.product.is_active %}<span class="text-muted"> · Inactive</span>{% endif %}
         {% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}
         {% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}
         <span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>
@@ -15,6 +16,7 @@
         <span class="text-muted"> · Quarantined: {{ link.display_quarantine_units }}</span>
         <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'stock-history' inventory.pk link.product_id %}">Stock history</a>
         <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Demand forecast</a>
+        {% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}
         {% if link.product.is_active %}
           <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
           <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>

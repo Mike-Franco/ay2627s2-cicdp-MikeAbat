@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Product status · Tory{% endblock %}
+{% block content %}
+<h1>{{ product.sku }} — {{ product.name }}</h1>
+<p>Current status: {% if product.is_active %}Active{% else %}Inactive{% endif %}</p>
+{% if error_message %}<p class="alert alert-danger">{{ error_message }}</p>{% endif %}
+<p>Deactivation requires zero physical stock across every inventory in this business, including quarantined units. Prior history remains available.</p>
+<form method="post">
+  {% csrf_token %}
+  {% if product.is_active %}
+    <button class="btn btn-outline-danger" type="submit" name="action" value="deactivate">Deactivate product</button>
+  {% else %}
+    <button class="btn btn-primary" type="submit" name="action" value="reactivate">Reactivate product</button>
+  {% endif %}
+</form>
+<a href="{% url 'inventory-products' inventory.pk %}">Back to inventory products</a>
+{% endblock %}

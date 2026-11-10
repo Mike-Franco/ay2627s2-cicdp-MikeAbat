@@ -48,6 +48,12 @@
                 <td>{{ audit.actor.email }}</td>
                 <td>−{{ audit.quantity_units }} units<br>Physical: {{ audit.physical_before_units }} → {{ audit.physical_after_units }}<br>Batch: {{ audit.batch_before_units }} → {{ audit.batch_after_units }}</td>
                 <td>Batch {{ audit.batch.receipt_sequence }} · Reason: {{ audit.reason_code }}{% if audit.reason_note %}<br>Note: {{ audit.reason_note }}{% endif %}</td>
+              {% elif event.kind == "lifecycle" %}
+                <th scope="row">Product {% if audit.action == "deactivate" %}deactivated{% else %}reactivated{% endif %}</th>
+                <td>{{ audit.occurred_at|date:"Y-m-d H:i:s T" }}</td>
+                <td>{{ audit.actor.email }}</td>
+                <td>Status: {% if audit.previous_is_active %}Active{% else %}Inactive{% endif %} → {% if audit.new_is_active %}Active{% else %}Inactive{% endif %}</td>
+                <td>Initiated from {{ audit.inventory.name }} · No stock change</td>
               {% endif %}
             </tr>
           {% endwith %}
