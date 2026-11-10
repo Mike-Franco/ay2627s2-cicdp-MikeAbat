@@ -20,8 +20,10 @@ from receiving.demand import mark_demand_day_incomplete, verify_demand_day
 from receiving.forms import DemandCoverageActionForm
 from receiving.services import ReceiptRejected
 
-from .authorization import visible_inventory_product_links, visible_product_links
+from .authorization import (can_manage_product_lifecycle, visible_inventory_product_links,
+                            visible_product_links)
 from .forms import ReorderSettingsForm
+from .lifecycle import ProductLifecycleRejected, set_product_active
 from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
 
 
@@ -47,6 +49,7 @@ def inventory_products(request, inventory_id):
             quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all()
         )
         link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
+        link.can_manage_lifecycle = can_manage_product_lifecycle(request.user, link.product)
     return render(
         request,
         "catalogue/inventory_products.html",
@@ -58,6 +61,41 @@ def inventory_products(request, inventory_id):
              inventory_assignments__is_active=True,
          ).exists()},
     )
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def product_lifecycle(request, inventory_id, product_id):
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    link = get_object_or_404(
+        InventoryProduct.objects.select_related("product"), inventory=inventory,
+        product_id=product_id, product__business_id=inventory.business_id,
+    )
+    if not can_manage_product_lifecycle(request.user, link.product):
+        raise Http404
+    error_message = None
+    if request.method == "POST":
+        desired = request.POST.get("action")
+        if desired not in ("deactivate", "reactivate"):
+            error_message = "Choose a valid product action."
+        else:
+            try:
+                set_product_active(
+                    user_id=request.user.pk, inventory_id=inventory_id,
+                    product_id=product_id, active=desired == "reactivate",
+                )
+            except ProductLifecycleRejected as error:
+                if str(error) == "This inventory or product is unavailable.":
+                    raise Http404 from error
+                error_message = str(error)
+            else:
+                return redirect("inventory-products", inventory_id=inventory_id)
+    return render(request, "catalogue/product_lifecycle.html", {
+        "inventory": inventory, "product": link.product, "error_message": error_message,
+    }, status=400 if error_message else 200)
 
 
 @protected_view
