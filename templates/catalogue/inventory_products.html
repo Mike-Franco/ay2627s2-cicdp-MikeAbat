@@ -1,33 +1,91 @@
 {% extends "base.html" %}
 {% block title %}{{ inventory.name }} products · Tory{% endblock %}
 {% block content %}
-<h1>Products in {{ inventory.name }}</h1>
-{% if can_adjust_stock %}<p><a class="btn btn-outline-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import stock CSV</a></p>{% endif %}
-{% if product_links %}
-  <ul class="list-group">
-    {% for link in product_links %}
-      <li class="list-group-item">
-        <strong>{{ link.product.sku }}</strong> — {{ link.product.name }}
-        {% if not link.product.is_active %}<span class="text-muted"> · Inactive</span>{% endif %}
-        {% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}
-        {% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}
-        <span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>
-        <span class="text-muted"> · Available to issue: {{ link.display_available_units }}</span>
-        <span class="text-muted"> · Quarantined: {{ link.display_quarantine_units }}</span>
-        <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'stock-history' inventory.pk link.product_id %}">Stock history</a>
-        <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Demand forecast</a>
-        {% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}
-        {% if link.product.is_active %}
-          <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
-          <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
-          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a>{% endif %}
-          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-danger ms-2" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose quarantine</a>{% endif %}
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No products are linked to this inventory.</p>
-{% endif %}
-<a href="{% url 'inventory-detail' inventory.pk %}">Back to inventory</a>
+<style>
+  .inventory-overview .balance { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .inventory-overview .available-balance { color: #392b91; font-size: 1.2rem; font-weight: 700; }
+  .inventory-overview .available-cell { background: #f2efff; }
+  .inventory-overview .status-attention { background: #fff3d6; color: #765018; }
+  .inventory-overview .status-above { background: #e8f5ec; color: #1d6542; }
+  .inventory-overview .status-unavailable { background: #f2f3f8; color: #526078; }
+  .inventory-overview .products-table { min-width: 1080px; }
+  .inventory-overview .product-actions { min-width: 240px; }
+</style>
+<div class="inventory-overview">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <p class="text-muted mb-1">{{ inventory.name }}</p>
+      <h1 class="mb-0">Products</h1>
+    </div>
+    {% if can_adjust_stock %}<a class="btn btn-outline-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import stock CSV</a>{% endif %}
+  </div>
+  <p class="text-muted mb-3">Available is stock that can be issued now. Quarantined stock remains part of Physical.</p>
+  {% if product_links %}
+    <div class="border rounded-3 overflow-hidden">
+      <div class="table-responsive" role="region" aria-label="Products and stock balances" tabindex="0">
+        <table class="table table-hover align-middle mb-0 products-table">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Product</th>
+              <th scope="col">SKU</th>
+              <th scope="col" class="text-end">Physical</th>
+              <th scope="col" class="text-end">Quarantined</th>
+              <th scope="col" class="text-end">Available</th>
+              <th scope="col">Reorder status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for link in product_links %}
+              <tr>
+                <th scope="row">
+                  {{ link.product.name }}
+                  {% if not link.product.is_active %}<div class="small text-muted">Inactive</div>{% endif %}
+                </th>
+                <td class="text-nowrap">{{ link.product.sku }}</td>
+                <td class="text-end balance">{{ link.display_physical_units }} <span class="small text-muted">{% if link.product.base_unit_label %}{{ link.product.base_unit_label }}{% else %}base unit not set{% endif %}</span></td>
+                <td class="text-end balance">{{ link.display_quarantine_units }} <span class="small text-muted">{% if link.product.base_unit_label %}{{ link.product.base_unit_label }}{% else %}base unit not set{% endif %}</span></td>
+                <td class="text-end balance available-cell"><strong class="available-balance">{{ link.display_available_units }}</strong> <span class="small">{% if link.product.base_unit_label %}{{ link.product.base_unit_label }}{% else %}base unit not set{% endif %}</span></td>
+                <td>
+                  {% if link.reorder %}
+                    {% if link.reorder.reorder_point != None %}
+                      {% if link.reorder.alert %}
+                        <span class="badge status-attention">At or below reorder point</span>
+                      {% else %}
+                        <span class="badge status-above">Above reorder point</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge status-unavailable">Reorder point unavailable</span>
+                      {% if not link.reorder.forecast.available %}<div class="small text-muted mt-1">{{ link.reorder.forecast.reason }}</div>{% endif %}
+                      {% if link.reorder.missing_settings %}<div class="small text-muted mt-1">Set {{ link.reorder.missing_settings|join:", " }}.</div>{% endif %}
+                    {% endif %}
+                  {% else %}
+                    <span class="badge status-unavailable">Reorder point unavailable</span>
+                    <div class="small text-muted mt-1">{% if not link.product.is_active %}Product inactive.{% else %}{{ link.reorder_error }}{% endif %}</div>
+                  {% endif %}
+                </td>
+                <td class="product-actions">
+                  <div class="d-flex flex-wrap gap-1">
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'stock-history' inventory.pk link.product_id %}">Stock history</a>
+                    <a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Demand forecast</a>
+                    {% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}
+                    {% if link.product.is_active %}
+                      <a class="btn btn-sm btn-primary" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
+                      {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a>{% endif %}
+                      {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-danger" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose quarantine</a>{% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <p>No products are linked to this inventory.</p>
+  {% endif %}
+  <a class="d-inline-block mt-3" href="{% url 'inventory-detail' inventory.pk %}">Back to inventory</a>
+</div>
 {% endblock %}

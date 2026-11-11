@@ -49,6 +49,24 @@ def inventory_products(request, inventory_id):
             quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all()
         )
         link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
+        link.display_physical_units = link.physical_quantity_units
+        link.reorder = None
+        link.reorder_error = None
+        if link.product.is_active:
+            try:
+                link.reorder = recommendation(
+                    user_id=request.user.pk, inventory_id=inventory.pk,
+                    product_id=link.product_id, at=now,
+                )
+            except ReceiptRejected as error:
+                link.reorder_error = str(error)
+            else:
+                # Use one locked stock snapshot for all three displayed balances.
+                link.display_quarantine_units = link.reorder.quarantined_units
+                link.display_available_units = link.reorder.available_units
+                link.display_physical_units = (
+                    link.reorder.available_units + link.reorder.quarantined_units
+                )
         link.can_manage_lifecycle = can_manage_product_lifecycle(request.user, link.product)
     return render(
         request,
