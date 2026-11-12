@@ -162,3 +162,42 @@ class CatalogueTests(TestCase):
         with patch("accounts.sessions.timezone.now", return_value=timezone.now() + timedelta(hours=9)):
             response = self.client.get(reverse("inventory-products", args=[self.inventory_a.pk]))
         self.assertEqual(response.status_code, 302)
+
+    def test_product_stock_page_uses_scoped_link_and_role_actions(self):
+        url = reverse("product-stock", args=[self.inventory_a.pk, self.product_a.pk])
+        self.authenticate(self.staff_a)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["link"].display_available_units, 0)
+        self.assertContains(response, f'href="{url}" aria-current="page"')
+        self.assertContains(response, f'href="{reverse("receive-batch", args=[self.inventory_a.pk, self.product_a.pk])}"')
+        self.assertContains(response, "Stock history")
+        self.assertContains(response, "Demand forecast")
+        self.assertNotContains(response, "Adjust batch count")
+        self.assertNotContains(response, f'href="{reverse("adjust-stock", args=[self.inventory_a.pk, self.product_a.pk])}"')
+        self.assertEqual(self.client.get(reverse("product-stock", args=[self.inventory_b.pk, self.product_b.pk])).status_code, 404)
+        self.authenticate(self.manager_a)
+        response = self.client.get(url)
+        self.assertContains(response, "Adjust batch count")
+        self.assertContains(response, f'href="{reverse("adjust-stock", args=[self.inventory_a.pk, self.product_a.pk])}"')
+
+    def test_transaction_forms_keep_post_and_csrf_in_assigned_scope(self):
+        product_args = [self.inventory_a.pk, self.product_a.pk]
+        self.authenticate(self.staff_a)
+        for route in ("receive-batch", "issue-stock"):
+            with self.subTest(route=route):
+                response = self.client.get(reverse(route, args=product_args))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, '<form method="post"')
+                self.assertContains(response, 'name="csrfmiddlewaretoken"')
+        for route in ("adjust-stock", "dispose-stock"):
+            self.assertEqual(self.client.get(reverse(route, args=product_args)).status_code, 404)
+        self.assertEqual(self.client.get(reverse("import-stock-csv", args=[self.inventory_a.pk])).status_code, 404)
+
+        self.authenticate(self.manager_a)
+        for route, args in (("adjust-stock", product_args), ("import-stock-csv", [self.inventory_a.pk])):
+            with self.subTest(route=route):
+                response = self.client.get(reverse(route, args=args))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, '<form method="post"')
+                self.assertContains(response, 'name="csrfmiddlewaretoken"')

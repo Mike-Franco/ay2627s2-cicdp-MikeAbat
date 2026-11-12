@@ -54,6 +54,22 @@ class InventoryAccessTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "A shelf")
 
+    def test_workspace_uses_effective_role_and_assigned_inventory_navigation(self):
+        for user, role in ((self.manager, "Manager"), (self.staff, "Staff")):
+            self.client.logout()
+            self.authenticate(user)
+            response = self.client.get(reverse("inventory-products", args=[self.inventory_a.pk]))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, f"<small>{role}</small>", html=True)
+            self.assertContains(response, 'data-set-theme="light"')
+            self.assertContains(response, 'data-set-theme="dark"')
+            self.assertContains(response, 'action="/logout/"')
+            self.assertNotContains(response, "Secret B shelf")
+            if role == "Manager":
+                self.assertContains(response, "Import CSV")
+            else:
+                self.assertNotContains(response, "Import CSV")
+
     def test_unauthenticated_user_is_redirected(self):
         response = self.client.get(reverse("inventory-list"))
         self.assertRedirects(response, reverse("login"))

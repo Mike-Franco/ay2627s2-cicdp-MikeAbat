@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Stock issued · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Issue recorded{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Stock issued</h1>
 <p>{{ stock_out.quantity_units }} {{ stock_out.product.base_unit_label }} issued from {{ stock_out.inventory.name }}.</p>
 <h2>Batches used</h2>

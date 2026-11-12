@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Demand forecast for {{ product.sku }} · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Forecast{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' with active_tab='forecast' %}
 <h1>Demand forecast for {{ product.sku }}</h1>
 <p>{{ product.name }} · {{ inventory.name }}</p>
 <p>Previous seven complete Asia/Singapore dates. Each date needs explicit Manager verification, including a zero-demand date.</p>

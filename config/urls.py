@@ -1,6 +1,8 @@
 """Minimal authentication routes."""
 
-from django.urls import path
+from django.conf import settings
+from django.urls import path, re_path
+from django.views.static import serve as serve_static
 
 from accounts import views
 from inventory_access import views as inventory_views
@@ -15,6 +17,7 @@ urlpatterns = [
     path("inventories/<int:inventory_id>/", inventory_views.inventory_detail, name="inventory-detail"),
     path("catalogue/", catalogue_views.product_catalogue, name="product-catalogue"),
     path("inventories/<int:inventory_id>/products/", catalogue_views.inventory_products, name="inventory-products"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/", catalogue_views.product_stock, name="product-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/lifecycle/", catalogue_views.product_lifecycle, name="product-lifecycle"),
     path("inventories/<int:inventory_id>/import/", receiving_views.import_stock_csv_view, name="import-stock-csv"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/history/", catalogue_views.stock_history, name="stock-history"),
@@ -29,3 +32,11 @@ urlpatterns = [
     path("inventories/<int:inventory_id>/products/<int:product_id>/dispose/", receiving_views.dispose_stock_view, name="dispose-stock"),
     path("stock-disposals/<uuid:disposal_id>/", receiving_views.disposal_confirmation, name="disposal-confirmation"),
 ]
+
+# Local development deliberately runs with DEBUG=false. Serve only this
+# project's static directory in that environment so the workspace shell works.
+# Staging/production still require their normal collected-static web serving.
+if settings.DJANGO_ENV == "development" and not settings.DEBUG:
+    urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
+        "document_root": settings.BASE_DIR / "static", "show_indexes": False,
+    })]

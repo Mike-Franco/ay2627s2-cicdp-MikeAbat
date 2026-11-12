@@ -45,22 +45,67 @@ def inventory_products(request, inventory_id):
     product_links = list(links.prefetch_related("receiving_batches"))
     now = timezone.now()
     for link in product_links:
-        link.display_quarantine_units = sum(
-            quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all()
-        )
-        link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
-        link.can_manage_lifecycle = can_manage_product_lifecycle(request.user, link.product)
+        _prepare_stock_link(link, request.user, inventory, now)
     return render(
         request,
         "catalogue/inventory_products.html",
         {"inventory": inventory, "product_links": product_links,
-         "can_adjust_stock": BusinessMembership.objects.filter(
-             user=request.user, business=inventory.business,
-             role=BusinessMembership.Role.MANAGER, is_active=True,
-             inventory_assignments__inventory=inventory,
-             inventory_assignments__is_active=True,
-         ).exists()},
+         "can_adjust_stock": _is_inventory_manager(request.user, inventory)},
     )
+
+
+def _is_inventory_manager(user, inventory):
+    return BusinessMembership.objects.filter(
+        user=user, business=inventory.business,
+        role=BusinessMembership.Role.MANAGER, is_active=True,
+        inventory_assignments__inventory=inventory,
+        inventory_assignments__is_active=True,
+    ).exists()
+
+
+def _prepare_stock_link(link, user, inventory, now):
+    """Display the same expiry-aware balances and reorder state on both pages."""
+    link.display_quarantine_units = sum(
+        quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all()
+    )
+    link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
+    link.display_physical_units = link.physical_quantity_units
+    link.reorder = None
+    link.reorder_error = None
+    if link.product.is_active:
+        try:
+            link.reorder = recommendation(
+                user_id=user.pk, inventory_id=inventory.pk,
+                product_id=link.product_id, at=now,
+            )
+        except ReceiptRejected as error:
+            link.reorder_error = str(error)
+        else:
+            link.display_quarantine_units = link.reorder.quarantined_units
+            link.display_available_units = link.reorder.available_units
+            link.display_physical_units = (
+                link.reorder.available_units + link.reorder.quarantined_units
+            )
+    link.can_manage_lifecycle = can_manage_product_lifecycle(user, link.product)
+
+
+@protected_view
+def product_stock(request, inventory_id, product_id):
+    try:
+        inventory, links = visible_inventory_product_links(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    link = get_object_or_404(links.prefetch_related("receiving_batches"), product_id=product_id)
+    now = timezone.now()
+    _prepare_stock_link(link, request.user, inventory, now)
+    batches = []
+    for batch in sorted(link.receiving_batches.all(), key=lambda item: item.receipt_sequence):
+        if batch.remaining_quantity_units:
+            batches.append({"batch": batch, "quarantined": quarantine_quantity(batch, at=now)})
+    return render(request, "catalogue/product_stock.html", {
+        "inventory": inventory, "product": link.product, "link": link,
+        "batches": batches, "can_adjust_stock": _is_inventory_manager(request.user, inventory),
+    })
 
 
 @protected_view

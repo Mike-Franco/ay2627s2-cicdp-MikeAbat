@@ -1,33 +1,29 @@
 {% extends "base.html" %}
 {% block title %}{{ inventory.name }} products · Tory{% endblock %}
+{% block breadcrumb %}Products{% endblock %}
 {% block content %}
-<h1>Products in {{ inventory.name }}</h1>
-{% if can_adjust_stock %}<p><a class="btn btn-outline-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import stock CSV</a></p>{% endif %}
-{% if product_links %}
-  <ul class="list-group">
-    {% for link in product_links %}
-      <li class="list-group-item">
-        <strong>{{ link.product.sku }}</strong> — {{ link.product.name }}
-        {% if not link.product.is_active %}<span class="text-muted"> · Inactive</span>{% endif %}
-        {% if link.product.lead_time_days %}<span class="text-muted"> · Lead time: {{ link.product.lead_time_days }} days</span>{% endif %}
-        {% if link.product.safety_stock_units != None %}<span class="text-muted"> · Safety stock: {{ link.product.safety_stock_units }}</span>{% endif %}
-        <span class="text-muted"> · Physical units: {{ link.physical_quantity_units }}</span>
-        <span class="text-muted"> · Available to issue: {{ link.display_available_units }}</span>
-        <span class="text-muted"> · Quarantined: {{ link.display_quarantine_units }}</span>
-        <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'stock-history' inventory.pk link.product_id %}">Stock history</a>
-        <a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Demand forecast</a>
-        {% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}
-        {% if link.product.is_active %}
-          <a class="btn btn-sm btn-primary ms-2" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a>
-          <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue stock</a>
-          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary ms-2" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a>{% endif %}
-          {% if can_adjust_stock %}<a class="btn btn-sm btn-outline-danger ms-2" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose quarantine</a>{% endif %}
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No products are linked to this inventory.</p>
-{% endif %}
-<a href="{% url 'inventory-detail' inventory.pk %}">Back to inventory</a>
+<div class="products-heading">
+  <div><p class="eyebrow">{{ inventory.name }}</p><h1>Products</h1><p>Stock balances and reorder status for this inventory.</p></div>
+  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a></div>{% endif %}
+</div>
+<section class="panel" aria-labelledby="linked-products-title">
+  <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{{ product_links|length }} product{{ product_links|length|pluralize }} in {{ inventory.name }}</p></div>
+  {% if product_links %}
+  <div class="table-scroll" role="region" aria-label="Products and stock balances" tabindex="0">
+    <table class="products-table">
+      <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="numeric">Physical</th><th scope="col" class="numeric">Quarantined</th><th scope="col" class="numeric">Available</th><th scope="col">Reorder status</th><th scope="col">Actions</th></tr></thead>
+      <tbody>{% for link in product_links %}<tr>
+        <th scope="row"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
+        <td class="product-sku">{{ link.product.sku }}</td>
+        <td class="numeric">{{ link.display_physical_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td class="numeric">{{ link.display_quarantine_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td class="numeric available">{{ link.display_available_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td>{% if link.reorder %}{% if link.reorder.reorder_point != None %}{% if link.reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}{% else %}<span class="status-pill neutral">Reorder point unavailable</span>{% if not link.reorder.forecast.available %}<div class="unit">{{ link.reorder.forecast.reason }}</div>{% endif %}{% if link.reorder.missing_settings %}<div class="unit">Set {{ link.reorder.missing_settings|join:", " }}.</div>{% endif %}{% endif %}{% else %}<span class="status-pill neutral">Reorder point unavailable</span><div class="unit">{% if not link.product.is_active %}Product inactive.{% else %}{{ link.reorder_error }}{% endif %}</div>{% endif %}</td>
+        <td class="actions"><a class="btn btn-sm btn-outline-secondary" href="{% url 'stock-history' inventory.pk link.product_id %}">History</a>{% if link.product.is_active %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Forecast</a><a class="btn btn-sm btn-primary" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-primary" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue</a>{% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose</a>{% endif %}{% endif %}{% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<p class="p-4 mb-0">No products are linked to this inventory.</p>{% endif %}
+</section>
+<p class="inventory-explanation">Physical is recorded stock. Quarantined stock remains on hand but cannot be issued. Available is the amount Tory currently allows users to issue.</p>
 {% endblock %}

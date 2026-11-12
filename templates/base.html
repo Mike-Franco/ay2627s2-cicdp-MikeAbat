@@ -1,34 +1,34 @@
+{% load static %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Tory{% endblock %}</title>
+  <script src="{% static 'tory/theme.js' %}"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link href="{% static 'tory/app.css' %}" rel="stylesheet">
+  <link href="{% static 'tory/pages.css' %}" rel="stylesheet">
+  <script src="{% static 'tory/app.js' %}" defer></script>
 </head>
 <body>
-  <header class="border-bottom bg-light">
-    <nav class="container d-flex flex-wrap align-items-center gap-3 py-3" aria-label="Main navigation">
-      <a class="fw-bold text-decoration-none text-dark me-2" href="{% url 'home' %}">Tory</a>
-      {% if request.user.is_authenticated %}
-        <a class="text-decoration-none" href="{% url 'home' %}">Home</a>
-        <a class="text-decoration-none" href="{% url 'inventory-list' %}">Inventories</a>
-        <a class="text-decoration-none" href="{% url 'product-catalogue' %}">Product catalogue</a>
-        {% if inventory %}
-          <a class="text-decoration-none" href="{% url 'inventory-detail' inventory.pk %}">{{ inventory.name }}</a>
-          <a class="text-decoration-none" href="{% url 'inventory-products' inventory.pk %}">Inventory products</a>
-        {% endif %}
-        <form class="ms-auto" method="post" action="{% url 'logout' %}">
-          {% csrf_token %}
-          <button class="btn btn-outline-secondary btn-sm" type="submit">Sign out</button>
-        </form>
-      {% else %}
-        <a class="ms-auto text-decoration-none" href="{% url 'login' %}">Sign in</a>
-      {% endif %}
-    </nav>
-  </header>
-  <main class="container py-5">
-    {% block content %}{% endblock %}
-  </main>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  {% if request.user.is_authenticated %}
+    {% include 'includes/sidebar.html' %}
+    <div class="workspace">
+      <header class="topbar">
+        <button class="menu-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded="false">Menu</button>
+        <nav class="workspace-crumb" aria-label="Breadcrumb">
+          <a href="{% url 'inventory-list' %}">Inventory</a>
+          {% if workspace_inventory %}<span aria-hidden="true">›</span><a href="{% url 'inventory-products' workspace_inventory.pk %}">{{ workspace_inventory.name }}</a>{% endif %}
+          <span aria-hidden="true">›</span><span aria-current="page">{% block breadcrumb %}Workspace{% endblock %}</span>
+        </nav>
+        <div class="theme-control" role="group" aria-label="Colour theme"><button type="button" data-set-theme="light">Light</button><button type="button" data-set-theme="dark">Dark</button></div>
+      </header>
+  {% else %}
+    <header class="public-header"><a class="brand" href="{% url 'login' %}"><span class="brand-mark">T</span><span class="brand-word">Tory</span></a><div class="theme-control" role="group" aria-label="Colour theme"><button type="button" data-set-theme="light">Light</button><button type="button" data-set-theme="dark">Dark</button></div></header>
+  {% endif %}
+  <main id="main-content" class="{% if request.user.is_authenticated %}content{% else %}public-content{% endif %}">{% block content %}{% endblock %}</main>
+  {% if request.user.is_authenticated %}</div><button class="sidebar-scrim" type="button" aria-label="Close menu" hidden></button>{% endif %}
 </body>
 </html>

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Stock history for {{ product.sku }} · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · History{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' with active_tab='history' %}
 <h1>Stock history for {{ product.sku }}</h1>
 <p>{{ product.name }} · {{ inventory.name }}</p>
 <p class="text-muted">Times are shown in Asia/Singapore.</p>

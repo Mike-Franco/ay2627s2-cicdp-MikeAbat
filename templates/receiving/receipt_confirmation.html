@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Receipt recorded · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Receipt{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Receipt recorded</h1>
 <p>Receipt ID: <code>{{ batch.pk }}</code></p>
 <dl class="row">
