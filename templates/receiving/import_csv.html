@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Import stock CSV · Tory{% endblock %}
+{% block breadcrumb %}Import CSV{% endblock %}
 {% block content %}
+<a class="back-link" href="{% url 'inventory-products' inventory.pk %}">← Back to products</a>
 <h1>Import stock CSV</h1>
 <p>Selected inventory: <strong>{{ inventory.name }}</strong></p>
 <p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>. Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>

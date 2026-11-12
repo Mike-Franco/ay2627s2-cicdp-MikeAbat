@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ inventory.name }} · Tory{% endblock %}
+{% block breadcrumb %}{{ inventory.name }}{% endblock %}
 {% block content %}
 <h1>{{ inventory.name }}</h1>
 <p>Business: {{ inventory.business.name }}</p>

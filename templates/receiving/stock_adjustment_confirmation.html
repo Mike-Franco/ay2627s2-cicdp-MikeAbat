@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Stock count saved · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Adjustment recorded{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Stock count saved</h1>
 <p>{{ adjustment.product.sku }} · {{ adjustment.inventory.name }}</p>
 <p>Physical units: {{ adjustment.quantity_before_units }} → {{ adjustment.quantity_after_units }} (change {{ adjustment.quantity_change_units }})</p>

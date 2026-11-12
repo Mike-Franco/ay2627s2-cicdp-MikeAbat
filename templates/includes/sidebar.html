@@ -14,6 +14,16 @@
     <p class="group-label">WORKSPACE</p>
     <a class="sidebar-link {% if request.resolver_match.url_name == 'inventory-products' or request.resolver_match.url_name == 'inventory-list' %}active{% endif %}" href="{% if workspace_inventory %}{% url 'inventory-products' workspace_inventory.pk %}{% elif workspace_default_inventory %}{% url 'inventory-products' workspace_default_inventory.pk %}{% else %}{% url 'inventory-list' %}{% endif %}" {% if request.resolver_match.url_name == 'inventory-products' or request.resolver_match.url_name == 'inventory-list' %}aria-current="page"{% endif %}><span aria-hidden="true">▦</span> Inventory</a>
     {% if workspace_inventories %}<p class="group-label manage-label">MANAGE</p><a class="sidebar-link {% if request.resolver_match.url_name == 'product-catalogue' %}active{% endif %}" href="{% url 'product-catalogue' %}" {% if request.resolver_match.url_name == 'product-catalogue' %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Catalogue</a>{% endif %}
+    {% if workspace_inventory and workspace_is_manager %}<a class="sidebar-link {% if request.resolver_match.url_name == 'import-stock-csv' %}active{% endif %}" href="{% url 'import-stock-csv' workspace_inventory.pk %}" {% if request.resolver_match.url_name == 'import-stock-csv' %}aria-current="page"{% endif %}>Import CSV</a>{% endif %}
+    {% if workspace_inventory and product %}
+      <p class="group-label manage-label">{{ product.sku }}</p>
+      <a class="sidebar-link {% if request.resolver_match.url_name == 'product-stock' %}active{% endif %}" href="{% url 'product-stock' workspace_inventory.pk product.pk %}" {% if request.resolver_match.url_name == 'product-stock' %}aria-current="page"{% endif %}>Stock</a>
+      <a class="sidebar-link {% if request.resolver_match.url_name == 'stock-history' %}active{% endif %}" href="{% url 'stock-history' workspace_inventory.pk product.pk %}" {% if request.resolver_match.url_name == 'stock-history' %}aria-current="page"{% endif %}>Stock history</a>
+      {% if product.is_active %}<a class="sidebar-link {% if request.resolver_match.url_name == 'demand-forecast' %}active{% endif %}" href="{% url 'demand-forecast' workspace_inventory.pk product.pk %}" {% if request.resolver_match.url_name == 'demand-forecast' %}aria-current="page"{% endif %}>Demand forecast</a>
+        <a class="sidebar-link" href="{% url 'receive-batch' workspace_inventory.pk product.pk %}">Receive stock</a><a class="sidebar-link" href="{% url 'issue-stock' workspace_inventory.pk product.pk %}">Issue stock</a>
+        {% if workspace_is_manager %}<a class="sidebar-link" href="{% url 'adjust-stock' workspace_inventory.pk product.pk %}">Adjust count</a><a class="sidebar-link" href="{% url 'dispose-stock' workspace_inventory.pk product.pk %}">Dispose stock</a>{% endif %}
+      {% endif %}
+    {% endif %}
   </nav>
   <div class="sidebar-bottom">
     <p class="sidebar-note">Current workspace<strong>{% if workspace_inventory %}{{ workspace_inventory.name }}{% else %}Select an inventory{% endif %}</strong></p>

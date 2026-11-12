@@ -162,3 +162,16 @@ class CatalogueTests(TestCase):
         with patch("accounts.sessions.timezone.now", return_value=timezone.now() + timedelta(hours=9)):
             response = self.client.get(reverse("inventory-products", args=[self.inventory_a.pk]))
         self.assertEqual(response.status_code, 302)
+
+    def test_product_stock_page_uses_scoped_link_and_role_actions(self):
+        url = reverse("product-stock", args=[self.inventory_a.pk, self.product_a.pk])
+        self.authenticate(self.staff_a)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["link"].display_available_units, 0)
+        self.assertContains(response, "Stock history")
+        self.assertContains(response, "Demand forecast")
+        self.assertNotContains(response, "Adjust batch count")
+        self.assertEqual(self.client.get(reverse("product-stock", args=[self.inventory_b.pk, self.product_b.pk])).status_code, 404)
+        self.authenticate(self.manager_a)
+        self.assertContains(self.client.get(url), "Adjust batch count")

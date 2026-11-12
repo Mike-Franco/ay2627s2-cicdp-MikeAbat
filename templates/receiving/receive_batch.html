@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Receive {{ product.sku }} · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Receive{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Receive stock</h1>
 <p>Inventory: {{ inventory.name }}</p>
 <p>Product: <strong>{{ product.sku }} — {{ product.name }}</strong></p>

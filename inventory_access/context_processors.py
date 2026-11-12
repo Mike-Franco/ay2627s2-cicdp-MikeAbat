@@ -9,7 +9,9 @@ def workspace(request):
         return {}
 
     inventories = list(authorized_inventories(request.user).select_related("business"))
-    inventory_id = (request.resolver_match.kwargs or {}).get("inventory_id") if request.resolver_match else None
+    inventory_id = getattr(request, "tory_inventory_id", None)
+    if inventory_id is None and request.resolver_match:
+        inventory_id = (request.resolver_match.kwargs or {}).get("inventory_id")
     selected = next((item for item in inventories if item.pk == inventory_id), None)
     role_inventory = selected or (inventories[0] if inventories else None)
     role = None
