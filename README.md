@@ -24,7 +24,7 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 
 - [Planning](docs/planning/): original approved charter/P1 evidence, feasibility and risks, the [current schedule with original baseline retained](docs/planning/PROJECT_SCHEDULE.md), and the [prospective iteration log](docs/planning/AGILE_ITERATION_LOG.md).
 - [Requirements](docs/requirements/): owner-approved individual rules and decisions, living gap analysis, role permissions and traceability, plus the complete SRS awaiting approval. A pending gap is addressed before its dependent feature; unrelated gaps do not block all implementation.
-- [Decisions](docs/decisions/): ADR-001 preserves the backend choice; ADR-002 records the prospective Agile Kanban methodology decision.
+- [Decisions](docs/decisions/): ADR-001 preserves the backend choice; ADR-002 records the 3 November Kanban adoption and the later prospective sprint-style cadence from 12 November.
 - [Technology evaluation](docs/TECHNOLOGY_EVALUATION.md): comparative assessment and remaining evidence caveats.
 - [PoC evidence](docs/POC_RESULTS.md), [technical feasibility](docs/TECHNICAL_FEASIBILITY.md), and [PoC handover](docs/POC_HANDOVER.md): historical experiment reports and limitations.
 - [Documentation provenance](docs/SOURCE_PROVENANCE.md): source workspace, transfer scope, and evidence boundary.
