@@ -1,12 +1,24 @@
-# Tory Project Schedule — Current Kanban Plan and Original Baseline
+# Tory Project Schedule — Prospective Cycles and Original Baseline
 
 **Course:** Singapore Polytechnic ST0529 CA1  
-**Current delivery method:** Lightweight Agile Kanban, owner-approved 3 November 2026 in [ADR-002](../decisions/ADR-002-agile-kanban-delivery.md)
+**Current delivery method:** Lightweight Agile Kanban adopted 3 November 2026, with prospective sprint-style cycles from 12 November 2026; see [ADR-002](../decisions/ADR-002-agile-kanban-delivery.md)
 **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
 **Capacity:** 10–15 hours/week; solo developer; SGD 0 cash ceiling
-**Status:** Forward plan is an estimate, not an approved scope reduction or delivery guarantee. The original Waterfall schedule is retained below as dated history.
+**Status:** Forward plan is an estimate, not an approved scope reduction or delivery guarantee. The 3 November Kanban forecast and original Waterfall schedule are retained below as dated history.
 
-## Remaining incremental plan from 3 November 2026
+## Forward plan from 12 November 2026
+
+The owner is adding timeboxed cycles prospectively. Work completed before this change, including merged PRs #34–#37, remains Kanban delivery and is not retroactively assigned to Sprint 1. The [iteration log](AGILE_ITERATION_LOG.md) records goals, blockers and actual review/retrospective results. The TORY board remains authoritative for issue states and PR/test links; its current simple configuration has no native sprint assignment or reporting. Keep one item In Progress at a time.
+
+| Window (Asia/Singapore) | Planned outcome and constraint |
+|---|---|
+| Sprint 1, 12–18 November | Assess and establish a zero-cost staging, backup and restore path (TORY-27). If staging is available, complete TORY-19's one-hour expiry-quarantine staging evidence. Record provider, account, quota, scheduling and restore blockers; do not claim staging verification before it occurs. Review and retrospective pending. |
+| Sprint 2, provisional 19–25 November | Candidate work: TORY-26 integrated accuracy/concurrency/performance; TORY-28 diagrams/framework evidence; TORY-29 individual CA1 report/critical evaluation; TORY-30 demo/package/submission. This may exceed the solo developer's 10–15 hours/week capacity; replan at the Sprint 1 review. Review and retrospective pending. |
+| Reserve, 26–27 November | Critical fixes, demo rehearsal, package verification and submission by **27 November 2026 at 17:00 Asia/Singapore**. This is capacity within the deadline, not an extension. |
+
+The SGD 0 cash ceiling and approved scope remain unchanged. Hosted staging/backup/restore feasibility and performance evidence are unresolved. Escalate a forecast miss or unavailable no-cost service to the owner for explicit change control; no timebox silently removes an approved requirement. The prior estimates below remain historical planning assumptions, not a current proof of fit.
+
+## Kanban forecast recorded from 3 November 2026 — historical
 
 The interval from 3 November through 27 November is about 3.6 weeks, giving roughly **36–54 theoretical hours** at the approved weekly capacity. Actual available hours, coursework and service setup are unverified. The historical 44–54-hour estimate below was made before all later security, performance and feasibility detail was resolved; it is **not** a current proof of fit. The low-capacity case is unlikely to complete all approved work. Track actual hours and remaining effort after every reviewed increment; escalate a forecast miss to the owner for explicit schedule/scope change control. Do not silently omit security, PostgreSQL tests, backup/restore, hosted staging or assessment evidence.
 
@@ -19,7 +31,7 @@ The interval from 3 November through 27 November is about 3.6 weeks, giving roug
 
 **Capacity accounting:** the four windows provide approximately **36–54 hours** if availability holds. Protect **3–4 hours of that total as contingency** for defects, integration or service delays, leaving about **32–51 hours for planned work**. Within the final window, explicitly allow **4–5 hours for assessment evidence, report, demo rehearsal and presentation**; this is part of planned work, not extra capacity. These allocations are provisional and overlap in calendar time because Kanban work is incremental, not sequential stage gates. At 10 hours/week the available planned-work range is too tight for the historical estimate, even before later requirements detail; prompt owner change control may be necessary.
 
-Use **To do → In progress → Review/Test → Done**, with one item in progress. Each Jira issue should carry requirement/gap references, acceptance criteria, implementation PR and automated test evidence when applicable; no Jira issue creation is claimed. Pull by stock correctness and dependency. Resolve an open gap before its dependent feature; unrelated gaps do not block all implementation. Preserve the [requirements review](../requirements/REQUIREMENTS_REVIEW.md), [gap analysis](../requirements/REQUIREMENTS_GAP_ANALYSIS.md) and [traceability matrix](../requirements/REQUIREMENTS_TRACEABILITY_MATRIX.md) as living evidence. Their historical pending SRS/stage decisions remain pending; an issue reaching Done does not approve them.
+This was the 3 November forecast, before the new cadence and subsequent completed increments. Its windows and capacity arithmetic are historical estimates, not the current assignment of work to cycles. Use the [forward plan](#forward-plan-from-12-november-2026) and [iteration log](AGILE_ITERATION_LOG.md) for current planning. The requirements review, gap analysis and traceability matrix remain living evidence; their historical pending SRS/stage decisions remain pending, and an issue reaching Done does not approve them.
 
 ## Original Waterfall schedule — historical 29 October Planning baseline
 

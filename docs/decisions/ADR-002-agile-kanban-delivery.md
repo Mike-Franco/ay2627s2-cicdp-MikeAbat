@@ -26,3 +26,9 @@ Review each unresolved gap **before its dependent feature**: for example, decide
 - The original Waterfall stage and sign-off documents remain historical records. No prior pending SRS/stage review becomes approved because delivery method changed. Any course-specific submission or sign-off obligation still needs explicit verification and completion.
 
 **Decision authority:** Project owner, supplied 3 November 2026. No signature, Jira ticket, implementation, test run or deployment is claimed by this record.
+
+## Prospective cadence amendment — 12 November 2026
+
+The owner adds sprint-style, timeboxed planning and review cycles from **12 November 2026** within the Kanban delivery method. This does not rewrite the 3 November adoption decision, the original Waterfall baseline, or any earlier approval. Completed work before this change remains Kanban delivery; PRs #34–#37 are pre-sprint evidence, not Sprint 1 output, even though PR #37 merged on 12 November. Its manual browser checklist remains pending.
+
+The [iteration log](../planning/AGILE_ITERATION_LOG.md) records cycle goals, dates, actual reviews and retrospectives. Results stay pending until those events occur. The current TORY simple board has To Do, In Progress, Review/Test and Done columns but no native sprint assignment or reporting. Jira remains authoritative for issue states and PR/test links. Keep one-item In Progress WIP, the solo-developer 10–15 hours/week capacity, SGD 0 budget, approved scope and 27 November 2026 17:00 Asia/Singapore deadline. Staging feasibility and performance evidence remain unresolved; a timebox does not approve or waive them.

@@ -2,7 +2,7 @@
 
 *Inventory made simple.*
 
-Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provide explainable demand forecasts. One developer works with Codex assistance. The project owner adopted [lightweight Agile Kanban](docs/decisions/ADR-002-agile-kanban-delivery.md) for remaining delivery on **3 November 2026**. Earlier Planning and Requirements records retain their dated Waterfall context.
+Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provide explainable demand forecasts. One developer works with Codex assistance. The project owner adopted [lightweight Agile Kanban](docs/decisions/ADR-002-agile-kanban-delivery.md) for remaining delivery on **3 November 2026** and added prospective sprint-style, timeboxed cycles on **12 November 2026**. Work before that change remains Kanban delivery, including PRs #34–#37; it is not assigned retrospectively to Sprint 1. Earlier Planning and Requirements records retain their dated Waterfall context.
 
 ## Approved baseline
 
@@ -22,7 +22,7 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 
 ## Documentation
 
-- [Planning](docs/planning/): original approved charter/P1 evidence, feasibility and risks, and the [current incremental schedule with original baseline retained](docs/planning/PROJECT_SCHEDULE.md).
+- [Planning](docs/planning/): original approved charter/P1 evidence, feasibility and risks, the [current schedule with original baseline retained](docs/planning/PROJECT_SCHEDULE.md), and the [prospective iteration log](docs/planning/AGILE_ITERATION_LOG.md).
 - [Requirements](docs/requirements/): owner-approved individual rules and decisions, living gap analysis, role permissions and traceability, plus the complete SRS awaiting approval. A pending gap is addressed before its dependent feature; unrelated gaps do not block all implementation.
 - [Decisions](docs/decisions/): ADR-001 preserves the backend choice; ADR-002 records the prospective Agile Kanban methodology decision.
 - [Technology evaluation](docs/TECHNOLOGY_EVALUATION.md): comparative assessment and remaining evidence caveats.
@@ -35,7 +35,7 @@ The repository retains its course-workspace name, `ay2627s2-cicdp-MikeAbat`; Tor
 
 ## Development workflow
 
-Use a minimal Kanban board: **To do → In progress → Review/Test → Done**, with a **work-in-progress limit of one item in In progress**. Prioritize stock correctness, then dependent security and delivery risks. Each Jira issue should cite relevant BR/FR/NFR and G-gap references, state acceptance criteria, and link its implementation pull request and automated test evidence when available. The project uses a Jira Kanban board under project key TORY to track implementation tasks, reviews, testing, and delivery. Jira statuses are updated as work progresses, with a work-in-progress limit of one active task. Review changes in small pull requests and update living requirements/traceability evidence without rewriting historical approvals. See [ADR-002](docs/decisions/ADR-002-agile-kanban-delivery.md) and the [schedule](docs/planning/PROJECT_SCHEDULE.md).
+Use the TORY board: **To Do → In Progress → Review/Test → Done**, with a **work-in-progress limit of one item in In Progress**. Prioritize stock correctness, then dependent security and delivery risks. Each Jira issue should cite relevant BR/FR/NFR and G-gap references, state acceptance criteria, and link its implementation pull request and automated test evidence when available. From 12 November, use the [iteration log](docs/planning/AGILE_ITERATION_LOG.md) for timeboxed goals, dates, reviews and retrospectives. The current simple Jira board does not expose native sprint assignment or reporting; Jira remains authoritative for issue states and linked PR/test evidence. Review changes in small pull requests and update living requirements/traceability evidence without rewriting historical approvals. See [ADR-002](docs/decisions/ADR-002-agile-kanban-delivery.md) and the [schedule](docs/planning/PROJECT_SCHEDULE.md).
 
 ## Documentation CI
 
