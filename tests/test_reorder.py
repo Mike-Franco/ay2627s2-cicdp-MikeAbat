@@ -154,7 +154,7 @@ class ReorderTests(TestCase):
         self.assertContains(response, "Reorder point unavailable")
         self.assertContains(response, "Every date needs explicit Manager verification.")
         self.assertContains(response, "Set lead time, safety stock.")
-        self.assertContains(response, "0 <span class=\"small text-muted\">each</span>")
+        self.assertContains(response, '0<span class="unit">each</span>')
         self.assertNotContains(response, "Import stock CSV")
         self.assertNotContains(response, "Adjust count")
 
@@ -171,7 +171,7 @@ class ReorderTests(TestCase):
         self.assertContains(response, "Above reorder point")
         self.assertEqual(response.context["product_links"][0].display_available_units, 1)
         self.login(self.manager)
-        self.assertContains(self.client.get(url), "Import stock CSV")
+        self.assertContains(self.client.get(url), "Import CSV")
 
     def test_inventory_products_shows_expired_stock_as_physical_and_quarantined(self):
         expiry = self.today + timedelta(days=1)
@@ -182,10 +182,13 @@ class ReorderTests(TestCase):
         at_expiry = datetime.combine(expiry, time.min, SINGAPORE)
         session = self.client.session
         session[CREATED_KEY] = session[ACTIVE_KEY] = at_expiry.timestamp()
+        session.set_expiry(at_expiry + timedelta(hours=1))
         session.save()
-        with patch("catalogue.views.timezone.now", return_value=at_expiry):
+        with patch("catalogue.views.timezone.now", return_value=at_expiry), patch(
+            "accounts.sessions.timezone.now", return_value=at_expiry
+        ):
             response = self.client.get(reverse("inventory-products", args=[self.first.pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200, response.get('Location'))
         link = response.context["product_links"][0]
         self.assertEqual((link.display_physical_units, link.display_quarantine_units,
                           link.display_available_units), (5, 5, 0))
