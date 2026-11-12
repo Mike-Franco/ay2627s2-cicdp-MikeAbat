@@ -178,10 +178,12 @@ class StockHistoryTests(TransactionTestCase):
             before = self.client.get(self.product_url())
         link = before.context["product_links"][0]
         self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (8, 0, 8))
+        self.assertContains(before, '<td class="numeric available">8<span class="unit">each</span></td>', html=True)
         with patch("catalogue.views.timezone.now", return_value=boundary):
             after = self.client.get(self.product_url())
         link = after.context["product_links"][0]
         self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (8, 5, 3))
+        self.assertContains(after, '<td class="numeric available">3<span class="unit">each</span></td>', html=True)
         self.assertEqual(ExpiryQuarantineEvent.objects.count(), 0)
 
     def test_pending_expiry_balance_and_disposal_then_recording(self):

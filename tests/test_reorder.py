@@ -154,7 +154,8 @@ class ReorderTests(TestCase):
         self.assertContains(response, "Reorder point unavailable")
         self.assertContains(response, "Every date needs explicit Manager verification.")
         self.assertContains(response, "Set lead time, safety stock.")
-        self.assertContains(response, '0<span class="unit">each</span>')
+        self.assertContains(response, '<td class="numeric available">0<span class="unit">each</span></td>', html=True)
+        self.assertContains(response, reverse("product-stock", args=[self.first.pk, self.product.pk]))
         self.assertNotContains(response, "Import stock CSV")
         self.assertNotContains(response, "Adjust count")
 
@@ -170,6 +171,7 @@ class ReorderTests(TestCase):
         response = self.client.get(url)
         self.assertContains(response, "Above reorder point")
         self.assertEqual(response.context["product_links"][0].display_available_units, 1)
+        self.assertContains(response, '<td class="numeric available">1<span class="unit">each</span></td>', html=True)
         self.login(self.manager)
         self.assertContains(self.client.get(url), "Import CSV")
 

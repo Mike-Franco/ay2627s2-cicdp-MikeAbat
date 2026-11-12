@@ -1,8 +1,8 @@
 """Minimal authentication routes."""
 
 from django.conf import settings
-from django.contrib.staticfiles.views import serve as serve_static
 from django.urls import path, re_path
+from django.views.static import serve as serve_static
 
 from accounts import views
 from inventory_access import views as inventory_views
@@ -33,8 +33,10 @@ urlpatterns = [
     path("stock-disposals/<uuid:disposal_id>/", receiving_views.disposal_confirmation, name="disposal-confirmation"),
 ]
 
-# Local development deliberately runs with DEBUG=false. Serve discovered static
-# assets in that environment so the workspace shell works under runserver.
+# Local development deliberately runs with DEBUG=false. Serve only this
+# project's static directory in that environment so the workspace shell works.
 # Staging/production still require their normal collected-static web serving.
 if settings.DJANGO_ENV == "development" and not settings.DEBUG:
-    urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {"insecure": True})]
+    urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
+        "document_root": settings.BASE_DIR / "static", "show_indexes": False,
+    })]
