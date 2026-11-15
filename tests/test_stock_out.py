@@ -267,6 +267,35 @@ class StockOutConcurrencyTests(TransactionTestCase):
         self.assertEqual(StockOutAllocation.objects.count(), 1)
         self.assertEqual(DemandAuditEvent.objects.count(), 1)
 
+    def test_twenty_last_unit_races_leave_one_complete_issue_each(self):
+        """G-08's repeated race outcome, with fresh eligible stock each round."""
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            for round_number in range(20):
+                if round_number:
+                    receive_manual(
+                        user_id=self.user.pk, inventory_id=self.inventory.pk,
+                        product_id=self.product.pk, request_token=uuid.uuid4(),
+                        quantity_units=1, expiry_date=None,
+                    )
+                barrier = Barrier(2)
+                futures = [pool.submit(self.call, barrier, "issue") for _ in range(2)]
+                outcomes = []
+                for future in futures:
+                    try:
+                        outcomes.append(future.result(timeout=10))
+                    except ReceiptRejected:
+                        outcomes.append(None)
+                self.assertEqual(sum(outcome is not None for outcome in outcomes), 1, round_number)
+                self.link.refresh_from_db()
+                self.assertEqual(self.link.physical_quantity_units, 0, round_number)
+                self.assertEqual(StockOut.objects.count(), round_number + 1)
+                self.assertEqual(StockOutAllocation.objects.count(), round_number + 1)
+                self.assertEqual(DemandAuditEvent.objects.count(), round_number + 1)
+                self.assertTrue(all(
+                    allocation.quantity_units == 1
+                    for allocation in StockOutAllocation.objects.all()
+                ))
+
     def test_receiving_and_stock_out_serialize_without_lost_balance(self):
         barrier = Barrier(2)
         with ThreadPoolExecutor(max_workers=2) as pool:

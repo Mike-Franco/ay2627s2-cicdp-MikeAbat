@@ -1,0 +1,56 @@
+{
+  "database": "tory26_benchmark_seed",
+  "seed_version": 1,
+  "users": [
+    {
+      "email": "tory26-b1-u1@example.test",
+      "role": "manager",
+      "business": 1
+    },
+    {
+      "email": "tory26-b1-u2@example.test",
+      "role": "staff",
+      "business": 1
+    },
+    {
+      "email": "tory26-b1-u3@example.test",
+      "role": "staff",
+      "business": 1
+    },
+    {
+      "email": "tory26-b1-u4@example.test",
+      "role": "staff",
+      "business": 1
+    },
+    {
+      "email": "tory26-b2-u1@example.test",
+      "role": "manager",
+      "business": 2
+    }
+  ],
+  "workloads": [
+    {
+      "inventory_id": 1,
+      "product_id": 1,
+      "business": 1
+    },
+    {
+      "inventory_id": 2,
+      "product_id": 126,
+      "business": 1
+    },
+    {
+      "inventory_id": 3,
+      "product_id": 251,
+      "business": 2
+    }
+  ],
+  "counts": {
+    "businesses": 2,
+    "inventories": 4,
+    "products": 500,
+    "batches": 2000,
+    "receipt_history": 2000,
+    "issue_history": 18000
+  }
+}

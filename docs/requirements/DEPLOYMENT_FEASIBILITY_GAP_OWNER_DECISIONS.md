@@ -1,7 +1,7 @@
 # Tory G-10 deployment feasibility — draft owner decision package
 
-**Documented research date:** 3 November 2026. **Decision status:** PROPOSED, NOT APPROVED.  
-**G-10 status:** **PENDING OWNER DECISION / FEASIBILITY EVIDENCE — BLOCKING.**  
+**Documented research date:** 3 November 2026. **Decision status:** PROPOSED, NOT APPROVED.<br>
+**G-10 status:** **PENDING OWNER DECISION / FEASIBILITY EVIDENCE — BLOCKING.**<br>
 **Stage gate:** The complete SRS, Requirements exit and Design entry remain **NOT APPROVED**. This document selects no provider and records no deployment, account access, integration test or measured performance.
 
 ## 1. Approved baseline and blocking question

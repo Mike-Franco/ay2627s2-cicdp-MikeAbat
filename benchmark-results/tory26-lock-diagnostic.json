@@ -1,0 +1,3162 @@
+{
+  "recorded_at_utc": "2026-11-09T13:08:53.482800+00:00",
+  "database": "tory26_benchmark_run1",
+  "method": "Django test client; SQL execute_wrapper per advisory call; original execute once; Windows GetSystemTimes CPU sampling; read-only pg_stat_activity waiter sampling",
+  "source_ip": "127.0.0.1",
+  "sequential": [
+    {
+      "client": 1,
+      "request_seconds": 1.7940981999854557,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0009831000352278352
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 0.00029170000925660133
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "request_seconds": 1.4829967999830842,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0009340000106021762
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 0.0003825000021606684
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "request_seconds": 1.5806166999973357,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006895000115036964
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 0.0003629999700933695
+        }
+      ]
+    }
+  ],
+  "five_shared_ip": [
+    {
+      "client": 1,
+      "request_seconds": 1.6293292000191286,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0008616999839432538
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 0.0003700000233948231
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "request_seconds": 7.791890199994668,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.000916799996048212
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.165042500011623
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "request_seconds": 7.639796899980865,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006341999978758395
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.131587000039872
+        }
+      ]
+    },
+    {
+      "client": 1,
+      "request_seconds": 7.422298200021032,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.000570800038985908
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.966256699990481
+        }
+      ]
+    },
+    {
+      "client": 2,
+      "request_seconds": 3.235782300005667,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0008450999739579856
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 1.4675699000363238
+        }
+      ]
+    },
+    {
+      "client": 2,
+      "request_seconds": 7.855343599978369,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0013508000411093235
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.155241100001149
+        }
+      ]
+    },
+    {
+      "client": 2,
+      "request_seconds": 7.435344600002281,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006716999923810363
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.943194499996025
+        }
+      ]
+    },
+    {
+      "client": 2,
+      "request_seconds": 7.530576099990867,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0008999999845400453
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.928899899998214
+        }
+      ]
+    },
+    {
+      "client": 3,
+      "request_seconds": 4.7687291000038385,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0007519999635405838
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 3.0754939999897033
+        }
+      ]
+    },
+    {
+      "client": 3,
+      "request_seconds": 7.793066199985333,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006641999934799969
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.302938600012567
+        }
+      ]
+    },
+    {
+      "client": 3,
+      "request_seconds": 7.46318419999443,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0005925000295974314
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.945199400011916
+        }
+      ]
+    },
+    {
+      "client": 3,
+      "request_seconds": 7.374628300021868,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006489999941550195
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.016165200038813
+        }
+      ]
+    },
+    {
+      "client": 4,
+      "request_seconds": 6.297036899952218,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0006117000011727214
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 4.611016999988351
+        }
+      ]
+    },
+    {
+      "client": 4,
+      "request_seconds": 7.748954399954528,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0007714999956078827
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.248967300052755
+        }
+      ]
+    },
+    {
+      "client": 4,
+      "request_seconds": 7.455855099949986,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0005866999854333699
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.961904899973888
+        }
+      ]
+    },
+    {
+      "client": 4,
+      "request_seconds": 7.258773399982601,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.000742900010664016
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.881830699974671
+        }
+      ]
+    },
+    {
+      "client": 5,
+      "request_seconds": 7.773030700045638,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0007054000161588192
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.139476199983619
+        }
+      ]
+    },
+    {
+      "client": 5,
+      "request_seconds": 7.743239699979313,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.000813600025139749
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 6.251117300009355
+        }
+      ]
+    },
+    {
+      "client": 5,
+      "request_seconds": 7.475926199986134,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0005789999850094318
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.964734799985308
+        }
+      ]
+    },
+    {
+      "client": 5,
+      "request_seconds": 7.165941099985503,
+      "lock_calls": [
+        {
+          "lock": "identity",
+          "elapsed_seconds": 0.0008466000435873866
+        },
+        {
+          "lock": "source_ip",
+          "elapsed_seconds": 5.747034800006077
+        }
+      ]
+    }
+  ],
+  "cpu_samples": [
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389483.5817348,
+      "system_cpu_percent": 39.705882352941174,
+      "interval_seconds": 0.26515849999850616
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389483.8344079,
+      "system_cpu_percent": 49.479166666666664,
+      "interval_seconds": 0.2526730999816209
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389484.09994,
+      "system_cpu_percent": 41.666666666666664,
+      "interval_seconds": 0.2655320999911055
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389484.3504564,
+      "system_cpu_percent": 44.270833333333336,
+      "interval_seconds": 0.2505164000322111
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389484.6151153,
+      "system_cpu_percent": 49.01960784313726,
+      "interval_seconds": 0.26465889997780323
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389484.8662464,
+      "system_cpu_percent": 44.270833333333336,
+      "interval_seconds": 0.25113109999801964
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389485.1164692,
+      "system_cpu_percent": 36.979166666666664,
+      "interval_seconds": 0.25022280000848696
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389485.3811611,
+      "system_cpu_percent": 29.41176470588235,
+      "interval_seconds": 0.26469189999625087
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389485.6315808,
+      "system_cpu_percent": 22.916666666666668,
+      "interval_seconds": 0.2504196999943815
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389485.8963169,
+      "system_cpu_percent": 27.45098039215686,
+      "interval_seconds": 0.2647360999835655
+    },
+    {
+      "phase": "idle_baseline",
+      "at_seconds": 389486.1465011,
+      "system_cpu_percent": 45.3125,
+      "interval_seconds": 0.2501842000056058
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389486.3980693,
+      "system_cpu_percent": 71.875,
+      "interval_seconds": 0.251568200008478
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389486.6801098,
+      "system_cpu_percent": 59.31372549019608,
+      "interval_seconds": 0.28204050002386793
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389486.9438739,
+      "system_cpu_percent": 48.148148148148145,
+      "interval_seconds": 0.2637640999746509
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389487.196067,
+      "system_cpu_percent": 53.125,
+      "interval_seconds": 0.2521930999937467
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389487.4589441,
+      "system_cpu_percent": 58.333333333333336,
+      "interval_seconds": 0.2628771000308916
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389487.7108229,
+      "system_cpu_percent": 52.083333333333336,
+      "interval_seconds": 0.25187879998702556
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389487.9760827,
+      "system_cpu_percent": 36.76470588235294,
+      "interval_seconds": 0.26525980001315475
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389488.2392539,
+      "system_cpu_percent": 32.84313725490196,
+      "interval_seconds": 0.2631712000002153
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389488.4899717,
+      "system_cpu_percent": 28.645833333333332,
+      "interval_seconds": 0.2507177999941632
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389488.7546867,
+      "system_cpu_percent": 33.333333333333336,
+      "interval_seconds": 0.2647149999975227
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389489.0062428,
+      "system_cpu_percent": 51.5625,
+      "interval_seconds": 0.2515560999745503
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389489.2571166,
+      "system_cpu_percent": 51.5625,
+      "interval_seconds": 0.25087380001787096
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389489.5092261,
+      "system_cpu_percent": 39.0625,
+      "interval_seconds": 0.25210949999745935
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389489.7593318,
+      "system_cpu_percent": 33.854166666666664,
+      "interval_seconds": 0.2501056999899447
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389490.0094618,
+      "system_cpu_percent": 43.229166666666664,
+      "interval_seconds": 0.2501300000003539
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389490.2640841,
+      "system_cpu_percent": 45.3125,
+      "interval_seconds": 0.2546223000390455
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389490.5275448,
+      "system_cpu_percent": 64.2156862745098,
+      "interval_seconds": 0.26346069999272004
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389490.7773666,
+      "system_cpu_percent": 40.625,
+      "interval_seconds": 0.24982179998187348
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389491.041888,
+      "system_cpu_percent": 31.372549019607842,
+      "interval_seconds": 0.2645213999785483
+    },
+    {
+      "phase": "sequential_login",
+      "at_seconds": 389491.292689,
+      "system_cpu_percent": 78.64583333333333,
+      "interval_seconds": 0.25080100004561245
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389491.5440092,
+      "system_cpu_percent": 54.6875,
+      "interval_seconds": 0.2513201999827288
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389491.8081492,
+      "system_cpu_percent": 61.27450980392157,
+      "interval_seconds": 0.26413999998476356
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389492.0729962,
+      "system_cpu_percent": 44.6078431372549,
+      "interval_seconds": 0.26484700001310557
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389492.3376154,
+      "system_cpu_percent": 36.27450980392157,
+      "interval_seconds": 0.2646192000247538
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389492.5883045,
+      "system_cpu_percent": 41.145833333333336,
+      "interval_seconds": 0.25068909995025024
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389492.8537101,
+      "system_cpu_percent": 38.23529411764706,
+      "interval_seconds": 0.2654056000174023
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389493.1180174,
+      "system_cpu_percent": 42.64705882352941,
+      "interval_seconds": 0.26430729997809976
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389493.3692222,
+      "system_cpu_percent": 51.041666666666664,
+      "interval_seconds": 0.25120480003533885
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389493.6347843,
+      "system_cpu_percent": 53.431372549019606,
+      "interval_seconds": 0.26556209998670965
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389493.8986797,
+      "system_cpu_percent": 60.294117647058826,
+      "interval_seconds": 0.26389539998490363
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389494.1495052,
+      "system_cpu_percent": 57.8125,
+      "interval_seconds": 0.2508254999993369
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389494.4005008,
+      "system_cpu_percent": 55.729166666666664,
+      "interval_seconds": 0.2509956000139937
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389494.6640916,
+      "system_cpu_percent": 39.705882352941174,
+      "interval_seconds": 0.2635907999938354
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389494.9272371,
+      "system_cpu_percent": 32.35294117647059,
+      "interval_seconds": 0.2631455000373535
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389495.1919124,
+      "system_cpu_percent": 31.862745098039216,
+      "interval_seconds": 0.2646752999862656
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389495.4550179,
+      "system_cpu_percent": 31.372549019607842,
+      "interval_seconds": 0.2631054999656044
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389495.7178913,
+      "system_cpu_percent": 57.8125,
+      "interval_seconds": 0.26287340000271797
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389495.9691276,
+      "system_cpu_percent": 66.17647058823529,
+      "interval_seconds": 0.25123630004236475
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389496.2312037,
+      "system_cpu_percent": 47.395833333333336,
+      "interval_seconds": 0.26207609998527914
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389496.4939539,
+      "system_cpu_percent": 50.0,
+      "interval_seconds": 0.26275019999593496
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389496.7596847,
+      "system_cpu_percent": 42.64705882352941,
+      "interval_seconds": 0.26573079999070615
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389497.0252361,
+      "system_cpu_percent": 41.1764705882353,
+      "interval_seconds": 0.2655514000216499
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389497.2759219,
+      "system_cpu_percent": 42.1875,
+      "interval_seconds": 0.25068579998333007
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389497.5406853,
+      "system_cpu_percent": 40.68627450980392,
+      "interval_seconds": 0.2647634000168182
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389497.8059108,
+      "system_cpu_percent": 39.21568627450981,
+      "interval_seconds": 0.26522549998480827
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389498.0685351,
+      "system_cpu_percent": 34.31372549019608,
+      "interval_seconds": 0.2626243000268005
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389498.3325864,
+      "system_cpu_percent": 39.705882352941174,
+      "interval_seconds": 0.26405129994964227
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389498.5839412,
+      "system_cpu_percent": 58.333333333333336,
+      "interval_seconds": 0.25135480001335964
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389498.849346,
+      "system_cpu_percent": 40.68627450980392,
+      "interval_seconds": 0.2654048000113107
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389499.1149468,
+      "system_cpu_percent": 41.666666666666664,
+      "interval_seconds": 0.26560079999035224
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389499.3649877,
+      "system_cpu_percent": 44.791666666666664,
+      "interval_seconds": 0.2500409000203945
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389499.6285642,
+      "system_cpu_percent": 58.333333333333336,
+      "interval_seconds": 0.26357650000136346
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389499.8808827,
+      "system_cpu_percent": 39.0625,
+      "interval_seconds": 0.25231849995907396
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389500.1466234,
+      "system_cpu_percent": 42.64705882352941,
+      "interval_seconds": 0.26574070000788197
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389500.397293,
+      "system_cpu_percent": 58.854166666666664,
+      "interval_seconds": 0.25066960003459826
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389500.6610782,
+      "system_cpu_percent": 64.2156862745098,
+      "interval_seconds": 0.2637851999606937
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389500.9123477,
+      "system_cpu_percent": 57.8125,
+      "interval_seconds": 0.2512695000041276
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389501.1625322,
+      "system_cpu_percent": 52.604166666666664,
+      "interval_seconds": 0.25018450000789016
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389501.42656,
+      "system_cpu_percent": 50.0,
+      "interval_seconds": 0.2640278000035323
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389501.6790526,
+      "system_cpu_percent": 55.208333333333336,
+      "interval_seconds": 0.2524926000041887
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389501.9288301,
+      "system_cpu_percent": 38.541666666666664,
+      "interval_seconds": 0.2497774999937974
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389502.1791743,
+      "system_cpu_percent": 40.625,
+      "interval_seconds": 0.2503442000015639
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389502.4292432,
+      "system_cpu_percent": 56.770833333333336,
+      "interval_seconds": 0.25006890000076964
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389502.6808914,
+      "system_cpu_percent": 42.1875,
+      "interval_seconds": 0.2516482000355609
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389502.932278,
+      "system_cpu_percent": 32.8125,
+      "interval_seconds": 0.2513865999644622
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389503.1976684,
+      "system_cpu_percent": 37.745098039215684,
+      "interval_seconds": 0.26539040001807734
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389503.4480103,
+      "system_cpu_percent": 55.729166666666664,
+      "interval_seconds": 0.25034189998405054
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389503.7120009,
+      "system_cpu_percent": 48.529411764705884,
+      "interval_seconds": 0.26399060001131147
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389503.9738388,
+      "system_cpu_percent": 45.09803921568628,
+      "interval_seconds": 0.2618378999759443
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389504.2416292,
+      "system_cpu_percent": 44.11764705882353,
+      "interval_seconds": 0.2677904000156559
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389504.5066958,
+      "system_cpu_percent": 47.549019607843135,
+      "interval_seconds": 0.26506659999722615
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389504.7582765,
+      "system_cpu_percent": 37.5,
+      "interval_seconds": 0.25158069998724386
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389505.023185,
+      "system_cpu_percent": 46.568627450980394,
+      "interval_seconds": 0.2649085000157356
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389505.2880752,
+      "system_cpu_percent": 42.15686274509804,
+      "interval_seconds": 0.2648901999928057
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389505.5413709,
+      "system_cpu_percent": 41.666666666666664,
+      "interval_seconds": 0.25329570000758395
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389505.7920858,
+      "system_cpu_percent": 47.916666666666664,
+      "interval_seconds": 0.25071490003028885
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389506.0434197,
+      "system_cpu_percent": 56.770833333333336,
+      "interval_seconds": 0.25133389997063205
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389506.2935635,
+      "system_cpu_percent": 47.395833333333336,
+      "interval_seconds": 0.2501437999890186
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389506.5475563,
+      "system_cpu_percent": 50.0,
+      "interval_seconds": 0.25399280001875013
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389506.7998899,
+      "system_cpu_percent": 43.75,
+      "interval_seconds": 0.25233360001584515
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389507.0505261,
+      "system_cpu_percent": 40.625,
+      "interval_seconds": 0.25063619995489717
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389507.3019301,
+      "system_cpu_percent": 43.229166666666664,
+      "interval_seconds": 0.25140400003874674
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389507.5539164,
+      "system_cpu_percent": 41.145833333333336,
+      "interval_seconds": 0.25198629999067634
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389507.8051796,
+      "system_cpu_percent": 58.854166666666664,
+      "interval_seconds": 0.251263200014364
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389508.0562641,
+      "system_cpu_percent": 40.625,
+      "interval_seconds": 0.2510844999924302
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389508.3199767,
+      "system_cpu_percent": 45.09803921568628,
+      "interval_seconds": 0.2637125999899581
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389508.5841768,
+      "system_cpu_percent": 43.627450980392155,
+      "interval_seconds": 0.2642000999767333
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389508.8351851,
+      "system_cpu_percent": 46.354166666666664,
+      "interval_seconds": 0.2510082999942824
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389509.086927,
+      "system_cpu_percent": 42.708333333333336,
+      "interval_seconds": 0.251741900050547
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389509.3522732,
+      "system_cpu_percent": 33.8235294117647,
+      "interval_seconds": 0.26534619997255504
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389509.617272,
+      "system_cpu_percent": 40.19607843137255,
+      "interval_seconds": 0.26499880000483245
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389509.8825724,
+      "system_cpu_percent": 40.19607843137255,
+      "interval_seconds": 0.2653003999730572
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389510.1472397,
+      "system_cpu_percent": 40.19607843137255,
+      "interval_seconds": 0.264667300041765
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389510.3973212,
+      "system_cpu_percent": 32.291666666666664,
+      "interval_seconds": 0.25008149998029694
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389510.6617299,
+      "system_cpu_percent": 32.35294117647059,
+      "interval_seconds": 0.2644086999935098
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389510.9248624,
+      "system_cpu_percent": 33.8235294117647,
+      "interval_seconds": 0.26313249999657273
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389511.1878205,
+      "system_cpu_percent": 36.5,
+      "interval_seconds": 0.2629581000073813
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389511.4514208,
+      "system_cpu_percent": 61.224489795918366,
+      "interval_seconds": 0.2636003000079654
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389511.7161055,
+      "system_cpu_percent": 36.76470588235294,
+      "interval_seconds": 0.2646846999996342
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389511.980372,
+      "system_cpu_percent": 31.372549019607842,
+      "interval_seconds": 0.2642665000166744
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389512.2454724,
+      "system_cpu_percent": 25.0,
+      "interval_seconds": 0.2651003999635577
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389512.4964882,
+      "system_cpu_percent": 32.8125,
+      "interval_seconds": 0.25101579999318346
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389512.7475827,
+      "system_cpu_percent": 53.645833333333336,
+      "interval_seconds": 0.2510945000103675
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389513.0012963,
+      "system_cpu_percent": 44.6078431372549,
+      "interval_seconds": 0.2537135999882594
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389513.2651363,
+      "system_cpu_percent": 43.229166666666664,
+      "interval_seconds": 0.263840000028722
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389513.5151397,
+      "system_cpu_percent": 64.0625,
+      "interval_seconds": 0.2500033999676816
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389513.7671682,
+      "system_cpu_percent": 48.529411764705884,
+      "interval_seconds": 0.25202850002096966
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389514.0173042,
+      "system_cpu_percent": 44.270833333333336,
+      "interval_seconds": 0.2501359999878332
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389514.269517,
+      "system_cpu_percent": 30.729166666666668,
+      "interval_seconds": 0.2522128000273369
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389514.521845,
+      "system_cpu_percent": 32.8125,
+      "interval_seconds": 0.252327999973204
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389514.7866744,
+      "system_cpu_percent": 44.11764705882353,
+      "interval_seconds": 0.2648293999955058
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389515.0523969,
+      "system_cpu_percent": 35.294117647058826,
+      "interval_seconds": 0.2657225000439212
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389515.3172007,
+      "system_cpu_percent": 25.49019607843137,
+      "interval_seconds": 0.26480379997519776
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389515.5789514,
+      "system_cpu_percent": 23.529411764705884,
+      "interval_seconds": 0.2617507000104524
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389515.8441479,
+      "system_cpu_percent": 49.509803921568626,
+      "interval_seconds": 0.2651964999968186
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389516.1065165,
+      "system_cpu_percent": 36.458333333333336,
+      "interval_seconds": 0.26236860000062734
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389516.3732791,
+      "system_cpu_percent": 41.666666666666664,
+      "interval_seconds": 0.2667625999893062
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389516.635374,
+      "system_cpu_percent": 53.92156862745098,
+      "interval_seconds": 0.2620949000120163
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389516.8861555,
+      "system_cpu_percent": 51.5625,
+      "interval_seconds": 0.25078150001354516
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389517.1366855,
+      "system_cpu_percent": 63.541666666666664,
+      "interval_seconds": 0.2505299999611452
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389517.3890619,
+      "system_cpu_percent": 56.25,
+      "interval_seconds": 0.2523763999924995
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389517.6440577,
+      "system_cpu_percent": 54.411764705882355,
+      "interval_seconds": 0.2549958000308834
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389517.9054342,
+      "system_cpu_percent": 46.875,
+      "interval_seconds": 0.2613765000132844
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389518.1706218,
+      "system_cpu_percent": 35.294117647058826,
+      "interval_seconds": 0.26518759998725727
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389518.4358942,
+      "system_cpu_percent": 33.333333333333336,
+      "interval_seconds": 0.26527239999268204
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389518.6998271,
+      "system_cpu_percent": 38.23529411764706,
+      "interval_seconds": 0.26393289997940883
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389518.9651103,
+      "system_cpu_percent": 37.254901960784316,
+      "interval_seconds": 0.2652832000167109
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389519.2304687,
+      "system_cpu_percent": 38.23529411764706,
+      "interval_seconds": 0.2653584000072442
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389519.4938539,
+      "system_cpu_percent": 48.03921568627451,
+      "interval_seconds": 0.2633851999999024
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389519.7594541,
+      "system_cpu_percent": 25.49019607843137,
+      "interval_seconds": 0.26560019998578355
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389520.0101334,
+      "system_cpu_percent": 24.479166666666668,
+      "interval_seconds": 0.2506792999920435
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389520.2748231,
+      "system_cpu_percent": 36.76470588235294,
+      "interval_seconds": 0.26468970003770664
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389520.5396811,
+      "system_cpu_percent": 30.392156862745097,
+      "interval_seconds": 0.2648579999804497
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389520.8053099,
+      "system_cpu_percent": 32.35294117647059,
+      "interval_seconds": 0.2656288000289351
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389521.0700795,
+      "system_cpu_percent": 36.27450980392157,
+      "interval_seconds": 0.26476959994761273
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389521.3342114,
+      "system_cpu_percent": 37.745098039215684,
+      "interval_seconds": 0.2641319000395015
+    },
+    {
+      "phase": "five_shared_ip_logins",
+      "at_seconds": 389521.5963192,
+      "system_cpu_percent": 31.372549019607842,
+      "interval_seconds": 0.26210779999382794
+    }
+  ],
+  "advisory_waiter_samples": [
+    {
+      "at_seconds": 389491.6799756,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389491.7327643,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389491.7945239,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389491.8573085,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389491.9190033,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389491.9825754,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.0433008,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.1052213,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.1672207,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.2288101,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.2924801,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.3548049,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.4165647,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.4797603,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.5419532,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.6044111,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.6666776,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.7285794,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.7920054,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.8544254,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.9165949,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389492.9796731,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.0403847,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.1030296,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389493.1648279,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.2279935,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.2909416,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.3536924,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.4155612,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.4786119,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.541346,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.604015,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.6664878,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.7300728,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.7901377,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.852723,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.9161135,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389493.9773586,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.0398984,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.1030643,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.1650669,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.2280339,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.2911073,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.3530732,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.4159778,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.4778575,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.5400451,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.602158,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.6650708,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.7265465,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389494.7879887,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.8497833,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.9122797,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389494.9757979,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.0370723,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.0985596,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.1610791,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.2225823,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.2841848,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.3472078,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.4096046,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.471207,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.5321177,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.593824,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.6574314,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.718382,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.7818719,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.844382,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.9072225,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389495.96956,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.0314957,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.0945119,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.1552057,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.2165006,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.2788958,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389496.3386067,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.4021304,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.4638164,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.5252465,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.5874893,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.6508373,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.7144767,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.7763553,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.8394445,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.9005676,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389496.9633596,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.0256728,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.0878904,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.1506952,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.2125857,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.2763868,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.3383787,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.4014885,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.4631229,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.5257017,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.5888358,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.6494509,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.7110627,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.7742692,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.8368109,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.8981841,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389497.9612692,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.0225124,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.0841262,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.1467826,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.2102426,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.270073,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.3332282,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.3977337,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.4597829,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.522491,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.5844703,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.6464436,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.7082726,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.771199,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.8341231,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.8965928,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389498.9600201,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.0217569,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.0843848,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.1475041,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.2103254,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.272846,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.3353011,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.3962178,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.4584981,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.5215944,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.5832862,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.6452693,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.7072471,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.7718964,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.8343359,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.8964622,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389499.9579127,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.0200003,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.0835769,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.1471196,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.2095755,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.2722711,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.3344784,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.3980461,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.4597144,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.5217381,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.5825178,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.6459746,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.708504,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.7717867,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.8341753,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.8991174,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389500.9593641,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.0220661,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.0848239,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.1476271,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.2097641,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.2717852,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.3347511,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.3964027,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.4586301,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.521759,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.5854701,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.6482053,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.7109512,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.7736031,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.8370296,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.8981623,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389501.960947,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.0223548,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.0864489,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.1483751,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.2113968,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.2748404,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.3374728,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.3987666,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.4616688,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.5235771,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.588422,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389502.6503241,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.7131632,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.7763698,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.8390529,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.9008881,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389502.9642027,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.0262884,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.0881199,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.1511054,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.2134217,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.2761149,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.338567,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.4005201,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.464381,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.5258428,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.5888479,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.650869,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.7124279,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.773505,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.8342603,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.8968124,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389503.9586259,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.0218261,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.0835506,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.1451908,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.2131297,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.2709898,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.3332107,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.3967195,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.4592249,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.5226008,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.5850696,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.6474389,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.7111377,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.7743321,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.8368503,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.8998182,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389504.9620464,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.0235934,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.0864137,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.1495496,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.2118743,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.2728536,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.3359252,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.3986974,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.4623718,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.5257293,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.5899045,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.652096,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.7143171,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.7778579,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.8396704,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.9035177,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389505.9663953,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.0290956,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.0916081,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.1542539,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.2160877,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.2789654,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.3422651,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.4061763,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.4687177,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.532233,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.595441,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.6585518,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.7218858,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.7851755,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.847052,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.9102093,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389506.9723003,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.0357953,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.0987462,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.1614243,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.2245125,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.2871711,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.3504237,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.4128112,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.4754714,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.5390058,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.6017091,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.6651525,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.7275128,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.790884,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.8528538,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.915612,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389507.9785144,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.0416427,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.1034924,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.1662905,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.2275555,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.2903544,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.351552,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.4132198,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.4755245,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.5375757,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.600785,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.6626779,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.7255202,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.7886257,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.8514671,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.9145098,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389508.9772153,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.0402498,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.1030098,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.1657261,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.2279704,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.2908065,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.3527294,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.4155649,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.4773591,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.5397795,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.6020258,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.6647608,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.7280449,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.7904874,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.8527083,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.9142388,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389509.9757791,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.0383991,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.1008279,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.1632315,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.2258415,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.2875679,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.3503829,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.4135226,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.4752107,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.5371111,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.5998768,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.6623843,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.723484,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.7862987,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.8478391,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.9096942,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389510.971404,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.0346272,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.0960842,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.1573205,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.2198484,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.281612,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.3441741,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.4051241,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.4672313,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.531529,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389511.5925126,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.6548041,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.7167907,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.7787093,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.840631,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.9033089,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389511.9656965,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.0277615,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.090019,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.1526177,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.2148418,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.2763453,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.3391037,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.4037617,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.4663969,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.528594,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.5921979,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.6535993,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.7172572,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.7800913,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.8426699,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.9059373,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389512.9699696,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.0325014,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.0953361,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.1562326,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.2187403,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.2813384,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.3417951,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.405146,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.4683847,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.5314102,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.5940488,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.6578338,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.7212837,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.7834338,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.8460406,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.9085722,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389513.9716378,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.0336724,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.0962887,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.1596127,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.2227129,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.2859774,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.3486686,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.4115333,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.4757719,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.5382524,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.6002009,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.6630675,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.7251271,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.7870565,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.8484982,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.9114182,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389514.9740659,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.0368815,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.0999174,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.1624561,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.2257899,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.286846,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.3491207,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.4104172,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.4722524,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.5335379,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.5955097,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.656977,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.7200791,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.7828033,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.8444947,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.9053156,
+      "advisory_waiters": 4
+    },
+    {
+      "at_seconds": 389515.9671289,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.0292093,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.0912104,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.1545738,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.216416,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.2783499,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.3416699,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.4048946,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.4662926,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.5281323,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.5893065,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.652024,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.7181422,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.7775319,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.8396991,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.9028233,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389516.9669582,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.0277354,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.0900329,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.1537725,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.2172237,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.2803523,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.3423829,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.4047978,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.4676155,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.5311278,
+      "advisory_waiters": 3
+    },
+    {
+      "at_seconds": 389517.5933247,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.656325,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.7186794,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.7813039,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.8431476,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.9058035,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389517.9672559,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.0300804,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.0921738,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.1554361,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.2173367,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.2799466,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.3419009,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.404935,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.4672153,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.5299819,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.5929537,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.6540971,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.7163226,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.7794158,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.8416534,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.9032042,
+      "advisory_waiters": 2
+    },
+    {
+      "at_seconds": 389518.9655576,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.0285402,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.0895963,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.1520534,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.215701,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.2774554,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.3384478,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.4006088,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.4630324,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.5251013,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.5872503,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.6502131,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.7125039,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.7759986,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.8379833,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.9003891,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389519.9630868,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389520.026107,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389520.0873649,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389520.1499615,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389520.2126348,
+      "advisory_waiters": 1
+    },
+    {
+      "at_seconds": 389520.2749492,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.3370252,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.3998831,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.4624604,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.5245174,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.5870399,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.6493118,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.7116858,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.7733646,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.83716,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.8998508,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389520.9623075,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.0243441,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.0855787,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.1484033,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.2097457,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.2713135,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.3345769,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.3961373,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.4572811,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.5181202,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.5805223,
+      "advisory_waiters": 0
+    },
+    {
+      "at_seconds": 389521.6447972,
+      "advisory_waiters": 0
+    }
+  ],
+  "summary": {
+    "sequential_lock_median_seconds": {
+      "identity": 0.0009340000106021762,
+      "source_ip": 0.0003629999700933695
+    },
+    "five_shared_ip_lock_median_seconds": {
+      "identity": 0.0007241500134114176,
+      "source_ip": 5.963319849979598
+    },
+    "sequential_request_median_seconds": 1.5806166999973357,
+    "five_shared_ip_request_median_seconds": 7.459519649972208,
+    "idle_baseline_cpu_median_percent": 41.666666666666664,
+    "peak_observed_advisory_waiters": 4
+  }
+}
