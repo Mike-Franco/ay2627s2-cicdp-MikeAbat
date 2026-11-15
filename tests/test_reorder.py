@@ -143,6 +143,59 @@ class ReorderTests(TestCase):
         self.assertEqual(result.missing_settings, ("lead time",))
         self.assertIsNone(result.reorder_point)
 
+    def test_inventory_products_shows_existing_reorder_state_and_zero_balances(self):
+        url = reverse("inventory-products", args=[self.first.pk])
+        self.login(self.staff)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Physical")
+        self.assertContains(response, "Quarantined")
+        self.assertContains(response, "Available")
+        self.assertContains(response, "Reorder point unavailable")
+        self.assertContains(response, "Every date needs explicit Manager verification.")
+        self.assertContains(response, "Set lead time, safety stock.")
+        self.assertContains(response, '<td class="numeric available">0<span class="unit">each</span></td>', html=True)
+        self.assertContains(response, reverse("product-stock", args=[self.first.pk, self.product.pk]))
+        self.assertNotContains(response, "Import stock CSV")
+        self.assertNotContains(response, "Adjust count")
+
+        self.cover()
+        save_shared_settings(user_id=self.manager.pk, inventory_id=self.first.pk,
+                             product_id=self.product.pk, lead_time_days=1, safety_stock_units=0)
+        response = self.client.get(url)
+        self.assertContains(response, "At or below reorder point")
+        self.assertEqual(response.context["product_links"][0].display_available_units, 0)
+        receive_manual(user_id=self.manager.pk, inventory_id=self.first.pk,
+                       product_id=self.product.pk, request_token=uuid.uuid4(),
+                       quantity_units=1, expiry_date=None)
+        response = self.client.get(url)
+        self.assertContains(response, "Above reorder point")
+        self.assertEqual(response.context["product_links"][0].display_available_units, 1)
+        self.assertContains(response, '<td class="numeric available">1<span class="unit">each</span></td>', html=True)
+        self.login(self.manager)
+        self.assertContains(self.client.get(url), "Import CSV")
+
+    def test_inventory_products_shows_expired_stock_as_physical_and_quarantined(self):
+        expiry = self.today + timedelta(days=1)
+        receive_manual(user_id=self.manager.pk, inventory_id=self.first.pk,
+                       product_id=self.product.pk, request_token=uuid.uuid4(),
+                       quantity_units=5, expiry_date=expiry)
+        self.login(self.staff)
+        at_expiry = datetime.combine(expiry, time.min, SINGAPORE)
+        session = self.client.session
+        session[CREATED_KEY] = session[ACTIVE_KEY] = at_expiry.timestamp()
+        session.set_expiry(at_expiry + timedelta(hours=1))
+        session.save()
+        with patch("catalogue.views.timezone.now", return_value=at_expiry), patch(
+            "accounts.sessions.timezone.now", return_value=at_expiry
+        ):
+            response = self.client.get(reverse("inventory-products", args=[self.first.pk]))
+        self.assertEqual(response.status_code, 200, response.get('Location'))
+        link = response.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units,
+                          link.display_available_units), (5, 5, 0))
+        self.assertContains(response, "Reorder point unavailable")
+
     def test_exact_fraction_and_threshold_equality(self):
         save_shared_settings(user_id=self.manager.pk, inventory_id=self.first.pk,
                              product_id=self.product.pk, lead_time_days=7, safety_stock_units=0)

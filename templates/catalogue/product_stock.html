@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} stock · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Stock{% endblock %}
+{% block content %}
+{% include 'includes/product_tabs.html' with active_tab='stock' %}
+<div class="stock-actions" aria-label="Stock actions">
+  {% if product.is_active %}<a class="btn btn-primary" href="{% url 'receive-batch' inventory.pk product.pk %}">Receive stock</a><a class="btn btn-outline-primary" href="{% url 'issue-stock' inventory.pk product.pk %}">Issue stock</a>{% if can_adjust_stock %}<a class="btn btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk product.pk %}">Adjust batch count</a><a class="btn btn-outline-secondary" href="{% url 'dispose-stock' inventory.pk product.pk %}">Dispose stock</a>{% endif %}{% endif %}
+  {% if link.can_manage_lifecycle %}<a class="btn btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk product.pk %}">Product status</a>{% endif %}
+</div>
+<div class="balance-grid">
+  <section class="balance-card"><h2>Physical</h2><strong>{{ link.display_physical_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} recorded on hand</small></section>
+  <section class="balance-card"><h2>Quarantined</h2><strong>{{ link.display_quarantine_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} held from issue</small></section>
+  <section class="balance-card emphasized"><h2>Available</h2><strong>{{ link.display_available_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} available to issue</small></section>
+</div>
+<section class="panel"><div class="panel-heading"><h2>Batch balances</h2><p>Remaining quantities and Singapore expiry dates.</p></div>
+  {% if batches %}<div class="table-scroll" role="region" aria-label="Batch balances" tabindex="0"><table class="products-table"><thead><tr><th scope="col">Batch</th><th scope="col">Received</th><th scope="col">Expiry</th><th scope="col" class="numeric">Remaining</th><th scope="col" class="numeric">Quarantined</th></tr></thead><tbody>{% for row in batches %}<tr><th scope="row">#{{ row.batch.receipt_sequence }}</th><td>{{ row.batch.received_at|date:'Y-m-d H:i T' }}</td><td>{{ row.batch.expiry_date|default:'Undated' }}</td><td class="numeric">{{ row.batch.remaining_quantity_units }}</td><td class="numeric">{{ row.quarantined }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="p-4 mb-0">No remaining batch stock.</p>{% endif %}
+</section>
+{% endblock %}

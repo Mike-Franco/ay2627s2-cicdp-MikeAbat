@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Disposal recorded · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Disposal recorded{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Disposal recorded</h1>
 <p>{{ disposal.inventory.name }} · {{ disposal.product.sku }} · Batch {{ disposal.batch.receipt_sequence }}</p>
 <p>{{ disposal.quantity_units }} {{ disposal.batch.unit_label_snapshot }} disposed. Physical balance: {{ disposal.physical_before_units }} → {{ disposal.physical_after_units }}.</p>

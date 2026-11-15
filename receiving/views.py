@@ -129,10 +129,11 @@ def receipt_confirmation(request, receipt_id):
         inventory=inventory, product=batch.product, product__business_id=inventory.business_id
     ).exists():
         raise Http404
+    request.tory_inventory_id = inventory.pk
     return render(
         request,
         "receiving/receipt_confirmation.html",
-        {"batch": batch, "audit": batch.audit_event},
+        {"inventory": inventory, "product": batch.product, "batch": batch, "audit": batch.audit_event},
     )
 
 
@@ -167,7 +168,8 @@ def stock_out_confirmation(request, stock_out_id):
         raise Http404 from error
     if not InventoryProduct.objects.filter(inventory=inventory, product=stock_out.product, product__business_id=inventory.business_id).exists():
         raise Http404
-    return render(request, "receiving/stock_out_confirmation.html", {"stock_out": stock_out, "allocations": stock_out.allocations.select_related("batch").order_by("batch__expiry_date", "batch__receipt_sequence", "batch_id")})
+    request.tory_inventory_id = inventory.pk
+    return render(request, "receiving/stock_out_confirmation.html", {"inventory": inventory, "product": stock_out.product, "stock_out": stock_out, "allocations": stock_out.allocations.select_related("batch").order_by("batch__expiry_date", "batch__receipt_sequence", "batch_id")})
 
 
 def _load_manager_scope(user, inventory_id, product_id):
@@ -257,8 +259,9 @@ def stock_adjustment_confirmation(request, adjustment_id):
         product__business_id=inventory.business_id,
     ).exists():
         raise Http404
+    request.tory_inventory_id = inventory.pk
     return render(request, "receiving/stock_adjustment_confirmation.html", {
-        "adjustment": adjustment,
+        "inventory": inventory, "product": adjustment.product, "adjustment": adjustment,
         "allocations": adjustment.allocations.select_related("batch").order_by("batch__receipt_sequence", "batch_id"),
     })
 
@@ -310,5 +313,6 @@ def disposal_confirmation(request, disposal_id):
         product__business_id=inventory.business_id,
     ).exists():
         raise Http404
-    return render(request, "receiving/disposal_confirmation.html", {"disposal": disposal})
+    request.tory_inventory_id = inventory.pk
+    return render(request, "receiving/disposal_confirmation.html", {"inventory": inventory, "product": disposal.product, "disposal": disposal})
 

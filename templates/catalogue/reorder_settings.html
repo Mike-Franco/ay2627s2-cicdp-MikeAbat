@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Reorder settings for {{ product.sku }} · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Reorder settings{% endblock %}
 {% block content %}
+{% include 'includes/product_tabs.html' %}
 <h1>Reorder settings for {{ product.sku }}</h1>
 <p>{{ product.name }} · {{ inventory.name }}</p>
 <p>These Product settings apply to every inventory in this business containing the product. Leave either field blank to unset it; numeric reorder advice then becomes unavailable.</p>

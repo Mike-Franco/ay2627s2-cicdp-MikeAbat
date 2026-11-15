@@ -157,6 +157,14 @@ def import_stock_csv(*, user_id, inventory_id, raw_bytes):
                 products[key] = product
         for product_id in sorted({product.pk for product in products.values()}):
             Product.objects.select_for_update().get(pk=product_id)
+        # The initial SKU lookup preceded the Product locks. A concurrent
+        # deactivation may have committed while this import waited for one.
+        current_active = set(Product.objects.filter(
+            pk__in=[product.pk for product in products.values()], is_active=True,
+        ).values_list("pk", flat=True))
+        for number, sku, _ in rows:
+            if products[sku.casefold()].pk not in current_active:
+                raise CsvImportRejected("SKU is unavailable in this inventory.", row=number, field="sku")
         inventory = Inventory.objects.select_for_update().get(pk=inventory_id, business_id=hint.business_id, is_active=True)
         links = {}
         for product_id in sorted({product.pk for product in products.values()}):

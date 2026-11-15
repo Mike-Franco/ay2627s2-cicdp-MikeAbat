@@ -74,8 +74,26 @@ class ExpiryQuarantineTests(TransactionTestCase):
         session[ACTIVE_KEY] = timezone.now().timestamp()
         session.save()
         page = self.client.get(reverse("inventory-products", args=[self.inventory.pk]))
-        self.assertContains(page, "Available to issue: 0")
-        self.assertContains(page, "Quarantined: 5")
+        link = page.context["product_links"][0]
+        self.assertEqual(
+            (
+                link.display_physical_units,
+                link.display_quarantine_units,
+                link.display_available_units,
+            ),
+            (5, 5, 0),
+        )
+        self.assertContains(
+            page,
+            '<td class="numeric available">0<span class="unit">each</span></td>',
+            html=True,
+        )
+        self.assertContains(
+            page,
+            '<td class="numeric">5<span class="unit">each</span></td>',
+            count=2,
+            html=True,
+        )
         self.link.refresh_from_db()
         self.assertEqual(self.link.physical_quantity_units, 5)
 

@@ -176,14 +176,14 @@ class StockHistoryTests(TransactionTestCase):
         self.authenticate(self.staff, at=boundary - timedelta(seconds=1))
         with patch("catalogue.views.timezone.now", return_value=boundary - timedelta(seconds=1)):
             before = self.client.get(self.product_url())
-        self.assertContains(before, "Physical units: 8")
-        self.assertContains(before, "Quarantined: 0")
-        self.assertContains(before, "Available to issue: 8")
+        link = before.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (8, 0, 8))
+        self.assertContains(before, '<td class="numeric available">8<span class="unit">each</span></td>', html=True)
         with patch("catalogue.views.timezone.now", return_value=boundary):
             after = self.client.get(self.product_url())
-        self.assertContains(after, "Physical units: 8")
-        self.assertContains(after, "Quarantined: 5")
-        self.assertContains(after, "Available to issue: 3")
+        link = after.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (8, 5, 3))
+        self.assertContains(after, '<td class="numeric available">3<span class="unit">each</span></td>', html=True)
         self.assertEqual(ExpiryQuarantineEvent.objects.count(), 0)
 
     def test_pending_expiry_balance_and_disposal_then_recording(self):
@@ -191,9 +191,8 @@ class StockHistoryTests(TransactionTestCase):
         self.receive(3, timezone.localdate() + timedelta(days=1))
         self.authenticate(self.manager)
         before = self.client.get(self.product_url())
-        self.assertContains(before, "Physical units: 8")
-        self.assertContains(before, "Quarantined: 5")
-        self.assertContains(before, "Available to issue: 3")
+        link = before.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (8, 5, 3))
         self.assertEqual(ExpiryQuarantineEvent.objects.count(), 0)
         dispose_quarantined(
             user_id=self.manager.pk, inventory_id=self.inventory.pk,
@@ -201,16 +200,14 @@ class StockHistoryTests(TransactionTestCase):
             quantity_units=2, reason_code="Other", reason_note="  damaged packaging  ",
         )
         pending = self.client.get(self.product_url())
-        self.assertContains(pending, "Physical units: 6")
-        self.assertContains(pending, "Quarantined: 3")
-        self.assertContains(pending, "Available to issue: 3")
+        link = pending.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (6, 3, 3))
         self.assertEqual(ExpiryQuarantineEvent.objects.count(), 0)
         self.assertEqual([event["kind"] for event in self.client.get(self.history_url()).context["events"]].count("quarantine"), 0)
         self.assertEqual(process_expiry_quarantine(), 1)
         recorded = self.client.get(self.product_url())
-        self.assertContains(recorded, "Physical units: 6")
-        self.assertContains(recorded, "Quarantined: 3")
-        self.assertContains(recorded, "Available to issue: 3")
+        link = recorded.context["product_links"][0]
+        self.assertEqual((link.display_physical_units, link.display_quarantine_units, link.display_available_units), (6, 3, 3))
         history = self.client.get(self.history_url())
         self.assertContains(history, "Disposed before recording: 2 units")
         self.assertContains(history, "Reason: Other")
