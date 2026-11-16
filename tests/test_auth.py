@@ -4,7 +4,7 @@ from threading import Barrier
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError, connections, transaction
+from django.db import IntegrityError, close_old_connections, connections, transaction
 from django.test import Client, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
@@ -46,6 +46,18 @@ class AuthenticationTests(TestCase):
         self.assertContains(home, "You are signed in")
         self.assertTrue(self.client.cookies["sessionid"]["httponly"])
         self.assertEqual(self.client.cookies["sessionid"]["samesite"], "Lax")
+
+    def test_existing_short_password_can_still_sign_in(self):
+        legacy_password = "legacy-short"
+        legacy_user = get_user_model().objects.create_user(
+            email="legacy-password@example.test",
+            password=legacy_password,
+        )
+
+        with patch("accounts.sessions.timezone.now", return_value=BASE):
+            response = self.login(email=legacy_user.email, password=legacy_password)
+            self.assertRedirects(response, reverse("home"))
+            self.assertEqual(self.client.session.get("_auth_user_id"), str(legacy_user.pk))
 
     def test_wrong_unknown_and_inactive_use_generic_feedback(self):
         for email, password in [
@@ -184,6 +196,7 @@ class ConcurrentThrottleTests(TransactionTestCase):
 
         def attempt(i):
             try:
+                close_old_connections()
                 client = Client()
                 barrier.wait(timeout=10)
                 return client.post(

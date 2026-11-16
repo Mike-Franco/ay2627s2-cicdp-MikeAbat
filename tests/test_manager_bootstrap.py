@@ -1,7 +1,9 @@
 import getpass
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import CommonPasswordValidator
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError
@@ -12,6 +14,7 @@ from inventory_access.models import Business, BusinessMembership, Inventory, Inv
 
 
 PASSWORD = "unique-strong-bootstrap-password"
+COMMON_PASSWORD = "1234567890qwertyuiop"
 
 
 class BootstrapManagerCommandTests(TestCase):
@@ -38,6 +41,49 @@ class BootstrapManagerCommandTests(TestCase):
             "accounts.management.commands.bootstrap_manager.getpass.getpass",
             side_effect=[password, password if confirmation is None else confirmation],
         )
+
+    def test_project_password_validators_match_the_approved_policy(self):
+        self.assertEqual(
+            settings.AUTH_PASSWORD_VALIDATORS,
+            [
+                {
+                    "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+                    "OPTIONS": {"min_length": 15},
+                },
+                {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+                {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+            ],
+        )
+
+    def test_project_policy_accepts_15_character_lowercase_passphrase(self):
+        password = "mellowriveroakx"
+        self.assertEqual(len(password), 15)
+        self.assertTrue(password.islower() and password.isalpha())
+
+        with self.submit_password(password):
+            self.command()
+
+        manager = get_user_model().objects.get(email="manager@example.test")
+        self.assertTrue(manager.check_password(password))
+
+    def test_project_policy_rejects_short_common_and_email_similar_passwords_without_writes(self):
+        self.assertGreaterEqual(len(COMMON_PASSWORD), 15)
+        self.assertIn(COMMON_PASSWORD, CommonPasswordValidator().passwords)
+        rejected_passwords = [
+            ("mellowriveroak", "at least 15"),
+            (COMMON_PASSWORD, "too common"),
+            ("manager@example.test", "too similar"),
+        ]
+        for password, message in rejected_passwords:
+            with self.subTest(password_kind=message):
+                with self.submit_password(password), self.assertRaises(CommandError) as raised:
+                    self.command()
+                self.assertIn(message, str(raised.exception).lower())
+                self.assertEqual(get_user_model().objects.count(), 0)
+                self.assertEqual(Business.objects.count(), 0)
+                self.assertEqual(BusinessMembership.objects.count(), 0)
+                self.assertEqual(Inventory.objects.count(), 0)
+                self.assertEqual(InventoryAssignment.objects.count(), 0)
 
     def test_creates_ordinary_manager_and_assigns_every_created_inventory(self):
         with self.submit_password():
