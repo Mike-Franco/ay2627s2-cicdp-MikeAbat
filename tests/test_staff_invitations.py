@@ -5,6 +5,9 @@ from time import monotonic
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import CommonPasswordValidator
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, close_old_connections, connection, connections, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 
@@ -23,6 +26,7 @@ from inventory_access.models import Business, BusinessMembership, Inventory, Inv
 
 ANCHOR = datetime(2026, 11, 16, 2, 0, tzinfo=datetime_timezone.utc)
 PASSWORD = "invitation-test-password-9381"
+COMMON_PASSWORD = "1234567890qwertyuiop"
 
 
 class ControlledClock:
@@ -272,7 +276,55 @@ class StaffInvitationServiceTests(TestCase):
         result.invitation.refresh_from_db()
         self.assertEqual(result.invitation.status, StaffInvitation.Status.PENDING)
 
-    def test_empty_password_rejected_even_when_project_has_no_password_validators(self):
+    def test_project_policy_accepts_15_character_lowercase_passphrase(self):
+        password = "mellowriveroakx"
+        self.assertEqual(len(password), 15)
+        self.assertTrue(password.islower() and password.isalpha())
+        result = self.prepare(email="lowercase-passphrase@example.test")
+
+        user = redeem_staff_invitation(result.token, password, at=ANCHOR)
+
+        self.assertTrue(user.check_password(password))
+        self.assertEqual(user.email, "lowercase-passphrase@example.test")
+
+    def test_project_policy_rejects_short_common_and_email_similar_passwords_without_consuming(self):
+        self.assertGreaterEqual(len(COMMON_PASSWORD), 15)
+        self.assertIn(COMMON_PASSWORD, CommonPasswordValidator().passwords)
+        cases = [
+            ("short-target@example.test", "mellowriveroak", "password_too_short"),
+            ("common-target@example.test", COMMON_PASSWORD, "password_too_common"),
+            ("similar@example.test", "similar@example.test", "password_too_similar"),
+        ]
+        for email, password, expected_code in cases:
+            with self.subTest(rejection=expected_code):
+                intended_user = get_user_model()(email=email)
+                with self.assertRaises(ValidationError) as validation:
+                    validate_password(password, intended_user)
+                error_codes = {error.code for error in validation.exception.error_list}
+                self.assertIn(expected_code, error_codes)
+                if expected_code != "password_too_short":
+                    self.assertNotIn("password_too_short", error_codes)
+
+                result = self.prepare(email=email)
+                with self.assertRaisesMessage(
+                    StaffInvitationError,
+                    "Password does not meet configured requirements.",
+                ):
+                    redeem_staff_invitation(result.token, password, at=ANCHOR)
+                self.assertFalse(get_user_model().objects.filter(email__iexact=email).exists())
+                self.assertFalse(
+                    BusinessMembership.objects.filter(user__email__iexact=email).exists()
+                )
+                self.assertFalse(
+                    InventoryAssignment.objects.filter(
+                        membership__user__email__iexact=email
+                    ).exists()
+                )
+                result.invitation.refresh_from_db()
+                self.assertEqual(result.invitation.status, StaffInvitation.Status.PENDING)
+
+    @override_settings(AUTH_PASSWORD_VALIDATORS=[])
+    def test_empty_password_rejected_with_explicit_empty_validator_override(self):
         result = self.prepare()
         with self.assertRaises(StaffInvitationError):
             redeem_staff_invitation(result.token, "", at=ANCHOR)
@@ -335,8 +387,8 @@ class StaffInvitationConcurrencyTests(TransactionTestCase):
         barrier = Barrier(count)
 
         def run(index):
-            close_old_connections()
             try:
+                close_old_connections()
                 barrier.wait(timeout=15)
                 return operation(index)
             finally:
@@ -474,9 +526,13 @@ class StaffInvitationConcurrencyTests(TransactionTestCase):
 
         def redeem():
             try:
-                return redeem_staff_invitation(issued.token, PASSWORD)
-            except StaffInvitationError:
-                return None
+                close_old_connections()
+                try:
+                    return redeem_staff_invitation(issued.token, PASSWORD)
+                except StaffInvitationError:
+                    return None
+            finally:
+                connections.close_all()
 
         with patch("accounts.invitations._locked_manager_scope", observe_scope_lock), patch(
             "accounts.invitations.timezone.now", clock
@@ -520,14 +576,18 @@ class StaffInvitationConcurrencyTests(TransactionTestCase):
 
         def issue():
             try:
-                return prepare_staff_invitation(
-                    self.manager,
-                    business_id=self.business.pk,
-                    target_email="after-midnight@example.test",
-                    inventory_ids=self.inventory_ids,
-                )
-            except StaffInvitationError:
-                return None
+                close_old_connections()
+                try:
+                    return prepare_staff_invitation(
+                        self.manager,
+                        business_id=self.business.pk,
+                        target_email="after-midnight@example.test",
+                        inventory_ids=self.inventory_ids,
+                    )
+                except StaffInvitationError:
+                    return None
+            finally:
+                connections.close_all()
 
         with patch("accounts.invitations._locked_manager_scope", observe_scope_lock), patch(
             "accounts.invitations.timezone.now", clock
