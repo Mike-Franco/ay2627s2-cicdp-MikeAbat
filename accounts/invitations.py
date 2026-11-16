@@ -137,6 +137,11 @@ def _expire_stale(pending, now):
     return current
 
 
+def _operation_time(at):
+    """Use an injected test time or sample the trusted clock at the decision point."""
+    return at if at is not None else timezone.now()
+
+
 def _enforce_manager_daily_limit(manager_id, now):
     local_day = timezone.localtime(now, SINGAPORE).date()
     start = timezone.make_aware(datetime.combine(local_day, time.min), SINGAPORE)
@@ -180,7 +185,6 @@ def prepare_staff_invitation(manager, *, business_id, target_email, inventory_id
     """Issue the first pending invitation for one target identity and business."""
     email = _clean_email(target_email)
     selected_ids = _inventory_ids(inventory_ids)
-    now = at or timezone.now()
     try:
         with transaction.atomic():
             _identity_lock(email)
@@ -193,6 +197,7 @@ def prepare_staff_invitation(manager, *, business_id, target_email, inventory_id
             pending = _pending_for_email(email)
             if pending and pending[0].business_id != membership.business_id:
                 raise StaffInvitationError("The invitation could not be issued.")
+            now = _operation_time(at)
             pending = _expire_stale(pending, now)
             if pending:
                 if pending[0].business_id != membership.business_id:
@@ -225,7 +230,6 @@ def replace_staff_invitation(manager, invitation_id, *, inventory_ids=None, at=N
     """Supersede the current invitation and issue its replacement atomically."""
     seed = _invitation_seed(invitation_id)
     email = seed.target_email
-    now = at or timezone.now()
     try:
         with transaction.atomic():
             _identity_lock(email)
@@ -251,6 +255,7 @@ def replace_staff_invitation(manager, invitation_id, *, inventory_ids=None, at=N
             if len(pending) != 1 or pending[0].pk != invitation.pk:
                 raise StaffInvitationError("The invitation could not be changed.")
 
+            now = _operation_time(at)
             _enforce_manager_daily_limit(actor.pk, now)
             invitation.status = (
                 StaffInvitation.Status.EXPIRED
@@ -266,7 +271,6 @@ def replace_staff_invitation(manager, invitation_id, *, inventory_ids=None, at=N
 def revoke_staff_invitation(manager, invitation_id, *, at=None):
     """Revoke the current invitation if the Manager still controls its scope."""
     seed = _invitation_seed(invitation_id)
-    now = at or timezone.now()
     with transaction.atomic():
         _identity_lock(seed.target_email)
         invitation = _locked_invitation(seed.pk)
@@ -285,6 +289,7 @@ def revoke_staff_invitation(manager, invitation_id, *, at=None):
         pending = _pending_for_email(invitation.target_email)
         if len(pending) != 1 or pending[0].pk != invitation.pk:
             raise StaffInvitationError("The invitation could not be changed.")
+        now = _operation_time(at)
         invitation.status = (
             StaffInvitation.Status.EXPIRED
             if invitation.expires_at <= now
@@ -309,7 +314,6 @@ def redeem_staff_invitation(token, password, *, at=None):
     if seed is None:
         raise StaffInvitationError("The invitation is invalid or no longer usable.")
 
-    now = at or timezone.now()
     User = get_user_model()
     try:
         with transaction.atomic():
@@ -317,7 +321,6 @@ def redeem_staff_invitation(token, password, *, at=None):
             invitation = _locked_invitation(seed.pk)
             if (
                 invitation.status != StaffInvitation.Status.PENDING
-                or invitation.expires_at <= now
                 or invitation.token_digest != digest
             ):
                 raise StaffInvitationError("The invitation is invalid or no longer usable.")
@@ -338,6 +341,9 @@ def redeem_staff_invitation(token, password, *, at=None):
                 inventory_ids,
                 membership_id=invitation.manager_membership_id,
             )
+            now = _operation_time(at)
+            if invitation.expires_at <= now:
+                raise StaffInvitationError("The invitation is invalid or no longer usable.")
             if _account_exists(invitation.target_email):
                 raise StaffInvitationError("The invitation is invalid or no longer usable.")
 
@@ -368,8 +374,11 @@ def redeem_staff_invitation(token, password, *, at=None):
                     for inventory in inventories
                 ]
             )
+            consumed_at = _operation_time(at)
+            if invitation.expires_at <= consumed_at:
+                raise StaffInvitationError("The invitation is invalid or no longer usable.")
             invitation.status = StaffInvitation.Status.REDEEMED
-            invitation.redeemed_at = now
+            invitation.redeemed_at = consumed_at
             invitation.save(update_fields=["status", "redeemed_at"])
             return user
     except IntegrityError as error:

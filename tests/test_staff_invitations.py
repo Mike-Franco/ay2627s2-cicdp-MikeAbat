@@ -1,12 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone as datetime_timezone
-from threading import Barrier
+from threading import Barrier, Event, Lock
+from time import monotonic
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError, close_old_connections, connection, connections
+from django.db import IntegrityError, close_old_connections, connection, connections, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 
+import accounts.invitations as invitation_services
 from accounts.invitations import (
     INVITATION_LIFETIME,
     StaffInvitationError,
@@ -21,6 +23,20 @@ from inventory_access.models import Business, BusinessMembership, Inventory, Inv
 
 ANCHOR = datetime(2026, 11, 16, 2, 0, tzinfo=datetime_timezone.utc)
 PASSWORD = "invitation-test-password-9381"
+
+
+class ControlledClock:
+    def __init__(self, value):
+        self._value = value
+        self._lock = Lock()
+
+    def __call__(self):
+        with self._lock:
+            return self._value
+
+    def set(self, value):
+        with self._lock:
+            self._value = value
 
 
 class StaffInvitationServiceTests(TestCase):
@@ -329,6 +345,19 @@ class StaffInvitationConcurrencyTests(TransactionTestCase):
         with ThreadPoolExecutor(max_workers=count) as pool:
             return list(pool.map(run, range(count)))
 
+    def _wait_until_backend_is_lock_blocked(self, pid):
+        deadline = monotonic() + 10
+        while monotonic() < deadline:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT wait_event_type FROM pg_stat_activity WHERE pid = %s",
+                    [pid],
+                )
+                row = cursor.fetchone()
+            if row and row[0] == "Lock":
+                return
+        self.fail("Worker connection did not reach the expected PostgreSQL lock wait.")
+
     def test_concurrent_issuance_for_one_identity_creates_one_pending_invitation(self):
         self.assertEqual(connection.vendor, "postgresql")
 
@@ -419,3 +448,140 @@ class StaffInvitationConcurrencyTests(TransactionTestCase):
             StaffInvitation.objects.filter(invited_by=self.manager).count(),
             5,
         )
+
+    def test_redemption_waiting_for_manager_lock_rechecks_expiry_after_lock(self):
+        self.assertEqual(connection.vendor, "postgresql")
+        issued = prepare_staff_invitation(
+            self.manager,
+            business_id=self.business.pk,
+            target_email="lock-expiry@example.test",
+            inventory_ids=self.inventory_ids,
+            at=ANCHOR,
+        )
+        before_expiry = issued.invitation.expires_at - timedelta(seconds=1)
+        after_expiry = issued.invitation.expires_at + timedelta(seconds=1)
+        clock = ControlledClock(before_expiry)
+        waiting_for_manager = Event()
+        worker_pid = []
+        original_scope = invitation_services._locked_manager_scope
+
+        def observe_scope_lock(*args, **kwargs):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                worker_pid.append(cursor.fetchone()[0])
+            waiting_for_manager.set()
+            return original_scope(*args, **kwargs)
+
+        def redeem():
+            try:
+                return redeem_staff_invitation(issued.token, PASSWORD)
+            except StaffInvitationError:
+                return None
+
+        with patch("accounts.invitations._locked_manager_scope", observe_scope_lock), patch(
+            "accounts.invitations.timezone.now", clock
+        ), ThreadPoolExecutor(max_workers=1) as pool:
+            with transaction.atomic():
+                get_user_model().objects.select_for_update().get(pk=self.manager.pk)
+                future = pool.submit(redeem)
+                self.assertTrue(waiting_for_manager.wait(timeout=10))
+                self._wait_until_backend_is_lock_blocked(worker_pid[0])
+                clock.set(after_expiry)
+            self.assertIsNone(future.result(timeout=10))
+
+        self.assertFalse(get_user_model().objects.filter(email="lock-expiry@example.test").exists())
+        issued.invitation.refresh_from_db()
+        self.assertEqual(issued.invitation.status, StaffInvitation.Status.PENDING)
+
+    def test_issuance_queued_across_singapore_midnight_uses_new_day_window(self):
+        self.assertEqual(connection.vendor, "postgresql")
+        before_midnight = datetime(2026, 11, 15, 15, 59, 59, tzinfo=datetime_timezone.utc)
+        after_midnight = datetime(2026, 11, 15, 16, 0, 1, tzinfo=datetime_timezone.utc)
+        for index in range(5):
+            prepare_staff_invitation(
+                self.manager,
+                business_id=self.business.pk,
+                target_email=f"prior-day-{index}@example.test",
+                inventory_ids=self.inventory_ids,
+                at=before_midnight,
+            )
+
+        clock = ControlledClock(before_midnight)
+        waiting_for_manager = Event()
+        worker_pid = []
+        original_scope = invitation_services._locked_manager_scope
+
+        def observe_scope_lock(*args, **kwargs):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_backend_pid()")
+                worker_pid.append(cursor.fetchone()[0])
+            waiting_for_manager.set()
+            return original_scope(*args, **kwargs)
+
+        def issue():
+            try:
+                return prepare_staff_invitation(
+                    self.manager,
+                    business_id=self.business.pk,
+                    target_email="after-midnight@example.test",
+                    inventory_ids=self.inventory_ids,
+                )
+            except StaffInvitationError:
+                return None
+
+        with patch("accounts.invitations._locked_manager_scope", observe_scope_lock), patch(
+            "accounts.invitations.timezone.now", clock
+        ), ThreadPoolExecutor(max_workers=1) as pool:
+            with transaction.atomic():
+                get_user_model().objects.select_for_update().get(pk=self.manager.pk)
+                future = pool.submit(issue)
+                self.assertTrue(waiting_for_manager.wait(timeout=10))
+                self._wait_until_backend_is_lock_blocked(worker_pid[0])
+                clock.set(after_midnight)
+            issued_after_midnight = future.result(timeout=10)
+
+        self.assertIsNotNone(issued_after_midnight)
+        self.assertEqual(issued_after_midnight.invitation.issued_at, after_midnight)
+        self.assertEqual(
+            StaffInvitation.objects.filter(invited_by=self.manager).count(),
+            6,
+        )
+        self.assertEqual(
+            StaffInvitation.objects.filter(
+                invited_by=self.manager,
+                issued_at__date=datetime(2026, 11, 16).date(),
+            ).count(),
+            1,
+        )
+
+    def test_redemption_crossing_expiry_before_consumption_rolls_back_account(self):
+        self.assertEqual(connection.vendor, "postgresql")
+        issued = prepare_staff_invitation(
+            self.manager,
+            business_id=self.business.pk,
+            target_email="final-expiry@example.test",
+            inventory_ids=self.inventory_ids,
+            at=ANCHOR,
+        )
+        clock = ControlledClock(issued.invitation.expires_at - timedelta(seconds=1))
+        User = get_user_model()
+        original_save = User.save
+
+        def save_then_advance_clock(user, *args, **kwargs):
+            result = original_save(user, *args, **kwargs)
+            if user.email == "final-expiry@example.test":
+                clock.set(issued.invitation.expires_at + timedelta(seconds=1))
+            return result
+
+        with patch("accounts.invitations.timezone.now", clock), patch.object(
+            User, "save", save_then_advance_clock
+        ):
+            with self.assertRaises(StaffInvitationError):
+                redeem_staff_invitation(issued.token, PASSWORD)
+
+        self.assertFalse(User.objects.filter(email="final-expiry@example.test").exists())
+        self.assertFalse(
+            BusinessMembership.objects.filter(user__email="final-expiry@example.test").exists()
+        )
+        issued.invitation.refresh_from_db()
+        self.assertEqual(issued.invitation.status, StaffInvitation.Status.PENDING)
