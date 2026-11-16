@@ -51,11 +51,21 @@ Run `.venv\Scripts\python manage.py check`, `.venv\Scripts\python manage.py migr
 
 ## Local sign-in increment
 
-Run the same migrations and tests above against PostgreSQL, then start `python manage.py runserver`. The sign-in page is at `/login/`; successful sign-in opens the authenticated home page at `/`. Sign-out is a CSRF-protected POST from that page. Email identity is unique and case-insensitive under the 3 November TORY-10 owner clarification. This increment has no account-creation route or Manager/Staff/inventory assignment; initial Manager provisioning remains an owner decision. Use only disposable test accounts in local development. The login tests cover PostgreSQL-backed throttling and server-checked session expiry; they do not establish hosted security, email delivery or stock-feature acceptance. Review TLS termination and proxy IP handling before staging.
+Run the same migrations and tests above against PostgreSQL, then start `python manage.py runserver`. The sign-in page is at `/login/`; successful sign-in opens the authenticated home page at `/`. Sign-out is a CSRF-protected POST from that page. Email identity is unique and case-insensitive under the 3 November TORY-10 owner clarification. TORY-11 adds an operator-run initial Manager setup command; it does not add public account creation. Use only disposable test accounts in local development. The login tests cover PostgreSQL-backed throttling and server-checked session expiry; they do not establish hosted security, email delivery or stock-feature acceptance. Review TLS termination and proxy IP handling before staging.
+
+## Initial Manager bootstrap
+
+After database migrations, an operator can create a new business, its initial inventories, and an ordinary Manager explicitly assigned to every inventory created by that invocation:
+
+```text
+python manage.py bootstrap_manager --business-name "Harbour Clinic" --manager-email manager@example.com --inventory "Main Store" --inventory "Cold Room"
+```
+
+The command prompts twice for a hidden Manager password and applies the configured Django password validators. It does not accept a password argument or environment variable. A case-insensitive email collision or any invalid input aborts before writing; business, Manager membership, inventories and assignments are created atomically. The Manager is not a Django admin staff member or superuser. This is setup-only: Staff invitations, resets, account deactivation/reactivation, broader assignment lifecycle, and email delivery remain outstanding.
 
 ## Inventory access foundation
 
-TORY-12 adds business-scoped Manager/Staff memberships and explicit inventory assignments. After signing in, `/inventories/` lists only active assigned inventories; `/inventories/<id>/` returns 404 for an unassigned or other-business inventory. Roles alone grant no inventory access. There is no business, membership or assignment setup UI; initial Manager provisioning and assignment lifecycle/timing remain open under G-13, and concurrent assignment changes remain a G-11 Design dependency.
+TORY-12 adds business-scoped Manager/Staff memberships and explicit inventory assignments. After signing in, `/inventories/` lists only active assigned inventories; `/inventories/<id>/` returns 404 for an unassigned or other-business inventory. Roles alone grant no inventory access. There is no business, membership or assignment setup UI; the TORY-11 bootstrap command creates the initial Manager scope. Staff assignment lifecycle/timing remains open under G-13, and concurrent assignment changes remain a G-11 Design dependency.
 
 The implemented authorization and catalogue relationships and PostgreSQL same-business integrity guards are shown in the [Tory ERD](docs/design/ERD.md). It covers the current auth/business/inventory/product foundation; stock and forecast tables remain future work.
 

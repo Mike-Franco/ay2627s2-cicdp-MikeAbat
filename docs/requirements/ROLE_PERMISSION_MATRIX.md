@@ -2,6 +2,8 @@
 
 **Status:** BR-021–BR-025 approve the listed role actions and assigned-inventory scope; BR-003, BR-026–BR-028, BR-037 and BR-042–BR-045 add specific account and security constraints. Unlisted actions and mechanics remain TBD; the full SRS and Requirements exit remain unapproved. See [owner decisions](OWNER_REQUIREMENTS_DECISIONS.md).
 
+**TORY-11 owner decision, 16 November 2026:** initial Manager provisioning is operator-run. The bootstrap command creates a new business and initial inventories and explicitly assigns the ordinary Manager to each created inventory. This does not expand Manager permissions or resolve other account administration.
+
 Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED** is a candidate permission; **TBD** needs owner direction. This matrix is not implementation evidence.
 
 | Capability / action | Manager | Staff | Approval note |
@@ -44,4 +46,4 @@ Legend: **APPROVED** applies only to the named action and conditions; **PROPOSED
 
 ## Owner decisions required
 
-Resolve unlisted action rows, initial Manager credential setup, account reactivation, catalogue authorization and history-view details. BR-042–BR-045 and G-07 Option A fix Django email/password, scoped 24-hour Staff invitation, 30-minute reset, 30-minute idle/8-hour absolute sessions, logout, deactivation/compromise response, generic feedback and independent rate thresholds. MFA is outside MVP; adding it requires change control. Token/clock/throttle/session mechanisms, G-09 separate rejected-attempt logging and G-10 email/HTTPS feasibility remain open. BR-024 authorizes scoped history viewing but not export. No Manager superuser or general session-administration right is inferred; complete SRS remains unapproved.
+Resolve unlisted action rows, account reactivation, catalogue authorization and history-view details. Initial Manager provisioning is decided and implemented only for operator-run setup; Staff invitations/resets and other administration remain separate. BR-042–BR-045 and G-07 Option A fix Django email/password, scoped 24-hour Staff invitation, 30-minute reset, 30-minute idle/8-hour absolute sessions, logout, deactivation/compromise response, generic feedback and independent rate thresholds. MFA is outside MVP; adding it requires change control. Token/clock/throttle/session mechanisms, G-09 separate rejected-attempt logging and G-10 email/HTTPS feasibility remain open. BR-024 authorizes scoped history viewing but not export. No Manager superuser or general session-administration right is inferred; complete SRS remains unapproved.
