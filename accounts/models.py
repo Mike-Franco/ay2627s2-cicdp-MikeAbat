@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
+from django.db.models import Q
 from django.db.models.functions import Lower
 
 
@@ -56,4 +57,80 @@ class LoginFailure(models.Model):
         indexes = [
             models.Index(fields=["identity_key", "occurred_at"]),
             models.Index(fields=["ip_key", "occurred_at"]),
+        ]
+
+
+class StaffInvitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUPERSEDED = "superseded", "Superseded"
+        REVOKED = "revoked", "Revoked"
+        REDEEMED = "redeemed", "Redeemed"
+        EXPIRED = "expired", "Expired"
+
+    target_email = models.EmailField(max_length=254)
+    business = models.ForeignKey(
+        "inventory_access.Business",
+        on_delete=models.PROTECT,
+        related_name="staff_invitations",
+    )
+    manager_membership = models.ForeignKey(
+        "inventory_access.BusinessMembership",
+        on_delete=models.PROTECT,
+        related_name="sent_staff_invitations",
+    )
+    invited_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.PROTECT,
+        related_name="staff_invitations_sent",
+    )
+    inventories = models.ManyToManyField(
+        "inventory_access.Inventory",
+        through="StaffInvitationInventory",
+        related_name="staff_invitations",
+    )
+    token_digest = models.CharField(max_length=64, unique=True)
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    issued_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                Lower("target_email"),
+                condition=Q(status="pending"),
+                name="one_pending_staff_invite_per_email_ci",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["invited_by", "issued_at"],
+                name="staffinv_by_issued_idx",
+            ),
+        ]
+
+
+class StaffInvitationInventory(models.Model):
+    invitation = models.ForeignKey(
+        StaffInvitation,
+        on_delete=models.CASCADE,
+        related_name="inventory_links",
+    )
+    inventory = models.ForeignKey(
+        "inventory_access.Inventory",
+        on_delete=models.PROTECT,
+        related_name="staff_invitation_links",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["invitation", "inventory"],
+                name="unique_staff_invitation_inventory",
+            ),
         ]
