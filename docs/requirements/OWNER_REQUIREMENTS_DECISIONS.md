@@ -10,6 +10,13 @@
 
 **Implementation choice (not an additional owner rule):** `bootstrap_manager` accepts the business name, Manager email and repeated `--inventory` options; it prompts for a hidden, confirmed password, validates it with configured Django validators, and creates the records in one transaction. Existing naming constraints are retained. This decision does not resolve Staff administration beyond already approved actions, invitation/reset delivery, account reactivation, multi-business account policy, or assignment lifecycle.
 
+## TORY-11 Staff invitation scope — owner decisions, 16 November 2026
+
+1. **New Staff accounts only:** the invitation increment creates a new Staff account. It must reject an email identity that already exists and must not reuse an existing account or alter its roles.
+2. **Required initial inventory scope:** every invitation must include at least one inventory to which the inviting Manager is currently authorised in the same business. That authority and every selected inventory are rechecked when the invitation is issued and redeemed.
+
+These two decisions do not settle the general multi-business account policy.
+
 ## TORY-26 benchmark refinement — owner approval, 9 November 2026
 
 Use five ordinary classes at 20% each: authenticated inventory view, the assigned Inventory products page, ordinary stock-in, ordinary stock-out and login. The Inventory products route replaces the absent product-search class in the 3 November proposal. Measure forecast and reorder as **one combined Demand forecast page request**, 500 times per run; never count one response twice. Do not add search or separate reorder routes for this benchmark. The previously approved Envelope B fixture, 20 warm-ups per class, 500+500 measured requests per run, three independent nearest-rank p95 passes, 2/3-second limits, separate valid 1,000-row CSV ≤30-second limit and repeated last-unit races remain unchanged. Record actual local PC and PostgreSQL configuration/version; **there is no minimum hardware floor**. Cold-start results are context, not a pass/fail gate. A reproducible isolated PostgreSQL fixture must not change stock in the original `tory` database or the TORY-25 demo copy. Rejected-sample treatment and controlled-environment reproducibility still require verification. See the [TORY-26 validation note](../decisions/TORY-26-integrated-validation.md). This refinement creates no new BR/NFR ID or benchmark result.
