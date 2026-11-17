@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Reset password · Tory{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-6 col-lg-5">
+  <h1>Reset password</h1>
+  {% if acknowledgement %}<p role="status">{{ acknowledgement }}</p>{% endif %}
+  <form method="post" action="{% url 'password-reset-request' %}">{% csrf_token %}
+    <div class="mb-3"><label class="form-label" for="reset-email">Email</label><input class="form-control" id="reset-email" name="email" type="email" maxlength="254" required autocomplete="email"></div>
+    <button class="btn btn-primary" type="submit">Request reset</button>
+  </form>
+</div></div>
+{% endblock %}
