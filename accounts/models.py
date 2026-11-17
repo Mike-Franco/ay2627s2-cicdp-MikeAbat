@@ -134,3 +134,31 @@ class StaffInvitationInventory(models.Model):
                 name="unique_staff_invitation_inventory",
             ),
         ]
+
+
+class PasswordResetAttempt(models.Model):
+    """A permitted request, including requests for unknown or inactive identities."""
+
+    identity_key = models.CharField(max_length=64, db_index=True)
+    ip_key = models.CharField(max_length=64, db_index=True)
+    requested_at = models.DateTimeField(db_index=True)
+
+
+class PasswordResetLink(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SUPERSEDED = "superseded", "Superseded"
+        REDEEMED = "redeemed", "Redeemed"
+
+    user = models.ForeignKey("accounts.User", on_delete=models.PROTECT, related_name="password_reset_links")
+    token_digest = models.CharField(max_length=64, unique=True)
+    password_digest = models.CharField(max_length=64)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    issued_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["user"], condition=Q(status="pending"), name="one_pending_password_reset_per_user"
+        )]
