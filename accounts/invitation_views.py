@@ -2,8 +2,9 @@
 
 from django.contrib import messages
 from django.db import transaction
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
@@ -115,21 +116,21 @@ def change_invitation(request, business_id, invitation_id, action):
 @sensitive_post_parameters("token", "password", "password_confirm")
 @require_http_methods(["GET", "POST"])
 def staff_invitation_setup(request):
-    error = None
     if request.method == "POST":
+        response = None
         password = request.POST.get("password", "")
         if not password or password != request.POST.get("password_confirm", ""):
             error = "Passwords must match and meet the password requirements."
         else:
             try:
                 redeem_staff_invitation(request.POST.get("token", ""), password)
-                response = redirect("login")
-                response["Referrer-Policy"] = "no-referrer"
-                response["Cache-Control"] = "no-store"
-                return response
+                response = JsonResponse({"ok": True, "sign_in_url": reverse("login")})
             except StaffInvitationError:
                 error = "This link cannot be used, or the password does not meet the requirements."
-    response = render(request, "accounts/invitation_setup.html", {"error": error})
+        if response is None:
+            response = JsonResponse({"ok": False, "error": error})
+    else:
+        response = render(request, "accounts/invitation_setup.html")
     response["Referrer-Policy"] = "no-referrer"
     response["Cache-Control"] = "no-store"
     return response

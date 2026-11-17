@@ -23,6 +23,12 @@ MAIL = {
 
 @override_settings(**MAIL)
 class StaffInvitationWebTests(TestCase):
+    def setup_post(self, token, password, confirmation=None):
+        return self.client.post(reverse("staff-invitation-setup"), {
+            "token": token, "password": password,
+            "password_confirm": password if confirmation is None else confirmation,
+        })
+
     def setUp(self):
         User = get_user_model()
         self.business = Business.objects.create(name="A")
@@ -108,16 +114,28 @@ class StaffInvitationWebTests(TestCase):
         url = reverse("staff-invitation-setup")
         self.assertEqual(self.client.get(url).status_code, 200)
         self.assertEqual(self.client.get(url).content.find(credentials.token.encode()), -1)
-        self.assertEqual(self.client.post(url, {"token": credentials.token, "password": "long-password-0001", "password_confirm": "wrong"}).status_code, 200)
+        mismatch = self.setup_post(credentials.token, "long-password-0001", "wrong")
+        self.assertEqual(mismatch.status_code, 200)
+        self.assertEqual(mismatch.json()["ok"], False)
+        self.assertEqual(StaffInvitation.objects.get(pk=credentials.invitation.pk).status, "pending")
         self.assertFalse(get_user_model().objects.filter(email="new@example.test").exists())
-        response = self.client.post(url, {"token": credentials.token, "password": "long-password-0001", "password_confirm": "long-password-0001"})
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], reverse("login"))
+        rejected = self.setup_post(credentials.token, "short")
+        self.assertEqual(rejected.status_code, 200)
+        self.assertEqual(rejected.json()["ok"], False)
+        self.assertEqual(StaffInvitation.objects.get(pk=credentials.invitation.pk).status, "pending")
+        response = self.setup_post(credentials.token, "long-password-0001")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True, "sign_in_url": reverse("login")})
+        for result in (mismatch, rejected, response):
+            self.assertNotIn(credentials.token.encode(), result.content)
+            self.assertNotIn(b"long-password-0001", result.content)
+            self.assertNotIn(b"short", result.content)
         user = get_user_model().objects.get(email="new@example.test")
         self.assertFalse(user.is_staff or user.is_superuser)
         self.assertEqual(user.business_memberships.get().role, "staff")
         self.assertEqual(user.business_memberships.get().inventory_assignments.get().inventory, self.inventory)
-        reused = self.client.post(url, {"token": credentials.token, "password": "long-password-0001", "password_confirm": "long-password-0001"})
+        reused = self.setup_post(credentials.token, "long-password-0001")
+        self.assertEqual(reused.json()["ok"], False)
         self.assertNotIn(credentials.token.encode(), reused.content)
         self.assertNotIn(b"long-password-0001", reused.content)
 
@@ -131,6 +149,7 @@ class StaffInvitationWebTests(TestCase):
                 StaffInvitation.objects.filter(pk=credentials.invitation.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
             response = self.client.post(url, {**data, "token": token})
             self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["ok"], False)
             self.assertNotIn(token.encode(), response.content)
         self.assertFalse(get_user_model().objects.filter(email="new@example.test").exists())
 
@@ -141,6 +160,7 @@ class StaffInvitationWebTests(TestCase):
         response = self.client.post(url, {"token": credentials.token,
             "password": "short", "password_confirm": "short"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], False)
         self.assertFalse(get_user_model().objects.filter(email="new@example.test").exists())
         self.sign_in(self.manager)
         change = reverse("staff-invitation-change", args=[self.business.pk, credentials.invitation.pk, "revoke"])
@@ -148,3 +168,4 @@ class StaffInvitationWebTests(TestCase):
         response = self.client.post(url, {"token": credentials.token,
             "password": "long-password-0001", "password_confirm": "long-password-0001"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], False)
