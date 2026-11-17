@@ -11,9 +11,9 @@ from .password_resets import ACKNOWLEDGEMENT, PasswordResetError, redeem_passwor
 from .reset_dispatch import enqueue_reset
 
 
-def _private_response(response):
+def _private_response(response, *, referrer_policy="no-referrer"):
     response["Cache-Control"] = "no-store"
-    response["Referrer-Policy"] = "no-referrer"
+    response["Referrer-Policy"] = referrer_policy
     return response
 
 
@@ -28,8 +28,8 @@ def password_reset_request(request):
             pass
         return _private_response(render(request, "accounts/reset_request.html", {
             "acknowledgement": ACKNOWLEDGEMENT,
-        }))
-    return _private_response(render(request, "accounts/reset_request.html"))
+        }), referrer_policy="same-origin")
+    return _private_response(render(request, "accounts/reset_request.html"), referrer_policy="same-origin")
 
 
 @never_cache

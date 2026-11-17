@@ -1,6 +1,7 @@
 """Web/adapter checks; no background worker or network email is started."""
 
 from datetime import timedelta
+import re
 from threading import BoundedSemaphore
 from unittest.mock import patch
 
@@ -113,6 +114,39 @@ class PasswordResetWebTests(TransactionTestCase):
         self.assertEqual(secure.post(self.setup_url, {"token": "x", "password": "x"}).status_code, 403)
         self.assertFalse(PasswordResetAttempt.objects.exists())
         self.assertFalse(PasswordResetLink.objects.exists())
+
+    def test_https_request_form_csrf_origin_and_referer(self):
+        secure = Client(enforce_csrf_checks=True)
+        page = secure.get(self.request_url, secure=True)
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(page["Referrer-Policy"], "same-origin")
+        self.assertIn("no-store", page["Cache-Control"])
+        csrf = re.search(rb'name="csrfmiddlewaretoken" value="([^"]+)"', page.content).group(1).decode()
+        with patch("accounts.reset_views.enqueue_reset", return_value=True) as enqueue:
+            origin = secure.post(self.request_url, {"email": self.user.email, "csrfmiddlewaretoken": csrf},
+                                 secure=True, HTTP_ORIGIN="https://testserver")
+            self.assertEqual(origin.status_code, 200)
+            self.assertEqual(origin["Referrer-Policy"], "same-origin")
+            self.assertContains(origin, "If eligible, instructions will be sent.")
+            self.assertEqual(enqueue.call_count, 1)
+            referer = secure.post(self.request_url, {"email": self.user.email, "csrfmiddlewaretoken": csrf},
+                                  secure=True, HTTP_REFERER="https://testserver/password/reset/")
+            self.assertEqual(referer.status_code, 200)
+            self.assertEqual(referer["Referrer-Policy"], "same-origin")
+            self.assertEqual(enqueue.call_count, 2)
+            for data, headers in (
+                ({"email": self.user.email}, {"HTTP_ORIGIN": "https://testserver"}),
+                ({"email": self.user.email, "csrfmiddlewaretoken": "incorrect"}, {"HTTP_ORIGIN": "https://testserver"}),
+                ({"email": self.user.email, "csrfmiddlewaretoken": csrf}, {"HTTP_ORIGIN": "https://untrusted.example.test"}),
+            ):
+                self.assertEqual(secure.post(self.request_url, data, secure=True, **headers).status_code, 403)
+            self.assertEqual(enqueue.call_count, 2)
+        self.assertFalse(PasswordResetAttempt.objects.exists())
+        self.assertEqual(secure.get(self.setup_url, secure=True)["Referrer-Policy"], "no-referrer")
+        self.assertIn("no-store", secure.get(self.setup_url, secure=True)["Cache-Control"])
+        setup_post = self.client.post(self.setup_url, {"token": "invalid", "password": "short", "password_confirm": "short"})
+        self.assertEqual(setup_post["Referrer-Policy"], "no-referrer")
+        self.assertIn("no-store", setup_post["Cache-Control"])
 
     def test_password_errors_retry_and_prior_sessions(self):
         clients = [Client(), Client()]
