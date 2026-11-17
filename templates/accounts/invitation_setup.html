@@ -1,0 +1,13 @@
+{% load static %}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Set Staff password · Tory</title>
+<link href="{% static 'tory/app.css' %}" rel="stylesheet"><link href="{% static 'tory/pages.css' %}" rel="stylesheet">
+<script src="{% static 'tory/invitation_setup.js' %}"></script></head><body>
+<main class="public-content"><h1>Set your Staff password</h1>
+<p id="setup-error" role="alert" hidden></p>
+<p>Use at least 15 characters. Avoid common passwords and words similar to your email address.</p>
+<form id="staff-setup-form" method="post" autocomplete="off">{% csrf_token %}
+<div class="mb-3"><label for="password">Password</label><input id="password" name="password" type="password" required autocomplete="new-password"></div>
+<div class="mb-3"><label for="password-confirm">Confirm password</label><input id="password-confirm" name="password_confirm" type="password" required autocomplete="new-password"></div>
+<button type="submit">Set password</button></form><p id="link-error" role="alert" hidden>This link cannot be used. Open your invitation email again.</p>
+</main></body></html>

@@ -5,6 +5,7 @@ from django.urls import path, re_path
 from django.views.static import serve as serve_static
 
 from accounts import views
+from accounts import invitation_views
 from inventory_access import views as inventory_views
 from catalogue import views as catalogue_views
 from receiving import views as receiving_views
@@ -13,6 +14,9 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("businesses/<int:business_id>/staff-invitations/", invitation_views.manager_invitations, name="staff-invitations"),
+    path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
+    path("staff/setup/", invitation_views.staff_invitation_setup, name="staff-invitation-setup"),
     path("inventories/", inventory_views.inventory_list, name="inventory-list"),
     path("inventories/<int:inventory_id>/", inventory_views.inventory_detail, name="inventory-detail"),
     path("catalogue/", catalogue_views.product_catalogue, name="product-catalogue"),
