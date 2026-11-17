@@ -67,14 +67,14 @@ def request_password_reset(email, source_ip, *, at=None):
     with transaction.atomic():
         for key in sorted((identity_key, ip_key)):
             _lock(key)
+        user = get_user_model().objects.select_for_update().filter(email__iexact=normalized).first()
         now = _operation_time(at)
         cutoff = now - WINDOW
         if (PasswordResetAttempt.objects.filter(identity_key=identity_key, requested_at__gt=cutoff).count() >= IDENTITY_LIMIT or
                 PasswordResetAttempt.objects.filter(ip_key=ip_key, requested_at__gt=cutoff).count() >= IP_LIMIT):
             return ResetRequestResult()
         PasswordResetAttempt.objects.create(identity_key=identity_key, ip_key=ip_key, requested_at=now)
-        user = get_user_model().objects.select_for_update().filter(email__iexact=normalized, is_active=True).first()
-        if user is None or not user.has_usable_password():
+        if user is None or not user.is_active or not user.has_usable_password():
             return ResetRequestResult()
         PasswordResetLink.objects.filter(user=user, status=PasswordResetLink.Status.PENDING).update(
             status=PasswordResetLink.Status.SUPERSEDED

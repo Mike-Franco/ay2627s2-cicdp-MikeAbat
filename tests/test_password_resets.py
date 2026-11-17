@@ -2,11 +2,12 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone as utc
-from threading import Barrier
+from threading import Barrier, Event, Lock
+from time import monotonic
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connections
+from django.db import close_old_connections, connection, connections, transaction
 from django.test import Client, TestCase, TransactionTestCase
 from django.utils import timezone
 
@@ -17,6 +18,20 @@ from accounts.sessions import ACTIVE_KEY, CREATED_KEY
 
 ANCHOR = datetime(2026, 11, 17, 2, 0, tzinfo=utc.utc)
 PASSWORD = "fresh-reset-password-9371"
+
+
+class ControlledClock:
+    def __init__(self, value):
+        self.value = value
+        self.lock = Lock()
+
+    def __call__(self):
+        with self.lock:
+            return self.value
+
+    def set(self, value):
+        with self.lock:
+            self.value = value
 
 
 class PasswordResetCoreTests(TestCase):
@@ -132,6 +147,7 @@ class PasswordResetRaceTests(TransactionTestCase):
         barrier = Barrier(2)
         def worker(index):
             try:
+                close_old_connections()
                 barrier.wait(timeout=10)
                 return operation(index)
             finally:
@@ -159,3 +175,72 @@ class PasswordResetRaceTests(TransactionTestCase):
         results = self.parallel(lambda i: request_password_reset("missing@example.test", str(i)))
         self.assertEqual(len(results), 2)
         self.assertEqual(PasswordResetAttempt.objects.count(), 3)
+
+    def test_ip_limit_blocks_another_eligible_identity(self):
+        ip = "198.51.100.20"
+        for index in range(20):
+            request_password_reset(f"unknown-{index}@example.test", ip)
+        result = request_password_reset(self.user.email, ip)
+        self.assertIsNone(result.credentials)
+        self.assertEqual(PasswordResetAttempt.objects.count(), 20)
+        self.assertFalse(PasswordResetLink.objects.exists())
+
+    def test_concurrent_ip_quota_boundary_for_distinct_identities(self):
+        ip = "198.51.100.21"
+        for index in range(19):
+            request_password_reset(f"unknown-{index}@example.test", ip)
+        other = get_user_model().objects.create_user(email="other-race@example.test", password="old-password-9381")
+        results = self.parallel(lambda index: request_password_reset(
+            [self.user.email, other.email][index], ip
+        ))
+        self.assertEqual(sum(result.credentials is not None for result in results), 1)
+        self.assertEqual(PasswordResetAttempt.objects.count(), 20)
+        self.assertEqual(PasswordResetLink.objects.count(), 1)
+
+    def test_user_row_wait_uses_post_lock_clock(self):
+        self.assertEqual(connection.vendor, "postgresql")
+        before = ANCHOR
+        after = ANCHOR + timedelta(minutes=4)
+        clock = ControlledClock(before)
+        worker_at_account_lock = Event()
+        worker_pid = []
+        from accounts import password_resets
+        original_lock = password_resets._lock
+
+        def observe_lock(key):
+            original_lock(key)
+            if not worker_at_account_lock.is_set():
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_backend_pid()")
+                    worker_pid.append(cursor.fetchone()[0])
+                worker_at_account_lock.set()
+
+        def worker():
+            try:
+                close_old_connections()
+                return request_password_reset(self.user.email, "198.51.100.22")
+            finally:
+                connections.close_all()
+
+        with patch("accounts.password_resets._lock", observe_lock), patch(
+            "accounts.password_resets.timezone.now", clock
+        ), ThreadPoolExecutor(max_workers=1) as pool:
+            with transaction.atomic():
+                get_user_model().objects.select_for_update().get(pk=self.user.pk)
+                future = pool.submit(worker)
+                self.assertTrue(worker_at_account_lock.wait(timeout=10))
+                deadline = monotonic() + 10
+                while monotonic() < deadline:
+                    with connection.cursor() as cursor:
+                        cursor.execute("SELECT wait_event_type FROM pg_stat_activity WHERE pid = %s", [worker_pid[0]])
+                        row = cursor.fetchone()
+                    if row and row[0] == "Lock":
+                        break
+                else:
+                    self.fail("Reset worker did not reach the user-row lock wait.")
+                clock.set(after)
+            result = future.result(timeout=15)
+        attempt = PasswordResetAttempt.objects.get()
+        self.assertEqual(attempt.requested_at, after)
+        self.assertEqual(result.credentials.link.issued_at, after)
+        self.assertEqual(result.credentials.link.expires_at, after + timedelta(minutes=30))
