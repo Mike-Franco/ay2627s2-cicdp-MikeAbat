@@ -27,9 +27,9 @@ def password_reset_request(request):
         except Exception:
             pass
         return _private_response(render(request, "accounts/reset_request.html", {
-            "acknowledgement": ACKNOWLEDGEMENT,
+            "acknowledgement": ACKNOWLEDGEMENT, "public_auth_page": True,
         }), referrer_policy="same-origin")
-    return _private_response(render(request, "accounts/reset_request.html"), referrer_policy="same-origin")
+    return _private_response(render(request, "accounts/reset_request.html", {"public_auth_page": True}), referrer_policy="same-origin")
 
 
 @never_cache
@@ -37,7 +37,7 @@ def password_reset_request(request):
 @require_http_methods(["GET", "POST"])
 def password_reset_setup(request):
     if request.method == "GET":
-        return _private_response(render(request, "accounts/reset_setup.html"))
+        return _private_response(render(request, "accounts/reset_setup.html", {"public_auth_page": True}))
     password = request.POST.get("password", "")
     if not password or password != request.POST.get("password_confirm", ""):
         result = {"ok": False, "error": "Passwords must match and meet the password requirements."}
