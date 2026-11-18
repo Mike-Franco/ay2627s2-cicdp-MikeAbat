@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Deactivate Staff · Tory{% endblock %}
+{% block breadcrumb %}Deactivate Staff{% endblock %}
+{% block content %}
+<h1>Deactivate Staff</h1>
+<p>Deactivate {{ target.get_full_name|default:target.email }} ({{ target.email }})? Their previous sessions will be denied on the next protected request. Their account and history will be retained.</p>
+{% if target.is_active %}
+<form method="post" action="{% url 'deactivate-staff' business_id target.pk %}">
+  {% csrf_token %}
+  <button class="btn btn-danger" type="submit">Confirm deactivation</button>
+  <a class="btn btn-outline-secondary" href="{% url 'manager-staff' business_id %}">Cancel</a>
+</form>
+{% else %}<p>This Staff account is already inactive.</p><a href="{% url 'manager-staff' business_id %}">Back to Staff</a>{% endif %}
+{% endblock %}

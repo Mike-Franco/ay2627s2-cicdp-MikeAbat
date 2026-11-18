@@ -71,6 +71,12 @@ File keys: **D** = [Owner decisions](OWNER_REQUIREMENTS_DECISIONS.md), **S** = [
 | BR-014 | Covered; scope exclusion retained | BR-029 | Covered; G-02 | BR-044 | Covered; G-07/G-10 |
 | BR-015 | Covered; G-16 | BR-030 | Covered; G-02/G-17 | BR-045 | Covered; G-07/G-10/G-13 |
 
+**18 November 2026 TORY-11 owner decision:** restricted whole-account Staff deactivation requires the target's sole membership to be Staff in the active Manager's business and every target assignment, including inactive rows, to lie within that Manager's current authorized inventory scope. All inactive memberships also count. Manager, Django-admin/superuser and self targets are excluded. This does not decide Staff reactivation or a general one-business-per-account policy.
+
+**18 November implementation status at authorship (unverified):** `accounts/deactivation.py` rechecks this scope transactionally; Manager pages provide scoped listing, confirmation and POST-only CSRF action. Existing inactive-account checks cover sign-in, protected routes and reset redemption. Focused tests had been authored but not run at that point.
+
+**18 November focused verification:** PostgreSQL migration consistency found no changes (exit 0). The requested isolated suite passed 86/86 tests with zero failures, errors or skips (actual Python exit 0); the `test_tory` test database was destroyed successfully. The two deactivation concurrency cases exercised queued target membership role change and assignment revocation. Documentation validation passed 41 Markdown files (exit 0), and `git diff --check` passed (exit 0). Hosted CI, browser execution, broader G-07 verification and complete TORY-11 acceptance remain open.
+
 | Stable FR | Audit exposure | Stable FR | Audit exposure | Stable FR | Audit exposure |
 |---|---|---|---|---|---|
 | FR-001 | G-05/G-16 | FR-005 | G-05/G-09/G-12 | FR-009 | G-06/G-09 |

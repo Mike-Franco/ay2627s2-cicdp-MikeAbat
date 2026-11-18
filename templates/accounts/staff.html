@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Staff · Tory{% endblock %}
+{% block breadcrumb %}Staff{% endblock %}
+{% block content %}
+<h1>Staff</h1>
+<p>Staff accounts within your current authority.</p>
+{% for staff in staff_accounts %}
+<div class="card mb-3"><div class="card-body">
+  <strong>{{ staff.get_full_name|default:staff.email }}</strong><br>
+  {{ staff.email }} · {% if staff.is_active %}Active{% else %}Inactive{% endif %}
+  {% if staff.is_active %}<div class="mt-2"><a class="btn btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a></div>{% endif %}
+</div></div>
+{% empty %}<p>No Staff accounts in your current scope.</p>{% endfor %}
+{% endblock %}
