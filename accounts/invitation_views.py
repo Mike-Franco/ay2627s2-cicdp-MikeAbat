@@ -130,7 +130,7 @@ def staff_invitation_setup(request):
         if response is None:
             response = JsonResponse({"ok": False, "error": error})
     else:
-        response = render(request, "accounts/invitation_setup.html")
+        response = render(request, "accounts/invitation_setup.html", {"public_auth_page": True})
     response["Referrer-Policy"] = "no-referrer"
     response["Cache-Control"] = "no-store"
     return response

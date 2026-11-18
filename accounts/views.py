@@ -32,7 +32,7 @@ def login_view(request):
     """
     target = _safe_next(request)
     if request.method == "GET":
-        return render(request, "accounts/login.html", {"next": target})
+        return render(request, "accounts/login.html", {"next": target, "public_auth_page": True})
 
     form = LoginForm(request.POST)
     valid = form.is_valid()
@@ -48,7 +48,7 @@ def login_view(request):
     )
     if user is None or throttled:
         return render(
-            request, "accounts/login.html", {"next": target, "error": GENERIC_ERROR},
+            request, "accounts/login.html", {"next": target, "error": GENERIC_ERROR, "public_auth_page": True},
             status=200,
         )
 
