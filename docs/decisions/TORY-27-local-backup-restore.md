@@ -24,6 +24,8 @@ Get-Acl -LiteralPath $backupDir
 
 The tool checks directory ACLs and requires explicit attestation. Do not use symlink/junction directories, shared/synced folders or change ACLs during an operation. Keep both archive and manifest private; the archive includes accounts, sessions and CSV content. Neither file is encrypted by this tool. Uploads and storage decisions are outside this increment. Use only trusted local archives: restoring a malicious PostgreSQL archive can execute SQL.
 
+A later [local age encryption rehearsal](TORY-27-local-encryption-rehearsal.md) records bundle checksum and decryption evidence. It does not change the fact that the backup tool itself writes unencrypted archives; encryption remains a separate local packaging step, with no off-host delivery or key-recovery proof.
+
 ## Proposed execution commands (not run)
 
 First run focused mock tests separately when authorized:
