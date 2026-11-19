@@ -306,11 +306,19 @@ class StaffInvitationServiceTests(TestCase):
                     self.assertNotIn("password_too_short", error_codes)
 
                 result = self.prepare(email=email)
+                from accounts.invitations import PasswordRejected
                 with self.assertRaisesMessage(
-                    StaffInvitationError,
-                    "Password does not meet configured requirements.",
-                ):
+                    PasswordRejected,
+                    "Password fields need correction.",
+                ) as rejected:
                     redeem_staff_invitation(result.token, password, at=ANCHOR)
+                self.assertIsInstance(rejected.exception, StaffInvitationError)
+                expected_reason = {
+                    "password_too_short": "Use at least 15 characters.",
+                    "password_too_common": "Choose a less common password.",
+                    "password_too_similar": "Choose a password less similar to your account details.",
+                }[expected_code]
+                self.assertEqual(rejected.exception.errors, {"password": [expected_reason]})
                 self.assertFalse(get_user_model().objects.filter(email__iexact=email).exists())
                 self.assertFalse(
                     BusinessMembership.objects.filter(user__email__iexact=email).exists()

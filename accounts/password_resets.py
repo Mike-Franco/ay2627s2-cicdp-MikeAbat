@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+
+from .password_feedback import PasswordFeedbackError, UNSET, validate_new_password
 
 from .models import PasswordResetAttempt, PasswordResetLink
 from .throttle import _key, _lock
@@ -26,6 +26,10 @@ PASSWORD_PURPOSE = b"tory:password-reset-password:v1\0"
 
 class PasswordResetError(Exception):
     """A safe internal rejection; callers must use generic public feedback."""
+
+
+class PasswordRejected(PasswordFeedbackError, PasswordResetError):
+    """Safe field errors after current token and account checks."""
 
 
 @dataclass(frozen=True)
@@ -88,7 +92,7 @@ def request_password_reset(email, source_ip, *, at=None):
         return ResetRequestResult(credentials=ResetCredentials(link, token))
 
 
-def redeem_password_reset(token, password, *, at=None):
+def redeem_password_reset(token, password, *, at=None, confirmation=UNSET):
     """Change password and consume every link in one transaction."""
     if not isinstance(token, str) or not token or len(token) > 256:
         raise PasswordResetError("This reset link cannot be used.")
@@ -107,12 +111,7 @@ def redeem_password_reset(token, password, *, at=None):
                 link.token_digest != digest or link.expires_at <= now or
                 link.password_digest != _digest(PASSWORD_PURPOSE, user.password)):
             raise PasswordResetError("This reset link cannot be used.")
-        if not isinstance(password, str) or not password:
-            raise PasswordResetError("Password does not meet configured requirements.")
-        try:
-            validate_password(password, user)
-        except ValidationError as error:
-            raise PasswordResetError("Password does not meet configured requirements.") from error
+        validate_new_password(password, user, confirmation, PasswordRejected)
         user.set_password(password)
         user.save(update_fields=["password"])
         consumed_at = _operation_time(at)

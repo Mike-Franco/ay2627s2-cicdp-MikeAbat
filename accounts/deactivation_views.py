@@ -8,6 +8,7 @@ from inventory_access.models import BusinessMembership
 
 from .deactivation import StaffDeactivationRejected, deactivate_staff, visible_staff
 from .sessions import protected_view
+from .access_errors import account_not_found
 
 
 def _scoped_staff(request, business_id, target_id=None):
@@ -27,6 +28,7 @@ def _scoped_staff(request, business_id, target_id=None):
 
 @protected_view
 @require_GET
+@account_not_found
 def manager_staff(request, business_id):
     return render(request, "accounts/staff.html", {
         "business_id": business_id, "staff_accounts": _scoped_staff(request, business_id),
@@ -35,6 +37,7 @@ def manager_staff(request, business_id):
 
 @protected_view
 @require_GET
+@account_not_found
 def confirm_staff_deactivation(request, business_id, target_id):
     target = _scoped_staff(request, business_id, target_id)
     return render(request, "accounts/confirm_staff_deactivation.html", {
@@ -44,6 +47,7 @@ def confirm_staff_deactivation(request, business_id, target_id):
 
 @protected_view
 @require_POST
+@account_not_found
 def deactivate_staff_view(request, business_id, target_id):
     _scoped_staff(request, business_id, target_id)
     try:
