@@ -16,6 +16,8 @@ from .invitations import (StaffInvitationError, prepare_staff_invitation,
                           redeem_staff_invitation)
 from .models import StaffInvitation
 from .sessions import protected_view
+from .password_feedback import PasswordFeedbackError, REQUIREMENTS
+from .access_errors import account_not_found
 
 
 def _scope(request, business_id):
@@ -60,6 +62,7 @@ def _deliver_after_commit(request, credentials, origin):
 
 @protected_view
 @require_http_methods(["GET", "POST"])
+@account_not_found
 def manager_invitations(request, business_id):
     inventories = _scope(request, business_id)
     error = None
@@ -89,6 +92,7 @@ def manager_invitations(request, business_id):
 
 @protected_view
 @require_POST
+@account_not_found
 def change_invitation(request, business_id, invitation_id, action):
     inventories = _scope(request, business_id)
     _visible_invitation(request, business_id, invitation_id, inventories)
@@ -117,20 +121,18 @@ def change_invitation(request, business_id, invitation_id, action):
 @require_http_methods(["GET", "POST"])
 def staff_invitation_setup(request):
     if request.method == "POST":
-        response = None
-        password = request.POST.get("password", "")
-        if not password or password != request.POST.get("password_confirm", ""):
-            error = "Passwords must match and meet the password requirements."
-        else:
-            try:
-                redeem_staff_invitation(request.POST.get("token", ""), password)
-                response = JsonResponse({"ok": True, "sign_in_url": reverse("login")})
-            except StaffInvitationError:
-                error = "This link cannot be used, or the password does not meet the requirements."
-        if response is None:
-            response = JsonResponse({"ok": False, "error": error})
+        try:
+            redeem_staff_invitation(request.POST.get("token", ""), request.POST.get("password", ""),
+                                    confirmation=request.POST.get("password_confirm", ""))
+            result = {"ok": True, "sign_in_url": reverse("login")}
+        except PasswordFeedbackError as error:
+            result = {"ok": False, "error": "Check the password fields below.", "errors": error.errors}
+        except StaffInvitationError:
+            result = {"ok": False, "error": "This link cannot be used. Request a new invitation."}
+        response = JsonResponse(result)
     else:
-        response = render(request, "accounts/invitation_setup.html", {"public_auth_page": True})
+        response = render(request, "accounts/invitation_setup.html", {
+            "public_auth_page": True, "password_requirements": REQUIREMENTS})
     response["Referrer-Policy"] = "no-referrer"
     response["Cache-Control"] = "no-store"
     return response

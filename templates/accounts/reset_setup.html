@@ -3,10 +3,10 @@
 <meta name="referrer" content="no-referrer"><title>Reset password · Tory</title>
 <link href="{% static 'tory/app.css' %}" rel="stylesheet"><link href="{% static 'tory/pages.css' %}" rel="stylesheet">
 <script src="{% static 'tory/reset_setup.js' %}"></script></head><body>
-<main class="public-content"><h1>Set a new password</h1><p id="setup-error" role="alert" hidden></p>
-<p>Use at least 15 characters. Avoid common passwords and words similar to your email address.</p>
-<form id="reset-setup-form" method="post" autocomplete="off">{% csrf_token %}
-<div class="mb-3"><label for="password">Password</label><input id="password" name="password" type="password" required autocomplete="new-password"></div>
-<div class="mb-3"><label for="password-confirm">Confirm password</label><input id="password-confirm" name="password_confirm" type="password" required autocomplete="new-password"></div>
+<main class="public-content"><h1>Set a new password</h1><p id="setup-error" role="alert" tabindex="-1" hidden></p>
+<ul id="password-requirements">{% for requirement in password_requirements %}<li>{{ requirement }}</li>{% endfor %}</ul>
+<form id="reset-setup-form" method="post" autocomplete="off" novalidate>{% csrf_token %}
+<div class="mb-3"><label for="password">Password</label><input aria-describedby="password-requirements password-errors" id="password" name="password" type="password" required autocomplete="new-password"><ul id="password-errors"></ul></div>
+<div class="mb-3"><label for="password-confirm">Confirm password</label><input aria-describedby="confirmation-errors" id="password-confirm" name="password_confirm" type="password" required autocomplete="new-password"><ul id="confirmation-errors"></ul></div>
 <button type="submit">Set password</button></form><p id="link-error" role="alert" hidden>This link cannot be used. Open your reset email again.</p>
 </main></body></html>

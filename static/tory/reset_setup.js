@@ -15,6 +15,10 @@
       const button = form.querySelector('button[type="submit"]');
       button.disabled = true;
       error.hidden = true;
+      for (const [field, list] of [["password", "password-errors"], ["password-confirm", "confirmation-errors"]]) {
+        document.getElementById(field).removeAttribute("aria-invalid");
+        document.getElementById(list).replaceChildren();
+      }
       let navigating = false;
       try {
         const fields = new FormData(form);
@@ -34,6 +38,20 @@
             return;
           }
         }
+        if (response.ok && result?.ok === false) {
+          for (const [key, field, list] of [["password", "password", "password-errors"], ["password_confirm", "password-confirm", "confirmation-errors"]]) {
+            const messages = result.errors?.[key];
+            if (Array.isArray(messages) && messages.length) {
+              document.getElementById(field).setAttribute("aria-invalid", "true");
+              for (const message of messages) {
+                if (typeof message !== "string") continue;
+                const item = document.createElement("li");
+                item.textContent = message;
+                document.getElementById(list).append(item);
+              }
+            }
+          }
+        }
         error.textContent = response.ok && result?.ok === false && typeof result.error === "string"
           ? result.error : "Password reset could not be completed. Please try again.";
       } catch (_) {
@@ -41,6 +59,7 @@
       } finally {
         button.disabled = false;
         error.hidden = navigating;
+        if (!navigating) error.focus();
       }
     });
   });

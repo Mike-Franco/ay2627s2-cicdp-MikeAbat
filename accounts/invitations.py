@@ -11,7 +11,6 @@ from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, transaction
 from django.utils import timezone
@@ -21,6 +20,8 @@ from inventory_access.models import (
     Inventory,
     InventoryAssignment,
 )
+
+from .password_feedback import PasswordFeedbackError, UNSET, validate_new_password
 
 from .models import StaffInvitation, StaffInvitationInventory
 
@@ -34,6 +35,10 @@ IDENTITY_LOCK_PURPOSE = b"tory:staff-invitation-identity:v1\0"
 
 class StaffInvitationError(Exception):
     """A safe service-level rejection; callers should use generic public copy."""
+
+
+class PasswordRejected(PasswordFeedbackError, StaffInvitationError):
+    """Safe field errors after current token and account checks."""
 
 
 @dataclass(frozen=True)
@@ -305,7 +310,7 @@ def _token_digest(token):
     return hashlib.sha256(TOKEN_PURPOSE + token.encode("utf-8")).hexdigest()
 
 
-def redeem_staff_invitation(token, password, *, at=None):
+def redeem_staff_invitation(token, password, *, at=None, confirmation=UNSET):
     """Consume a current invitation and create its ordinary Staff account atomically."""
     digest = _token_digest(token)
     seed = StaffInvitation.objects.filter(token_digest=digest).only(
@@ -353,12 +358,7 @@ def redeem_staff_invitation(token, password, *, at=None):
                 is_staff=False,
                 is_superuser=False,
             )
-            if not isinstance(password, str) or not password:
-                raise StaffInvitationError("A nonblank password is required.")
-            try:
-                validate_password(password, user)
-            except ValidationError as error:
-                raise StaffInvitationError("Password does not meet configured requirements.") from error
+            validate_new_password(password, user, confirmation, PasswordRejected)
             user.set_password(password)
             user.save()
 
