@@ -88,6 +88,10 @@ The implemented authorization and catalogue relationships and PostgreSQL same-bu
 
 TORY-13 adds a shared business-owned product catalogue and an inventory-product association. `/catalogue/` and `/inventories/<id>/products/` are read-only and show only products linked to inventories the signed-in user may access. Lead time and safety stock are stored per shared product; the optional inventory-specific selling-price slot has provisional numeric storage only and is not displayed as a currency. General catalogue creation/edit/deactivation UI remains deferred while G-13/G-16 questions remain unresolved.
 
+## Inventory product search and filters
+
+TORY-34 adds a GET form to the existing assigned inventory Products page. Search product names or SKUs using a case-insensitive literal substring (outer spaces trimmed, maximum 200 characters), then optionally filter by the existing at/below, above, or unavailable reorder status. Search and status combine; unavailable forecasts/settings and inactive products remain unavailable rather than being classified by physical stock. Clear filters restores the full current list. The page distinguishes an empty inventory from no matching products and reports invalid filters inline. Manager/Staff access and stock actions retain their current permissions. See the [implementation and verification note](docs/decisions/TORY-34-inventory-product-filters.md); formal FR-002 acceptance and hosted evidence remain open.
+
 ## Manual receiving increment
 
 TORY-16 adds a protected POST + CSRF manual receiving form from an authorized inventory's product list. Manager and Staff can receive an active, linked product only into an active inventory to which they have an active same-business assignment. A product must first have explicit receiving setup; an operator may initialize an unconfigured product with `.venv\Scripts\python manage.py configure_receiving PRODUCT_ID --base-unit-label each --expiry-tracking-required false` (use the equivalent Unix virtual-environment path). Existing products migrate active and unconfigured. The command is not a catalogue UI or a business-role privilege.

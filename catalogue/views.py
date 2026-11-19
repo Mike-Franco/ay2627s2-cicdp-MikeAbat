@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from django.conf import settings
 from django.core.paginator import Paginator
-from django.db.models import CharField, F, Value
+from django.db.models import CharField, F, Q, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.shortcuts import redirect
@@ -22,7 +22,7 @@ from receiving.services import ReceiptRejected
 
 from .authorization import (can_manage_product_lifecycle, visible_inventory_product_links,
                             visible_product_links)
-from .forms import ReorderSettingsForm
+from .forms import InventoryProductFilterForm, ReorderSettingsForm
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
 
@@ -42,16 +42,37 @@ def inventory_products(request, inventory_id):
         inventory, links = visible_inventory_product_links(request.user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
-    product_links = list(links.prefetch_related("receiving_batches"))
-    now = timezone.now()
-    for link in product_links:
-        _prepare_stock_link(link, request.user, inventory, now)
+    total_product_count = links.count()
+    filter_form = InventoryProductFilterForm(request.GET)
+    product_links = []
+    valid_filters = filter_form.is_valid()
+    if valid_filters:
+        query = filter_form.cleaned_data["q"]
+        selected_status = filter_form.cleaned_data["reorder"]
+        if query:
+            links = links.filter(Q(product__name__icontains=query) | Q(product__sku__icontains=query))
+        candidates = list(links.prefetch_related("receiving_batches"))
+        now = timezone.now()
+        for link in candidates:
+            _prepare_stock_link(link, request.user, inventory, now)
+            if not selected_status or _reorder_status(link) == selected_status:
+                product_links.append(link)
     return render(
         request,
         "catalogue/inventory_products.html",
         {"inventory": inventory, "product_links": product_links,
+         "filter_form": filter_form, "total_product_count": total_product_count,
+         "has_filters": bool(request.GET.get("q") or request.GET.get("reorder")),
          "can_adjust_stock": _is_inventory_manager(request.user, inventory)},
+        status=200 if valid_filters else 400,
     )
+
+
+def _reorder_status(link):
+    """Classify only the recommendation state already displayed on the page."""
+    if link.reorder is None or link.reorder.reorder_point is None:
+        return "unavailable"
+    return "attention" if link.reorder.alert else "above"
 
 
 def _is_inventory_manager(user, inventory):
