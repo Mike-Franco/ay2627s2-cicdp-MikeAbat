@@ -50,6 +50,12 @@ def settings():
 
 
 def connection(values, database):
+    # libpq can route around an explicit host or inject service/startup options.
+    # Reject at this entry point, including empty overrides, before any connect.
+    if any(key in os.environ for key in ("PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE", "PGOPTIONS")):
+        raise GuardError("Inherited PostgreSQL connection overrides are not permitted.")
+    if values.get("POSTGRES_HOST") not in {"127.0.0.1", "localhost", "::1"}:
+        raise GuardError("Only loopback PostgreSQL is supported in this increment.")
     return psycopg.connect(dbname=database, user=values["POSTGRES_USER"],
         password=values["POSTGRES_PASSWORD"], host=values["POSTGRES_HOST"],
         port=values["POSTGRES_PORT"], autocommit=True)

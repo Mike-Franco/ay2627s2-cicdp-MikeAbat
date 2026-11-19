@@ -300,3 +300,46 @@ class DisposalEquivalenceTests(TestCase):
                 path.write_text(text)
                 with self.subTest(text=text),self.assertRaises(tool.GuardError):
                     tool.load_source_details(path,Path(folder)/"archive.dump",manifest)
+
+
+class ConnectionIsolationTests(TestCase):
+    def values(self):
+        return {"POSTGRES_HOST":"127.0.0.1", "POSTGRES_PORT":"5432",
+                "POSTGRES_USER":"synthetic", "POSTGRES_PASSWORD":"private"}
+
+    def test_inherited_host_address_cannot_reach_connect(self):
+        with patch.dict(tool.os.environ, {"PGHOSTADDR":"192.0.2.1"}, clear=True), patch.object(tool.psycopg,"connect") as connect:
+            before=dict(tool.os.environ)
+            with self.assertRaises(tool.GuardError):tool.connection(self.values(),"disposable")
+            connect.assert_not_called()
+            self.assertEqual(dict(tool.os.environ),before)
+
+    def test_service_and_options_overrides_fail_at_direct_entry_point(self):
+        for key in ("PGSERVICE","PGSERVICEFILE","PGOPTIONS"):
+            for value in ("untrusted", ""):
+                with self.subTest(key=key,value=value),patch.dict(tool.os.environ,{key:value},clear=True),patch.object(tool.psycopg,"connect") as connect:
+                    with self.assertRaises(tool.GuardError):tool.connection(self.values(),"disposable")
+                    connect.assert_not_called()
+
+    def test_controlled_connection_uses_explicit_settings_without_environment_mutation(self):
+        with patch.dict(tool.os.environ,{"PGHOST":"192.0.2.1","PGDATABASE":"other"},clear=True),patch.object(tool.psycopg,"connect") as connect:
+            before=dict(tool.os.environ)
+            self.assertIs(tool.connection(self.values(),"disposable"),connect.return_value)
+            connect.assert_called_once_with(dbname="disposable",user="synthetic",password="private",host="127.0.0.1",port="5432",autocommit=True)
+            self.assertEqual(dict(tool.os.environ),before)
+
+    def test_direct_nonlocal_settings_fail(self):
+        values=self.values();values["POSTGRES_HOST"]="192.0.2.1"
+        with patch.dict(tool.os.environ,{},clear=True),patch.object(tool.psycopg,"connect") as connect:
+            with self.assertRaises(tool.GuardError):tool.connection(values,"disposable")
+            connect.assert_not_called()
+
+    def test_subprocess_env_discards_overrides_and_write_override_stays_local(self):
+        hostile={"PGHOSTADDR":"192.0.2.1","PGSERVICE":"service","PGSERVICEFILE":"file","PGOPTIONS":"unsafe","PGHOST":"elsewhere","PGDATABASE":"other","KEEP":"yes"}
+        with patch.dict(tool.os.environ,hostile,clear=True):
+            before=dict(tool.os.environ)
+            env=tool.client_env(self.values(),"disposable")
+            self.assertEqual(env,{"KEEP":"yes","PGHOST":"127.0.0.1","PGPORT":"5432","PGUSER":"synthetic","PGPASSWORD":"private","PGDATABASE":"disposable","PGCONNECT_TIMEOUT":"10"})
+            env["PGOPTIONS"]="-c default_transaction_read_only=off"
+            self.assertNotIn("PGOPTIONS",tool.client_env(self.values(),"disposable"))
+            self.assertEqual(dict(tool.os.environ),before)
