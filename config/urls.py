@@ -51,3 +51,7 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
     urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
         "document_root": settings.BASE_DIR / "static", "show_indexes": False,
     })]
+
+from .ops_admin import ops_admin_site
+
+urlpatterns += [path("ops-admin/", ops_admin_site.urls)]
