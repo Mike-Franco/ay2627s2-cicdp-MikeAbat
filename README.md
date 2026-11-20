@@ -24,6 +24,7 @@ The main GitHub repository is [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://gi
 
 - [Planning](docs/planning/): original approved charter/P1 evidence, feasibility and risks, the [current schedule with original baseline retained](docs/planning/PROJECT_SCHEDULE.md), and the [prospective iteration log](docs/planning/AGILE_ITERATION_LOG.md).
 - [Requirements](docs/requirements/): owner-approved individual rules and decisions, living gap analysis, role permissions and traceability, plus the complete SRS awaiting approval. A pending gap is addressed before its dependent feature; unrelated gaps do not block all implementation.
+- [Architecture and Django framework evidence](docs/design/ARCHITECTURE.md) and [implemented ERD](docs/design/ERD.md).
 - [Decisions](docs/decisions/): ADR-001 preserves the backend choice; ADR-002 records the 3 November Kanban adoption and the later prospective sprint-style cadence from 12 November.
 - [TORY-27 guarded local backup/restore tool](scripts/tory27_backup_restore.py) and [operator runbook](docs/decisions/TORY-27-local-backup-restore.md); the [off-site backup policy](docs/decisions/TORY-27-offsite-backup-policy.md) is a draft only.
 - [Technology evaluation](docs/TECHNOLOGY_EVALUATION.md): comparative assessment and remaining evidence caveats.
@@ -82,7 +83,7 @@ TORY-11 adds reusable services for preparing, replacing/resending, revoking and 
 
 TORY-12 adds business-scoped Manager/Staff memberships and explicit inventory assignments. After signing in, `/inventories/` lists only active assigned inventories; `/inventories/<id>/` returns 404 for an unassigned or other-business inventory. Roles alone grant no inventory access. There is no business, membership or assignment setup UI; the TORY-11 bootstrap command creates the initial Manager scope. The invitation core creates the selected initial Staff assignments; ongoing assignment lifecycle/timing remains open under G-13, and concurrent assignment changes remain a G-11 Design dependency.
 
-The implemented authorization and catalogue relationships and PostgreSQL same-business integrity guards are shown in the [Tory ERD](docs/design/ERD.md). It covers the current auth/business/inventory/product foundation; stock and forecast tables remain future work.
+The [Tory ERD](docs/design/ERD.md) groups implemented account, inventory, stock, audit, CSV and demand-coverage models and shows the inputs for computed forecasts and reorder recommendations.
 
 ## Product catalogue foundation
 
