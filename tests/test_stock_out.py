@@ -36,9 +36,9 @@ class StockOutTests(TestCase):
         return receive_manual(user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
                               request_token=uuid.uuid4(), quantity_units=quantity, expiry_date=expiry)[0]
 
-    def issue(self, quantity=1, user=None):
+    def issue(self, quantity=1, user=None, token=None):
         return issue_stock(user_id=(user or self.manager).pk, inventory_id=self.inventory.pk,
-                           product_id=self.product.pk, quantity_units=quantity)
+                           product_id=self.product.pk, quantity_units=quantity, request_token=token)
 
     def test_fefo_dated_then_undated_and_equal_expiry_sequence_tie(self):
         today = timezone.localdate()
@@ -82,15 +82,68 @@ class StockOutTests(TestCase):
 
     def test_audit_failure_rolls_back_batch_balance_and_allocation(self):
         self.receive(4)
+        token = uuid.uuid4()
         with patch("receiving.services._create_demand_audit", side_effect=RuntimeError("audit down")):
             with self.assertRaises(RuntimeError):
-                self.issue(2)
+                self.issue(2, token=token)
         self.assertEqual(StockOut.objects.count(), 0)
         self.assertEqual(StockOutAllocation.objects.count(), 0)
         batch = ReceivingBatch.objects.get()
         self.assertEqual(batch.remaining_quantity_units, 4)
         self.assertEqual(self.link.__class__.objects.get(pk=self.link.pk).physical_quantity_units, 4)
         self.assertEqual(DemandAuditEvent.objects.count(), 0)
+        committed = self.issue(2, token=token)
+        self.assertEqual(self.issue(2, token=token).pk, committed.pk)
+        batch.refresh_from_db()
+        self.assertEqual(batch.remaining_quantity_units, 2)
+        self.assertEqual(StockOut.objects.count(), 1)
+        self.assertEqual(StockOutAllocation.objects.count(), 1)
+        self.assertEqual(DemandAuditEvent.objects.count(), 1)
+
+    def test_reuse_with_changed_quantity_product_or_inventory_is_rejected(self):
+        token = uuid.uuid4()
+        self.receive(10)
+        self.issue(2, token=token)
+        product = Product.objects.create(business=self.business, sku="ISS-2", name="Another product",
+                                         base_unit_label="each", expiry_tracking_required=False)
+        inventory = Inventory.objects.create(business=self.business, name="Another shelf")
+        InventoryAssignment.objects.create(membership=self.manager_membership, inventory=inventory)
+        InventoryProduct.objects.create(inventory=self.inventory, product=product)
+        InventoryProduct.objects.create(inventory=inventory, product=self.product)
+        for shelf, item, quantity in [(self.inventory, self.product, 3), (self.inventory, product, 2),
+                                      (inventory, self.product, 2)]:
+            with self.subTest(inventory=shelf.pk, product=item.pk, quantity=quantity):
+                with self.assertRaises(ReceiptRejected) as rejected:
+                    issue_stock(user_id=self.manager.pk, inventory_id=shelf.pk, product_id=item.pk,
+                                quantity_units=quantity, request_token=token)
+                self.assertEqual(rejected.exception.field, "request_token")
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 8)
+        self.assertEqual(StockOut.objects.count(), 1)
+        self.assertEqual(StockOutAllocation.objects.count(), 1)
+        self.assertEqual(DemandAuditEvent.objects.count(), 1)
+
+    def test_fresh_token_and_separate_actor_can_issue_again(self):
+        self.receive(3)
+        token = uuid.uuid4()
+        first = self.issue(token=token)
+        second = self.issue(token=uuid.uuid4())
+        third = self.issue(user=self.staff, token=token)
+        self.assertEqual(len({first.pk, second.pk, third.pk}), 3)
+        self.assertEqual(self.issue(user=self.staff, token=token).pk, third.pk)
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 0)
+        self.assertEqual(DemandAuditEvent.objects.count(), 3)
+
+    def test_revoked_assignment_blocks_committed_replay(self):
+        self.receive(2)
+        token = uuid.uuid4()
+        self.issue(user=self.staff, token=token)
+        InventoryAssignment.objects.filter(membership=self.staff_membership, inventory=self.inventory).update(is_active=False)
+        with self.assertRaises(ReceiptRejected) as rejected:
+            self.issue(user=self.staff, token=token)
+        self.assertEqual(rejected.exception.field, "__all__")
+        self.assertEqual(StockOut.objects.count(), 1)
 
     def test_setting_former_transaction_flag_cannot_bypass_balance_or_sequence_guards(self):
         self.receive(4)
@@ -207,7 +260,7 @@ class StockOutTests(TestCase):
         self.assertEqual(StockOutAllocation.objects.count(), 0)
 
     def test_issue_action_and_confirmation_list_batches(self):
-        self.receive(2)
+        batch = self.receive(10)
         client = Client()
         client.force_login(self.manager)
         session = client.session
@@ -217,12 +270,29 @@ class StockOutTests(TestCase):
         session[ACTIVE_KEY] = now
         session.save()
         url = reverse("issue-stock", args=[self.inventory.pk, self.product.pk])
-        self.assertEqual(client.get(url).status_code, 200)
-        response = client.post(url, {"quantity_units": "1"})
+        form_page = client.get(url)
+        self.assertContains(form_page, 'name="request_token"')
+        token = str(form_page.context["form"]["request_token"].value())
+        self.assertNotEqual(str(client.get(url).context["form"]["request_token"].value()), token)
+        missing = client.post(url, {"quantity_units": "2"})
+        self.assertIn("request_token", missing.context["form"].errors)
+        invalid = client.post(url, {"quantity_units": "0", "request_token": token})
+        self.assertIn("quantity_units", invalid.context["form"].errors)
+        self.assertEqual(invalid.context["form"]["request_token"].value(), token)
+        data = {"quantity_units": "2", "request_token": token}
+        response = client.post(url, data)
         self.assertEqual(response.status_code, 302)
+        replay = client.post(url, data)
+        self.assertRedirects(replay, response.url, fetch_redirect_response=False)
         confirmation = client.get(response.url)
         self.assertContains(confirmation, "Batches used")
-        self.assertContains(confirmation, "1 each")
+        self.assertContains(confirmation, "2 each")
+        self.link.refresh_from_db()
+        batch.refresh_from_db()
+        self.assertEqual((self.link.physical_quantity_units, batch.remaining_quantity_units), (8, 8))
+        self.assertEqual(StockOut.objects.count(), 1)
+        self.assertEqual(list(StockOutAllocation.objects.values_list("batch_id", "quantity_units")), [(batch.pk, 2)])
+        self.assertEqual(list(DemandAuditEvent.objects.values_list("quantity_change_units", flat=True)), [2])
 
 
 class StockOutConcurrencyTests(TransactionTestCase):
@@ -239,16 +309,71 @@ class StockOutConcurrencyTests(TransactionTestCase):
         receive_manual(user_id=self.user.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
                        request_token=uuid.uuid4(), quantity_units=1, expiry_date=None)
 
-    def call(self, barrier, action):
+    def call(self, barrier, action, token=None):
         close_old_connections()
         try:
             barrier.wait(timeout=5)
             if action == "issue":
-                return issue_stock(user_id=self.user.pk, inventory_id=self.inventory.pk, product_id=self.product.pk, quantity_units=1)
+                return issue_stock(user_id=self.user.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
+                                   quantity_units=1, request_token=token)
             return receive_manual(user_id=self.user.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
                                   request_token=uuid.uuid4(), quantity_units=1, expiry_date=None)
         finally:
             close_old_connections()
+
+    def test_concurrent_same_form_returns_same_issue_for_last_unit(self):
+        barrier = Barrier(2)
+        token = uuid.uuid4()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(self.call, barrier, "issue", token) for _ in range(2)]
+            ids = [future.result(timeout=10).pk for future in futures]
+        self.assertEqual(ids, [StockOut.objects.get().pk] * 2)
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.physical_quantity_units, 0)
+        self.assertEqual(StockOutAllocation.objects.get().stock_out_id, ids[0])
+        self.assertEqual(DemandAuditEvent.objects.get().stock_out_id, ids[0])
+
+    def test_concurrent_token_reuse_across_distinct_scopes_commits_only_one(self):
+        inventory = Inventory.objects.create(business=self.business, name="Second race shelf")
+        InventoryAssignment.objects.create(
+            membership=BusinessMembership.objects.get(user=self.user), inventory=inventory,
+        )
+        product = Product.objects.create(business=self.business, sku="RACE-II", name="Second item",
+                                         base_unit_label="unit", expiry_tracking_required=False)
+        other_link = InventoryProduct.objects.create(inventory=inventory, product=product)
+        receive_manual(user_id=self.user.pk, inventory_id=inventory.pk, product_id=product.pk,
+                       request_token=uuid.uuid4(), quantity_units=1, expiry_date=None)
+        token = uuid.uuid4()
+        at_insert = Barrier(2)
+        create = StockOut.objects.create
+
+        def simultaneous_insert(**fields):
+            # Both transactions have authorized different scopes and found no committed token.
+            at_insert.wait(timeout=5)
+            return create(**fields)
+
+        def issue_in_scope(link):
+            close_old_connections()
+            try:
+                return issue_stock(user_id=self.user.pk, inventory_id=link.inventory_id,
+                                   product_id=link.product_id, quantity_units=1, request_token=token).pk
+            except ReceiptRejected as error:
+                self.assertEqual(error.field, "request_token")
+                return None
+            finally:
+                close_old_connections()
+
+        with patch.object(StockOut.objects, "create", side_effect=simultaneous_insert):
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                futures = [pool.submit(issue_in_scope, link) for link in (self.link, other_link)]
+                results = [future.result(timeout=10) for future in futures]
+        winner = StockOut.objects.get()
+        self.assertCountEqual(results, [winner.pk, None])
+        for link in (self.link, other_link):
+            link.refresh_from_db()
+            self.assertEqual(link.physical_quantity_units, 0 if link.pk == winner.inventory_product_id else 1)
+        self.assertEqual(StockOutAllocation.objects.get().stock_out_id, winner.pk)
+        self.assertEqual(DemandAuditEvent.objects.get().stock_out_id, winner.pk)
 
     def test_competing_issues_cannot_double_allocate(self):
         barrier = Barrier(2)
