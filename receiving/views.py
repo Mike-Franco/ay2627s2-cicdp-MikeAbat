@@ -144,12 +144,13 @@ def issue_stock_view(request, inventory_id, product_id):
         inventory, link = _load_receivable(request.user, inventory_id, product_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
-    form = ManualStockOutForm(request.POST or None)
+    form = ManualStockOutForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:
             stock_out = issue_stock(
                 user_id=request.user.pk, inventory_id=inventory_id,
                 product_id=product_id, quantity_units=form.cleaned_data["quantity_units"],
+                request_token=form.cleaned_data["request_token"],
             )
         except ReceiptRejected as error:
             form.add_error(error.field, str(error))

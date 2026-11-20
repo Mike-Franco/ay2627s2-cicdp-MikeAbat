@@ -323,12 +323,20 @@ def _create_receipt_audit(batch, quantity_before):
 
 
 def issue_stock(*, user_id, inventory_id, product_id, quantity_units,
-                import_record=None, import_row_number=None):
+                request_token=None, import_record=None, import_row_number=None):
     """Issue eligible stock using approved dated FEFO then undated FIFO."""
     if type(quantity_units) is not int or not 1 <= quantity_units <= MAX_RECEIPT_UNITS:
         raise ReceiptRejected("quantity_units", "Enter a positive whole quantity in base units.")
     with transaction.atomic():
         user, _, _, product, inventory, link = _lock_authorized_scope(user_id, inventory_id, product_id)
+        token_conflict = "This form token was already used with different issue details."
+        if request_token is not None:
+            existing = StockOut.objects.filter(actor=user, request_token=request_token).first()
+            if existing is not None:
+                if existing.inventory_product_id != link.pk or existing.quantity_units != quantity_units:
+                    raise ReceiptRejected("request_token", token_conflict)
+                return existing
+
         candidates = list(ReceivingBatch.objects.select_for_update().filter(
             inventory_product=link,
             remaining_quantity_units__gt=F("quarantined_quantity_units"),
@@ -339,12 +347,19 @@ def issue_stock(*, user_id, inventory_id, product_id, quantity_units,
         if eligible_total < quantity_units:
             raise ReceiptRejected("quantity_units", "There is not enough eligible, non-quarantined stock.")
         now = timezone.now()
-        stock_out = StockOut.objects.create(
-            actor=user, inventory=inventory, product=product, inventory_product=link,
-            quantity_units=quantity_units, quantity_before_units=physical_before,
-            quantity_after_units=physical_before - quantity_units, occurred_at=now,
-            import_record=import_record, import_row_number=import_row_number,
-        )
+        try:
+            stock_out = StockOut.objects.create(
+                actor=user, inventory=inventory, product=product, inventory_product=link,
+                quantity_units=quantity_units, quantity_before_units=physical_before,
+                quantity_after_units=physical_before - quantity_units, occurred_at=now,
+                import_record=import_record, import_row_number=import_row_number, request_token=request_token,
+            )
+        except IntegrityError as error:
+            # Identical scopes serialize before lookup. Only a different scope
+            # can win this token between the lookup and insert.
+            if _has_constraint(error, "unique_actor_stock_out_request_token"):
+                raise ReceiptRejected("request_token", token_conflict) from error
+            raise
         left = quantity_units
         for batch in candidates:
             if left == 0:

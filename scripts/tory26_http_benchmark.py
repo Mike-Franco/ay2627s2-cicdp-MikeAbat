@@ -153,7 +153,7 @@ class BrowserClient:
         if kind == "stock_in":
             fields = {"request_token": str(uuid.uuid4()), "quantity_units": "1", "expiry_date": ""}
         elif kind == "stock_out":
-            fields = {"quantity_units": "1"}
+            fields = {"request_token": str(uuid.uuid4()), "quantity_units": "1"}
         elif kind == "login":
             fields = {"email": self.email, "password": PASSWORD}
         with self.lock:

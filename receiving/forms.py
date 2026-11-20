@@ -38,6 +38,7 @@ class ManualReceiptForm(forms.Form):
 
 
 class ManualStockOutForm(forms.Form):
+    request_token = forms.UUIDField(initial=uuid.uuid4, widget=forms.HiddenInput)
     quantity_units = forms.IntegerField(
         min_value=1, max_value=MAX_RECEIPT_UNITS,
         widget=forms.NumberInput(attrs={"class": "form-control", "step": "1"}),

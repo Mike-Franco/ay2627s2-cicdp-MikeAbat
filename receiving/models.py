@@ -267,6 +267,7 @@ class StockOut(models.Model):
     """One attributable manual issue; allocation rows identify consumed batches."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="stock_outs")
+    request_token = models.UUIDField(null=True, editable=False)
     inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="stock_outs")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="stock_outs")
     inventory_product = models.ForeignKey(InventoryProduct, on_delete=models.PROTECT, related_name="stock_outs")
@@ -282,6 +283,8 @@ class StockOut(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(quantity_units__gte=1) & Q(quantity_units__lte=MAX_RECEIPT_UNITS), name="stock_out_quantity_range"),
             models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") - F("quantity_units")), name="stock_out_quantity_reconciles"),
+            models.UniqueConstraint(fields=["actor", "request_token"], condition=Q(request_token__isnull=False),
+                                    name="unique_actor_stock_out_request_token"),
         ]
 
 
