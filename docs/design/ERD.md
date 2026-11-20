@@ -244,7 +244,7 @@ erDiagram
 
 Cardinalities describe complete committed movements. Allocation rows identify the affected batches. Movement and audit models also carry explicit actor and scope foreign keys where shown in their fields. Receipt and adjustment audit represent non-demand activity. DemandAuditEvent ties issued quantities to the StockOut and its actor and scope. The approved count rules are recorded in the [TORY-18 decision](../decisions/TORY-18-manager-batch-count-rules.md). [Receiving models](../../receiving/models.py).
 
-## Expiry, disposal and product lifecycle
+## Expiry and disposal
 
 ```mermaid
 erDiagram
@@ -253,13 +253,21 @@ erDiagram
     INVENTORY_PRODUCT ||--o{ STOCK_DISPOSAL : reconciles
     USER ||--o{ STOCK_DISPOSAL : records
     STOCK_DISPOSAL ||--|| DISPOSAL_AUDIT_EVENT : evidenced_by
+```
+
+An expiry transition can be absent while expiry-aware reads already exclude expired units from available stock. Disposal writes a separate non-demand audit with Manager attribution. [Receiving models](../../receiving/models.py).
+
+## Product lifecycle
+
+```mermaid
+erDiagram
     PRODUCT ||--o{ PRODUCT_LIFECYCLE_AUDIT_EVENT : status_history
     INVENTORY ||--o{ PRODUCT_LIFECYCLE_AUDIT_EVENT : action_context
     BUSINESS ||--o{ PRODUCT_LIFECYCLE_AUDIT_EVENT : scopes
     USER ||--o{ PRODUCT_LIFECYCLE_AUDIT_EVENT : acts
 ```
 
-An expiry transition can be absent while expiry-aware reads already exclude expired units from available stock. Disposal writes a separate non-demand audit with Manager attribution. Product lifecycle evidence records shared Product activation changes and the inventory from which the action was taken. [Receiving models](../../receiving/models.py), [catalogue models](../../catalogue/models.py), [lifecycle rules](../decisions/TORY-14-product-deactivation.md).
+Product lifecycle evidence records shared Product activation changes and the inventory from which the action was taken. [Catalogue models](../../catalogue/models.py), [lifecycle rules](../decisions/TORY-14-product-deactivation.md).
 
 ## CSV imports and demand coverage
 

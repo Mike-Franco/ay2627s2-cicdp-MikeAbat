@@ -12,8 +12,8 @@ flowchart TB
         U["config.urls: named routes"]
         A["accounts views: login, invitations, reset, deactivation"]
         I["inventory_access views: assigned inventory pages"]
-        C["catalogue views: product list, history and forecast"]
-        R["receiving views: stock movements, imports and coverage"]
+        C["catalogue views: product list, history, forecast and coverage actions"]
+        R["receiving views: stock movements and imports"]
         F["Django forms: bind and validate inputs"]
         T["Django templates: render pages and feedback"]
         S["Tory services: account workflows, inventory scope, stock and demand rules"]
@@ -33,7 +33,7 @@ flowchart TB
 ```
 
 - **accounts** implements the email-based user model and the login, invitation, password reset and deactivation flows. **inventory_access** defines businesses, memberships, inventories and assignments and resolves the user's active scope. [Routes](../../config/urls.py), [account views](../../accounts/views.py), [inventory views](../../inventory_access/views.py), [inventory authorization](../../inventory_access/authorization.py).
-- **catalogue** owns Product and InventoryProduct, product lifecycle and reorder settings. The Products page filters the authorized queryset and classifies rows using the existing reorder result. **receiving** owns batch movements, allocations, audit records, CSV import and demand coverage. The catalogue forecast view calls receiving demand logic through the reorder service. [Catalogue views](../../catalogue/views.py), [receiving views](../../receiving/views.py), [reorder service](../../catalogue/reorder.py), [ERD](ERD.md).
+- **catalogue** owns Product and InventoryProduct, product lifecycle and reorder settings. The Products page filters the authorized queryset and classifies rows using the existing reorder result. **receiving** owns batch movements, allocations, audit records, CSV import and demand coverage. The catalogue forecast view handles coverage actions by calling receiving demand logic and computes display results through the reorder service. [Catalogue views](../../catalogue/views.py), [receiving views](../../receiving/views.py), [reorder service](../../catalogue/reorder.py), [ERD](ERD.md).
 - The middleware is configured centrally. Templates render server-side under the shared base layout. The UI design document includes proposed navigation and layout details. [Settings](../../config/settings.py), [base template](../../templates/base.html), [UI design](DESIGN.md).
 
 ## Manual stock-out
@@ -74,8 +74,8 @@ sequenceDiagram
                     S-->>V: Propagate unhandled database error
                 else Commit succeeds
                     P-->>S: Committed stock-out
-                    S-->>V: Return stock-out ID
-                    V-->>B: Redirect to confirmation
+                    S-->>V: Return StockOut instance
+                    V-->>B: Redirect to confirmation using stock_out.pk
                     B->>V: GET confirmation
                     V->>P: Recheck inventory scope and read saved allocations
                     V-->>B: Render confirmation if authorized
