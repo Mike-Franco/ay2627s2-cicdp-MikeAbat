@@ -40,18 +40,22 @@ def recommendation(*, user_id, inventory_id, product_id, at=None):
         forecast = _forecast_locked(product, inventory, link, at=observed_at)
         quarantined = sum(quarantine_quantity(batch, at=observed_at)
                           for batch in link.receiving_batches.all())
-        available = link.physical_quantity_units - quarantined
-        missing = tuple(label for label, value in (
-            ("lead time", product.lead_time_days),
-            ("safety stock", product.safety_stock_units),
-        ) if value is None)
-        if not forecast.available or missing:
-            return ReorderResult(forecast, available, quarantined,
-                                 product.lead_time_days, product.safety_stock_units, missing)
-        point = forecast.average * product.lead_time_days + product.safety_stock_units
+        return recommendation_from_evidence(product, link.physical_quantity_units, forecast, quarantined)
+
+
+def recommendation_from_evidence(product, physical, forecast, quarantined):
+    available = physical - quarantined
+    missing = tuple(label for label, value in (
+        ("lead time", product.lead_time_days),
+        ("safety stock", product.safety_stock_units),
+    ) if value is None)
+    if not forecast.available or missing:
         return ReorderResult(forecast, available, quarantined,
-                             product.lead_time_days, product.safety_stock_units, missing,
-                             point, available <= point, max(0, ceil(point - available)))
+                             product.lead_time_days, product.safety_stock_units, missing)
+    point = forecast.average * product.lead_time_days + product.safety_stock_units
+    return ReorderResult(forecast, available, quarantined,
+                         product.lead_time_days, product.safety_stock_units, missing,
+                         point, available <= point, max(0, ceil(point - available)))
 
 
 def can_edit_shared_settings(user, product):
