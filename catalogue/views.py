@@ -6,6 +6,7 @@ from django.db.models import CharField, F, Q, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.shortcuts import redirect
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
 from accounts.sessions import protected_view
@@ -22,6 +23,7 @@ from receiving.services import ReceiptRejected
 
 from .authorization import (can_manage_product_lifecycle, visible_inventory_product_links,
                             visible_product_links)
+from .csv_exports import csv_download, history_rows, stock_rows
 from .forms import InventoryProductFilterForm, ReorderSettingsForm
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
@@ -164,11 +166,9 @@ def product_lifecycle(request, inventory_id, product_id):
     }, status=400 if error_message else 200)
 
 
-@protected_view
-def stock_history(request, inventory_id, product_id):
-    """Show committed audit evidence within one assigned inventory/product."""
+def _history_scope(user, inventory_id, product_id):
     try:
-        inventory = get_authorized_inventory(request.user, inventory_id)
+        inventory = get_authorized_inventory(user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     link = get_object_or_404(
@@ -178,6 +178,38 @@ def stock_history(request, inventory_id, product_id):
     )
     scope = {"business_id": inventory.business_id,
              "inventory_id": inventory.pk, "product_id": link.product_id}
+    return inventory, link, scope
+
+
+@protected_view
+@require_GET
+def export_inventory_stock(request, inventory_id):
+    try:
+        inventory, links = visible_inventory_product_links(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    return csv_download(
+        f"inventory-{inventory.pk}-stock.csv",
+        ("SKU", "Product", "Base unit", "Physical", "Quarantined", "Available"),
+        stock_rows(links, today=timezone.localdate()),
+    )
+
+
+@protected_view
+@require_GET
+def export_stock_history(request, inventory_id, product_id):
+    inventory, link, scope = _history_scope(request.user, inventory_id, product_id)
+    return csv_download(
+        f"inventory-{inventory.pk}-product-{link.product_id}-history.csv",
+        ("Recorded at (Singapore)", "Action", "Actor", "Physical before", "Physical after", "Reason", "Note"),
+        history_rows(scope),
+    )
+
+
+@protected_view
+def stock_history(request, inventory_id, product_id):
+    """Show committed audit evidence within one assigned inventory/product."""
+    inventory, link, scope = _history_scope(request.user, inventory_id, product_id)
     audit_sources = {
         "receipt": ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
         "issue": DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(

@@ -51,3 +51,8 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
     urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
         "document_root": settings.BASE_DIR / "static", "show_indexes": False,
     })]
+
+urlpatterns += [
+    path("inventories/<int:inventory_id>/products/stock.csv", catalogue_views.export_inventory_stock, name="export-inventory-stock"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/history.csv", catalogue_views.export_stock_history, name="export-stock-history"),
+]

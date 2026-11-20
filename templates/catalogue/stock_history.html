@@ -5,6 +5,7 @@
 {% include 'includes/product_tabs.html' with active_tab='history' %}
 <h1>Stock history for {{ product.sku }}</h1>
 <p>{{ product.name }} · {{ inventory.name }}</p>
+<p><a href="{% url 'export-stock-history' inventory.pk product.pk %}">Download stock history CSV</a></p>
 <p class="text-muted">Times are shown in Asia/Singapore.</p>
 {% if events %}
   <div class="table-responsive">
