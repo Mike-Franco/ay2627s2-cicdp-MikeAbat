@@ -28,6 +28,7 @@ staticfiles
 
 # Not needed at runtime
 benchmark-results
+deploy
 docs
 Dockerfile
 docker-compose.yml
