@@ -32,8 +32,7 @@
 {{ demand_data|json_script:"demand-data" }}
 {{ reorder_data|json_script:"reorder-data" }}
 {{ expiry_data|json_script:"expiry-data" }}
-{% endblock %}
-{% block scripts %}
+{# base.html has no scripts block, so chart scripts render at the end of content. #}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script src="{% static 'tory/insights.js' %}" defer></script>
 {% endblock %}

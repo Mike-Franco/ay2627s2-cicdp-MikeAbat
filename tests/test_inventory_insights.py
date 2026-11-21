@@ -91,10 +91,9 @@ class InventoryInsightsTests(TestCase):
 
     def test_stock_data_excludes_current_quarantine_and_serializes_all_eligible_skus(self):
         today = timezone.now().astimezone(SINGAPORE).date()
-        first_week = today + timedelta(days=7 - today.weekday())
         receive_manual(
             user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
-            request_token=uuid4(), quantity_units=8, expiry_date=first_week + timedelta(days=1),
+            request_token=uuid4(), quantity_units=8, expiry_date=today + timedelta(days=1),
         )
         product = self.create_product("A-2", "Gloves")
         InventoryProduct.objects.create(inventory=self.inventory, product=product)
@@ -105,6 +104,18 @@ class InventoryInsightsTests(TestCase):
         expiry = response.context["expiry_data_json"]
         self.assertEqual(len(expiry), 4)
         self.assertEqual([row["units"] for row in expiry], [8, 0, 0, 0])
+
+    def test_expiry_windows_start_tomorrow_and_cover_twenty_eight_days(self):
+        today = timezone.now().astimezone(SINGAPORE).date()
+        for days_ahead, units in ((1, 1), (7, 2), (8, 4), (28, 8), (29, 16)):
+            receive_manual(
+                user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
+                request_token=uuid4(), quantity_units=units, expiry_date=today + timedelta(days=days_ahead),
+            )
+        expiry = self.client.get(self.url).context["expiry_data_json"]
+        self.assertEqual([row["units"] for row in expiry], [3, 4, 0, 8])
+        first = today + timedelta(days=1)
+        self.assertEqual(expiry[0]["week"], f"{first.isoformat()} – {(first + timedelta(days=6)).isoformat()}")
 
     def test_reorder_point_reuses_verified_forecast(self):
         today = timezone.now().astimezone(SINGAPORE).date()
@@ -139,8 +150,8 @@ class InventoryInsightsTests(TestCase):
     def test_json_script_charts_and_query_count(self):
         response = self.client.get(self.url)
         self.assertContains(response, "demand-data")
-        self.assertContains(response, "integrity=")
-        self.assertContains(response, "crossorigin=")
+        self.assertContains(response, 'src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-')
+        self.assertContains(response, "tory/insights.js")
         self.assertContains(response, "verified_average")
         self.assertNotContains(response, "cost")
 

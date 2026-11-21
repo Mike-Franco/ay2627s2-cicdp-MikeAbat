@@ -85,18 +85,19 @@ def inventory_insights(request, inventory_id):
             "reorder_point": str(result.reorder_point) if result and result.reorder_point is not None else None,
             "alert": bool(result and result.alert),
         })
-    first_week = today + timedelta(days=(7 - today.weekday()) % 7)
-    week_starts = [first_week + timedelta(days=7 * offset) for offset in range(4)]
+    # Four rolling 7-day windows starting tomorrow, so stock expiring in the
+    # next few days is never dropped by a calendar-week boundary.
+    window_start = today + timedelta(days=1)
+    week_starts = [window_start + timedelta(days=7 * offset) for offset in range(4)]
     expiry_totals = defaultdict(int)
     expiring = ReceivingBatch.objects.filter(
-        inventory_product__in=links, expiry_date__gt=today,
-        expiry_date__lte=week_starts[-1] + timedelta(days=6),
+        inventory_product__in=links, expiry_date__gte=window_start,
+        expiry_date__lt=window_start + timedelta(days=28),
         remaining_quantity_units__gt=F("quarantined_quantity_units"),
     ).values("expiry_date", "remaining_quantity_units", "quarantined_quantity_units")
     for batch in expiring:
-        index = (batch["expiry_date"] - week_starts[0]).days // 7
-        if 0 <= index < 4:
-            expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
+        index = (batch["expiry_date"] - window_start).days // 7
+        expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
     expiry_data = [{
         "week": f"{start.isoformat()} – {(start + timedelta(days=6)).isoformat()}",
         "units": expiry_totals[index],
