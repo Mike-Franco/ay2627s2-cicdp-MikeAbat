@@ -5,9 +5,9 @@
 
   function drawCharts() {
     var style = getComputedStyle(document.documentElement);
-    var textColor = style.getPropertyValue("--color-ink").trim() || "#20251f";
-    var gridColor = style.getPropertyValue("--color-border").trim() || "#d9ded8";
-    var accent = style.getPropertyValue("--color-primary").trim() || "#176b50";
+    var textColor = style.getPropertyValue("--ink").trim() || "#20251f";
+    var gridColor = style.getPropertyValue("--line").trim() || "#d9ded8";
+    var accent = style.getPropertyValue("--accent").trim() || "#176b50";
     var demand = read("demand-data");
     var products = read("reorder-data");
     var expiries = read("expiry-data");
@@ -34,11 +34,16 @@
       type: "bar",
       data: { labels: products.map(function (row) { return row.sku + " · " + row.name; }),
         datasets: [
-          { label: "Available units", data: products.map(function (row) { return row.available; }),
-            backgroundColor: products.map(function (row) { return row.alert ? "#b74638" : accent; }) },
+          // Separate datasets so each legend swatch matches its bars exactly;
+          // skipNull keeps one bar per product in the right slot.
+          { label: "Available units", data: products.map(function (row) { return row.alert ? null : row.available; }),
+            backgroundColor: accent, skipNull: true },
+          { label: "Available, at or below reorder point", data: products.map(function (row) {
+            return row.alert ? row.available : null;
+          }), backgroundColor: "#b74638", skipNull: true },
           { label: "Reorder point", data: products.map(function (row) {
             return row.reorder_point === null ? null : Number(row.reorder_point);
-          }), backgroundColor: "#be7b28" }
+          }), backgroundColor: "#be7b28", skipNull: true }
         ] },
       options: { responsive: true, maintainAspectRatio: false,
         plugins: { legend: { labels: { color: textColor } } }, scales: axes }
