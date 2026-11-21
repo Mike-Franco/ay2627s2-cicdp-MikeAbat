@@ -101,7 +101,10 @@ DATABASES = {
         "PORT": required_env("POSTGRES_PORT"),
         # Reuse connections across requests in a worker; health checks drop a
         # stale connection (for example after a database restart) before use.
-        "CONN_MAX_AGE": 60,
+        # Tests keep per-request connections: threaded tests issue requests from
+        # worker threads, and kept-alive connections there would block dropping
+        # the test database.
+        "CONN_MAX_AGE": 0 if DJANGO_ENV == "test" else 60,
         "CONN_HEALTH_CHECKS": True,
     }
 }
