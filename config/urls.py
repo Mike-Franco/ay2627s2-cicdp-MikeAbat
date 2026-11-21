@@ -58,3 +58,7 @@ urlpatterns += [
     path("inventories/<int:inventory_id>/products/new/", catalogue_views.product_create, name="product-create"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/edit/", catalogue_views.product_edit, name="product-edit"),
 ]
+
+from .ops_admin import ops_admin_site
+
+urlpatterns += [path("ops-admin/", ops_admin_site.urls)]
