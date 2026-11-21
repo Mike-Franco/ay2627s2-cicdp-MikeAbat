@@ -1,5 +1,10 @@
 # Tory — Inventory Management & Demand Forecasting System
 
+[![Django PostgreSQL CI](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/django-ci.yml/badge.svg?branch=develop)](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/django-ci.yml?query=branch%3Adevelop)
+[![Security](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/security.yml/badge.svg?branch=develop)](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/security.yml?query=branch%3Adevelop)
+[![Documentation CI](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/docs-ci.yml/badge.svg?branch=develop)](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/workflows/docs-ci.yml?query=branch%3Adevelop)
+![Coverage gate: at least 90%](https://img.shields.io/badge/coverage%20gate-%E2%89%A590%25-brightgreen)
+
 *Inventory made simple.*
 
 Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provide explainable demand forecasts. One developer works with Codex assistance. The project owner adopted [lightweight Agile Kanban](docs/decisions/ADR-002-agile-kanban-delivery.md) for remaining delivery on **3 November 2026** and added prospective sprint-style, timeboxed cycles on **12 November 2026**. Work before that change remains Kanban delivery, including PRs #34–#37; it is not assigned retrospectively to Sprint 1. Earlier Planning and Requirements records retain their dated Waterfall context.
@@ -14,7 +19,7 @@ Tory is a Singapore Polytechnic ST0529 CA1 project to manage inventory and provi
 - **Deadline:** 27 November 2026 at **17:00 Asia/Singapore**
 - **Status:** P1 was approved with conditions on 29 October. BR-001–BR-045 and recorded owner decisions remain authoritative; the complete SRS, Requirements exit and Design entry have **not** been approved. Stock movements, CSV import, stock history, TORY-23 demand forecasting and TORY-24 reorder settings/recommendations are implemented on this branch; hosted staging verification remains open.
 
-The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). The [Django/PostgreSQL CI workflow](.github/workflows/django-ci.yml) runs on pull requests to `develop` and `main`. The controlled failure and correction commits (`d92d838`, `e0a5b0f`) were merged in PR #20; their hosted run URLs are not recorded in this repository. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
+The backend decision is recorded in [accepted ADR-001](docs/decisions/ADR-001-backend-and-database.md); the frontend choice is recorded in [ADR-003](docs/decisions/ADR-003-frontend-architecture.md). The [Django/PostgreSQL CI workflow](.github/workflows/django-ci.yml) runs on pushes and pull requests to `develop` and `main`; see [CI quality and security gates](#ci-quality-and-security-gates). The controlled failure and correction commits (`d92d838`, `e0a5b0f`) were merged in PR #20; their hosted run URLs are not recorded in this repository. Detailed application architecture, hosting provider and deployment topology remain undecided. Candidate services in the planning documents are research candidates only.
 
 ## Repository and Tory-PoC
 
@@ -44,6 +49,35 @@ Use the TORY board: **To Do → In Progress → Review/Test → Done**, with a *
 The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes to `main` and `develop` and pull requests targeting either branch. It uses a read-only GitHub token, a pinned checkout action, a five-minute job timeout and no paid tools. The [checker](scripts/check_docs.py) uses only Python's standard library. Its small ruleset requires UTF-8 Markdown, one level-one heading at the start of each document, a final newline, no tab characters, no merge-conflict markers in checked text files, and the listed key project documents. It permits existing two-space Markdown line breaks and does not reformat approved Planning records. It is not a secrets scan or proof that the documents contain no secrets.
 
 Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main` or `develop`, check **Actions → Documentation CI → Check documentation** for the intended commit. The Django/PostgreSQL workflow is separate; PR #20 contains its controlled failing and restored passing test commits. Record the corresponding hosted run URLs when available.
+
+## CI quality and security gates
+
+TORY-36 adds these gates. Every push and pull request to `develop` or `main` runs them. A newer push to the same ref cancels the run still in progress.
+
+| Workflow | Job | Fails when |
+| --- | --- | --- |
+| [Django PostgreSQL CI](.github/workflows/django-ci.yml) | Lint (ruff) | `ruff check` reports a finding |
+| | Check, migrate, and test on PostgreSQL | a system check, missing migration or test fails, or line coverage of the app packages is below 90% |
+| [Security](.github/workflows/security.yml) | Dependency audit (pip-audit) | a pinned runtime or development requirement has a known vulnerability |
+| | CodeQL (python) | analysis fails; alerts appear under **Security → Code scanning** |
+| | Secret scan (gitleaks) | a secret pattern is found anywhere in the Git history |
+
+The Security workflow also runs weekly on Mondays at 02:00 UTC. Each test run uploads the HTML coverage report as the `coverage-html-<sha>` artifact and writes a coverage table to the job summary. [Dependabot](.github/dependabot.yml) opens weekly grouped pull requests into `develop` for pip and GitHub Actions updates. Third-party actions are pinned to full commit SHAs, with the release tag recorded in a comment.
+
+[pyproject.toml](pyproject.toml) holds the ruff and coverage settings. The lint rules target defects: pycodestyle errors and warnings, Pyflakes and bugbear. Findings that existed when the gate was introduced are listed per file, so new files get the full ruleset. Formatting (`ruff format --check`) is not enforced yet, because reformatting the codebase would conflict with open feature branches.
+
+Run the same gates locally from a virtual environment (Windows paths shown):
+
+```text
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+.venv\Scripts\ruff check .
+.venv\Scripts\coverage run manage.py test
+.venv\Scripts\coverage report
+.venv\Scripts\coverage html
+.venv\Scripts\pip-audit -r requirements.txt -r requirements-dev.txt
+```
+
+A local test run skips the commit-timestamp test unless PostgreSQL has `track_commit_timestamp=on`. CodeQL and gitleaks run only in GitHub Actions.
 
 ## Local Django smoke checks
 
