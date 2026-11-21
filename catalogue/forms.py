@@ -55,7 +55,7 @@ class ProductCreateForm(ProductForm):
         self.fields["inventories"].queryset = inventories
 
 
-class InventoryProductFilterForm(forms.Form):
+class ProductSearchForm(forms.Form):
     q = forms.CharField(
         label="Search products", required=False, max_length=200,
         widget=forms.TextInput(attrs={
@@ -63,6 +63,9 @@ class InventoryProductFilterForm(forms.Form):
             "placeholder": "Product name or SKU",
         }),
     )
+
+
+class InventoryProductFilterForm(ProductSearchForm):
     reorder = forms.ChoiceField(
         label="Reorder status", required=False,
         choices=(

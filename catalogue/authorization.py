@@ -1,4 +1,5 @@
 from django.db import connection
+from django.db.models import Exists, OuterRef
 
 from inventory_access.authorization import authorized_inventories, get_authorized_inventory
 from inventory_access.models import BusinessMembership, InventoryAssignment
@@ -65,3 +66,18 @@ def can_manage_product_lifecycle(user, product):
         membership=membership, is_active=True,
     ).values_list("inventory_id", flat=True))
     return bool(linked_ids) and linked_ids <= assigned_ids
+
+
+def manageable_lifecycle_product_ids(user, business_id, product_ids):
+    """Find scoped products whose entire inventory assignment set is managed."""
+    assigned = InventoryAssignment.objects.filter(
+        membership__user=user, membership__business_id=business_id,
+        membership__role=BusinessMembership.Role.MANAGER, membership__is_active=True,
+        is_active=True,
+    ).values("inventory_id")
+    outside = InventoryProduct.objects.filter(
+        product_id=OuterRef("product_id"),
+    ).exclude(inventory_id__in=assigned)
+    return set(InventoryProduct.objects.filter(
+        ~Exists(outside), product_id__in=product_ids, product__business_id=business_id,
+    ).values_list("product_id", flat=True))

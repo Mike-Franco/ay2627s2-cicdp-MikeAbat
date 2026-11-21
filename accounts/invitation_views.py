@@ -1,7 +1,9 @@
 """Scoped Manager controls and public Staff password setup."""
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -14,7 +16,7 @@ from .invitation_email import InvitationDeliveryError, ensure_delivery_ready, se
 from .invitations import (StaffInvitationError, prepare_staff_invitation,
                           replace_staff_invitation, revoke_staff_invitation,
                           redeem_staff_invitation)
-from .models import StaffInvitation
+from .models import StaffInvitation, StaffInvitationInventory
 from .sessions import protected_view
 from .password_feedback import PasswordFeedbackError, REQUIREMENTS
 from .access_errors import account_not_found
@@ -79,13 +81,14 @@ def manager_invitations(request, business_id):
             return redirect("staff-invitations", business_id=business_id)
         except (StaffInvitationError, InvitationDeliveryError):
             error = "Invitation could not be issued. Check the selection and delivery configuration."
-    allowed = set(inventories.values_list("pk", flat=True))
-    invitations = [item for item in StaffInvitation.objects.filter(
-        business_id=business_id, inventory_links__inventory_id__in=allowed,
-    ).prefetch_related("inventories").distinct().order_by("-issued_at", "-pk")
-        if set(item.inventories.values_list("pk", flat=True)).issubset(allowed)]
+    links = StaffInvitationInventory.objects.filter(invitation_id=OuterRef("pk"))
+    allowed = inventories.values("pk")
+    invitations = StaffInvitation.objects.filter(
+        Exists(links), ~Exists(links.exclude(inventory_id__in=allowed)), business_id=business_id,
+    ).prefetch_related("inventories").order_by("-issued_at", "-pk")
+    page = Paginator(invitations, 25).get_page(request.GET.get("page"))
     return render(request, "accounts/invitations.html", {
-        "inventories": inventories, "invitations": invitations,
+        "inventories": inventories, "invitations": page.object_list, "page": page,
         "business_id": business_id, "error": error,
     })
 

@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import CharField, F, Q, Value
+from django.db.models import Case, CharField, F, Q, Sum, Value, When
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.shortcuts import redirect
@@ -17,29 +17,40 @@ from inventory_access.models import BusinessMembership, Inventory
 from django.utils import timezone
 from receiving.models import (DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent,
                               ObservationActivation, ReceiptAuditEvent, StockAdjustmentAuditEvent)
-from receiving.services import quarantine_quantity
-from receiving.demand import mark_demand_day_incomplete, verify_demand_day
+from receiving.services import SINGAPORE, quarantine_quantity
+from receiving.demand import forecasts_for_links, mark_demand_day_incomplete, verify_demand_day
 from receiving.forms import DemandCoverageActionForm
 from receiving.services import ReceiptRejected
 
-from .authorization import (can_manage_product_lifecycle, managed_inventories, visible_inventory_product_links,
-                            visible_product_links)
+from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
+                            visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
-from .forms import InventoryProductFilterForm, ProductCreateForm, ProductForm, ReorderSettingsForm
+from .forms import InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change
-from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
+from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
 
 
 @protected_view
 def product_catalogue(request):
+    search_form = ProductSearchForm(request.GET)
+    valid_search = search_form.is_valid()
+    links = _search_product_links(visible_product_links(request.user), search_form.cleaned_data["q"]) if valid_search else []
+    page = Paginator(links, 25).get_page(request.GET.get("page"))
     return render(
         request,
         "catalogue/product_catalogue.html",
-        {"product_links": visible_product_links(request.user),
+        {"product_links": page.object_list, "page": page, "search_form": search_form,
          "create_inventories": managed_inventories(request.user).select_related("business")
          .order_by("business_id", "name", "pk").distinct("business_id")},
+        status=200 if valid_search else 400,
     )
+
+
+def _search_product_links(links, query):
+    if query:
+        return links.filter(Q(product__name__icontains=query) | Q(product__sku__icontains=query))
+    return links
 
 
 @protected_view
@@ -98,27 +109,51 @@ def inventory_products(request, inventory_id):
     total_product_count = links.count()
     filter_form = InventoryProductFilterForm(request.GET)
     product_links = []
+    page = None
     valid_filters = filter_form.is_valid()
+    can_adjust_stock = _is_inventory_manager(request.user, inventory)
     if valid_filters:
-        query = filter_form.cleaned_data["q"]
+        links = _search_product_links(links, filter_form.cleaned_data["q"])
         selected_status = filter_form.cleaned_data["reorder"]
-        if query:
-            links = links.filter(Q(product__name__icontains=query) | Q(product__sku__icontains=query))
-        candidates = list(links.prefetch_related("receiving_batches"))
         now = timezone.now()
-        for link in candidates:
-            _prepare_stock_link(link, request.user, inventory, now)
-            if not selected_status or _reorder_status(link) == selected_status:
-                product_links.append(link)
+        links = links.annotate(display_quarantine_units=Sum(Case(
+            When(receiving_batches__expiry_date__lte=now.astimezone(SINGAPORE).date(),
+                 then=F("receiving_batches__remaining_quantity_units")),
+            default=F("receiving_batches__quarantined_quantity_units"),
+        ), default=0))
+        if selected_status:
+            links = [link for link in _prepare_stock_list(links, at=now) if _reorder_status(link) == selected_status]
+        page = Paginator(links, 25).get_page(request.GET.get("page"))
+        product_links = page.object_list if selected_status else _prepare_stock_list(page.object_list, at=now)
+        if can_adjust_stock:
+            manageable = manageable_lifecycle_product_ids(
+                request.user, inventory.business_id, [link.product_id for link in product_links],
+            )
+            for link in product_links:
+                link.can_manage_lifecycle = link.product_id in manageable
     return render(
         request,
         "catalogue/inventory_products.html",
-        {"inventory": inventory, "product_links": product_links,
+        {"inventory": inventory, "product_links": product_links, "page": page,
          "filter_form": filter_form, "total_product_count": total_product_count,
          "has_filters": bool(request.GET.get("q") or request.GET.get("reorder")),
-         "can_adjust_stock": _is_inventory_manager(request.user, inventory)},
+         "can_adjust_stock": can_adjust_stock},
         status=200 if valid_filters else 400,
     )
+
+
+def _prepare_stock_list(links, *, at):
+    links = list(links)
+    forecasts = forecasts_for_links([link.pk for link in links if link.product.is_active], at=at)
+    for link in links:
+        link.display_physical_units = link.physical_quantity_units
+        link.display_available_units = link.physical_quantity_units - link.display_quarantine_units
+        link.reorder = None
+        if link.product.is_active:
+            link.reorder = recommendation_from_evidence(
+                link.product, link.physical_quantity_units, forecasts[link.pk], link.display_quarantine_units,
+            )
+    return links
 
 
 def _reorder_status(link):

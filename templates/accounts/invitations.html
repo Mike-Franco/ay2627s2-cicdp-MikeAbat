@@ -25,4 +25,5 @@
   {% endif %}
 </div></div>
 {% empty %}<p>No invitations in your current scope.</p>{% endfor %}
+{% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
 {% endblock %}

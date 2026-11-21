@@ -1,5 +1,6 @@
 """Manager-facing Staff list and explicit confirmation flow."""
 
+from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
@@ -20,7 +21,7 @@ def _scoped_staff(request, business_id, target_id=None):
     staff = visible_staff(request.user.pk, business_id)
     if target_id is None:
         return staff
-    target = next((user for user in staff if user.pk == target_id), None)
+    target = staff.filter(pk=target_id).first()
     if target is None:
         raise Http404
     return target
@@ -30,8 +31,9 @@ def _scoped_staff(request, business_id, target_id=None):
 @require_GET
 @account_not_found
 def manager_staff(request, business_id):
+    page = Paginator(_scoped_staff(request, business_id), 25).get_page(request.GET.get("page"))
     return render(request, "accounts/staff.html", {
-        "business_id": business_id, "staff_accounts": _scoped_staff(request, business_id),
+        "business_id": business_id, "staff_accounts": page.object_list, "page": page,
     })
 
 
