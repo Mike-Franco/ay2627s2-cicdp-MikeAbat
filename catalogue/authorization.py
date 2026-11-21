@@ -1,7 +1,6 @@
 from django.db import connection
 
 from inventory_access.authorization import authorized_inventories, get_authorized_inventory
-from inventory_access.models import Inventory
 from inventory_access.models import BusinessMembership, InventoryAssignment
 
 from .models import InventoryProduct
