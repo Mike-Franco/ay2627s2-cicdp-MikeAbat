@@ -1,0 +1,7 @@
+# Caddy obtains and renews the Let's Encrypt certificate for TORY_DOMAIN
+# automatically and redirects HTTP to HTTPS. It sets X-Forwarded-For and
+# X-Forwarded-Proto for gunicorn; untrusted incoming values are replaced.
+{$TORY_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:8000
+}

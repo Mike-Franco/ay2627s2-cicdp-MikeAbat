@@ -1,0 +1,70 @@
+# Staging stack on the VM (ADR-005). Managed by deploy/deploy.sh; do not run by hand
+# without the env files it passes:
+#   .env        secrets and settings written by the CD workflow (mode 600)
+#   .image.env  TORY_IMAGE, the GHCR image currently deployed
+name: tory-staging
+
+services:
+  db:
+    image: postgres:18.3
+    # Managed PostgreSQL offerings cannot set this; demand attribution needs it.
+    command: ["postgres", "-c", "track_commit_timestamp=on"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?}
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    image: ${TORY_IMAGE:?}
+    env_file: .env
+    environment:
+      DJANGO_ENV: staging
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: ${TORY_DOMAIN:?}
+      DJANGO_TRUSTED_PROXY: "true"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      STAFF_INVITATION_PUBLIC_ORIGIN: https://${TORY_DOMAIN:?}
+    # No published ports: only Caddy can reach gunicorn, which is what makes
+    # DJANGO_TRUSTED_PROXY safe.
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/healthz', headers={'Host': os.environ['DJANGO_ALLOWED_HOSTS']}), timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.11.9
+    environment:
+      TORY_DOMAIN: ${TORY_DOMAIN:?}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
