@@ -83,3 +83,36 @@ class OpsAdminTests(TestCase):
         self.audit.refresh_from_db()
         self.assertEqual(self.audit.quantity_after_units, 12)
         self.assertEqual(ReceiptAuditEvent.objects.count(), 1)
+
+    def test_demo_business_name_cannot_be_changed_or_claimed_through_admin(self):
+        # The demo backdating guard is keyed on the "Tory Demo" name (ADR-004).
+        demo = Business.objects.create(name="Tory Demo")
+        other = Business.objects.get(name="Ops business")
+        self.client.force_login(self.superuser)
+
+        demo_change = reverse("admin:inventory_access_business_change", args=(demo.pk,))
+        response = self.client.get(demo_change)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("name", response.context["adminform"].form.fields)
+        self.client.post(demo_change, {"name": "Renamed demo"})
+        demo.refresh_from_db()
+        self.assertEqual(demo.name, "Tory Demo")
+
+        other_change = reverse("admin:inventory_access_business_change", args=(other.pk,))
+        for claimed in ("Tory Demo", " tory demo "):
+            with self.subTest(name=claimed):
+                response = self.client.post(other_change, {"name": claimed})
+                self.assertEqual(response.status_code, 200)
+                self.assertFormError(response.context["adminform"].form, "name",
+                                     '"Tory Demo" is reserved for the demo seed.')
+                other.refresh_from_db()
+                self.assertEqual(other.name, "Ops business")
+
+        response = self.client.post(reverse("admin:inventory_access_business_add"), {"name": "Tory Demo"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Business.objects.filter(name="Tory Demo").count(), 1)
+
+        response = self.client.post(other_change, {"name": "Ops business renamed"})
+        self.assertEqual(response.status_code, 302)
+        other.refresh_from_db()
+        self.assertEqual(other.name, "Ops business renamed")

@@ -1,3 +1,4 @@
+from django import forms
 from django.apps import apps
 from django.contrib import admin
 from django.contrib.admin.models import LogEntry
@@ -5,6 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm
 
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
+from receiving.services import DEMO_BUSINESS_NAME
 
 
 class OpsAdminAuthenticationForm(AuthenticationForm):
@@ -38,11 +40,36 @@ class ReadOnlyAdmin(admin.ModelAdmin):
         return False
 
 
+def _is_demo_business_name(name):
+    return (name or "").strip().casefold() == DEMO_BUSINESS_NAME.casefold()
+
+
+class BusinessAdminForm(forms.ModelForm):
+    class Meta:
+        model = Business
+        fields = ("name",)
+
+    def clean_name(self):
+        # The demo seed's backdating guard (ADR-004) is keyed on this name, so
+        # the admin must not be able to switch it on for another business.
+        name = self.cleaned_data["name"]
+        if _is_demo_business_name(name):
+            raise forms.ValidationError(f'"{DEMO_BUSINESS_NAME}" is reserved for the demo seed.')
+        return name
+
+
 @admin.register(Business, site=ops_admin_site)
 class BusinessAdmin(admin.ModelAdmin):
+    form = BusinessAdminForm
     list_display = ("name", "created_at")
     search_fields = ("name",)
     list_filter = ("created_at",)
+
+    def get_readonly_fields(self, request, obj=None):
+        # The demo business keeps its name so the guard stays tied to it alone.
+        if obj is not None and obj.name == DEMO_BUSINESS_NAME:
+            return ("name",)
+        return ()
 
 
 @admin.register(Inventory, site=ops_admin_site)

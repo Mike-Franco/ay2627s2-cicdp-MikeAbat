@@ -2,17 +2,20 @@ import os
 from datetime import timedelta
 from io import StringIO
 from unittest.mock import patch
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.core.management import CommandError, call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
-from receiving.models import DemandAuditEvent, DemandCoverageEvent, ObservationActivation, ReceiptAuditEvent, ReceivingBatch
+from receiving.models import (DemandAuditEvent, DemandCoverageEvent, ObservationActivation, ReceiptAuditEvent,
+                              ReceivingBatch, StockOut)
+from receiving.services import ReceiptRejected, issue_stock, receive_manual
 
 
 class SeedDemoTests(TestCase):
@@ -77,3 +80,45 @@ class SeedDemoTests(TestCase):
             call_command("seed_demo", stdout=StringIO())
         self.assertFalse(Business.objects.exists())
         self.assertFalse(ObservationActivation.objects.exists())
+
+
+class DemoBackdatingProductionGuardTests(TestCase):
+    """demo_received_at / demo_issued_at must never work in production (ADR-004)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        business = Business.objects.create(name="Tory Demo")
+        cls.inventory = Inventory.objects.create(business=business, name="Demo pharmacy")
+        cls.manager = get_user_model().objects.create_user(email="demo-manager@example.test",
+                                                           password="demo-guard-test-passphrase")
+        membership = BusinessMembership.objects.create(user=cls.manager, business=business,
+                                                       role=BusinessMembership.Role.MANAGER)
+        InventoryAssignment.objects.create(membership=membership, inventory=cls.inventory)
+        cls.product = Product.objects.create(business=business, sku="DEMO-GUARD", name="Guard item",
+                                             base_unit_label="each", expiry_tracking_required=False)
+        InventoryProduct.objects.create(inventory=cls.inventory, product=cls.product)
+
+    def movement(self, **kwargs):
+        return {"user_id": self.manager.pk, "inventory_id": self.inventory.pk, "product_id": self.product.pk,
+                "request_token": uuid4(), **kwargs}
+
+    def test_backdated_receipt_and_issue_are_rejected_in_production(self):
+        past = timezone.now() - timedelta(days=2)
+        receive_manual(**self.movement(quantity_units=10, expiry_date=None))
+        batches, issues = ReceivingBatch.objects.count(), StockOut.objects.count()
+
+        with override_settings(DJANGO_ENV="production"):
+            with self.assertRaisesMessage(ReceiptRejected, "limited to the demo business"):
+                receive_manual(**self.movement(quantity_units=5, expiry_date=None, demo_received_at=past))
+            with self.assertRaisesMessage(ReceiptRejected, "limited to the demo business"):
+                issue_stock(**self.movement(quantity_units=1, demo_issued_at=past))
+        self.assertEqual(ReceivingBatch.objects.count(), batches)
+        self.assertEqual(StockOut.objects.count(), issues)
+
+        # Control: the same calls succeed outside production, so the
+        # environment check is what rejected them above.
+        with override_settings(DJANGO_ENV="development"):
+            batch, _ = receive_manual(**self.movement(quantity_units=5, expiry_date=None, demo_received_at=past))
+            issue_stock(**self.movement(quantity_units=1, demo_issued_at=past))
+        self.assertEqual(batch.received_at, past)
+        self.assertEqual(StockOut.objects.count(), issues + 1)
