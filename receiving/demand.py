@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, time, timedelta, timezone as utc_timezone
+from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
 from fractions import Fraction
 
@@ -15,9 +15,14 @@ from django.utils import timezone
 from inventory_access.models import BusinessMembership
 
 from .commit_times import finalize_stock_import, tracking_enabled
-from .models import (DemandAuditEvent, DemandCoverageDay, DemandCoverageEvent,
-                     ObservationActivation, StockImport)
-from .services import ReceiptRejected, SINGAPORE, _lock_authorized_scope
+from .models import (
+    DemandAuditEvent,
+    DemandCoverageDay,
+    DemandCoverageEvent,
+    ObservationActivation,
+    StockImport,
+)
+from .services import SINGAPORE, ReceiptRejected, _lock_authorized_scope
 
 
 @dataclass(frozen=True)
@@ -98,8 +103,8 @@ def mark_demand_day_incomplete(*, user_id, inventory_id, product_id, day, reason
 
 
 def _totals(scope, start, end, *, group_by=()):
-    start_at = datetime.combine(start, time.min, SINGAPORE).astimezone(utc_timezone.utc)
-    end_at = datetime.combine(end, time.min, SINGAPORE).astimezone(utc_timezone.utc)
+    start_at = datetime.combine(start, time.min, SINGAPORE).astimezone(UTC)
+    end_at = datetime.combine(end, time.min, SINGAPORE).astimezone(UTC)
     totals = {}
     manual = DemandAuditEvent.objects.filter(
         **scope, stock_out__import_record__isnull=True,
