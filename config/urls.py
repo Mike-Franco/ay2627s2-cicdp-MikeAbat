@@ -55,4 +55,6 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
 urlpatterns += [
     path("inventories/<int:inventory_id>/products/stock.csv", catalogue_views.export_inventory_stock, name="export-inventory-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/history.csv", catalogue_views.export_stock_history, name="export-stock-history"),
+    path("inventories/<int:inventory_id>/products/new/", catalogue_views.product_create, name="product-create"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/edit/", catalogue_views.product_edit, name="product-edit"),
 ]

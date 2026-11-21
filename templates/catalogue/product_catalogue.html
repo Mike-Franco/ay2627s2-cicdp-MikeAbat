@@ -2,7 +2,16 @@
 {% block title %}Product catalogue · Tory{% endblock %}
 {% block breadcrumb %}Catalogue{% endblock %}
 {% block content %}
-<h1>Product catalogue</h1>
+<div class="products-heading">
+  <h1>Product catalogue</h1>
+  {% if create_inventories %}
+  <div class="heading-actions">
+    {% for inventory in create_inventories %}
+    <a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product{% if create_inventories|length > 1 %} · {{ inventory.business.name }}{% endif %}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
 {% if product_links %}
   <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {{ link.inventory.name }}</span></li>{% endfor %}</ul>
 {% else %}
