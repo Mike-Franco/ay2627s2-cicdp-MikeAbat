@@ -101,6 +101,7 @@ class ProductLifecycleAuditEvent(models.Model):
     occurred_at = models.DateTimeField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-occurred_at"], name="lifecycle_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(
                 condition=(Q(action="deactivate", previous_is_active=True, new_is_active=False)

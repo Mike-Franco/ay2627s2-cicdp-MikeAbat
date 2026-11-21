@@ -1,0 +1,199 @@
+Stock history (50 newest audit rows)
+Limit  (cost=102.04..102.17 rows=50 width=48) (actual time=1.294..1.306 rows=50.00 loops=1)
+  Output: receiving_receiptauditevent.occurred_at, ('receipt'::text), receiving_receiptauditevent.id
+  Buffers: shared hit=32
+  ->  Sort  (cost=102.04..104.56 rows=1006 width=48) (actual time=1.292..1.299 rows=50.00 loops=1)
+        Output: receiving_receiptauditevent.occurred_at, ('receipt'::text), receiving_receiptauditevent.id
+        Sort Key: receiving_receiptauditevent.occurred_at DESC, ('receipt'::text) DESC, receiving_receiptauditevent.id DESC
+        Sort Method: top-N heapsort  Memory: 32kB
+        Buffers: shared hit=32
+        ->  Append  (cost=0.00..68.62 rows=1006 width=48) (actual time=0.048..0.868 rows=1011.00 loops=1)
+              Buffers: shared hit=26
+              ->  Seq Scan on public.receiving_receiptauditevent  (cost=0.00..35.62 rows=1001 width=48) (actual time=0.047..0.601 rows=1005.00 loops=1)
+                    Output: receiving_receiptauditevent.occurred_at, 'receipt'::text, receiving_receiptauditevent.id
+                    Filter: ((receiving_receiptauditevent.business_id = 1) AND (receiving_receiptauditevent.inventory_id = 1) AND (receiving_receiptauditevent.product_id = 1))
+                    Rows Removed by Filter: 2
+                    Buffers: shared hit=18
+              ->  Seq Scan on public.receiving_demandauditevent  (cost=0.00..1.07 rows=1 width=48) (actual time=0.040..0.041 rows=3.00 loops=1)
+                    Output: receiving_demandauditevent.occurred_at, 'issue'::text, receiving_demandauditevent.id
+                    Filter: ((receiving_demandauditevent.business_id = 1) AND (receiving_demandauditevent.inventory_id = 1) AND (receiving_demandauditevent.product_id = 1))
+                    Rows Removed by Filter: 1
+                    Buffers: shared hit=1
+              ->  Seq Scan on public.receiving_stockadjustmentauditevent  (cost=0.00..1.05 rows=1 width=48) (actual time=0.037..0.038 rows=3.00 loops=1)
+                    Output: receiving_stockadjustmentauditevent.occurred_at, 'adjustment'::text, receiving_stockadjustmentauditevent.id
+                    Filter: ((receiving_stockadjustmentauditevent.business_id = 1) AND (receiving_stockadjustmentauditevent.inventory_id = 1) AND (receiving_stockadjustmentauditevent.product_id = 1))
+                    Buffers: shared hit=1
+              ->  Index Scan using expiry_inv_time_idx on public.receiving_expiryquarantineevent  (cost=0.14..8.17 rows=1 width=48) (actual time=0.014..0.014 rows=0.00 loops=1)
+                    Output: receiving_expiryquarantineevent.recorded_at, 'quarantine'::text, receiving_expiryquarantineevent.id
+                    Index Cond: (receiving_expiryquarantineevent.inventory_id = 1)
+                    Filter: ((receiving_expiryquarantineevent.business_id = 1) AND (receiving_expiryquarantineevent.product_id = 1))
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Index Scan using disposal_inv_time_idx on public.receiving_disposalauditevent  (cost=0.14..8.17 rows=1 width=48) (actual time=0.022..0.022 rows=0.00 loops=1)
+                    Output: receiving_disposalauditevent.occurred_at, 'disposal'::text, receiving_disposalauditevent.id
+                    Index Cond: (receiving_disposalauditevent.inventory_id = 1)
+                    Filter: ((receiving_disposalauditevent.business_id = 1) AND (receiving_disposalauditevent.product_id = 1))
+                    Index Searches: 1
+                    Buffers: shared hit=2
+              ->  Bitmap Heap Scan on public.catalogue_productlifecycleauditevent  (cost=4.16..9.51 rows=1 width=48) (actual time=0.047..0.047 rows=0.00 loops=1)
+                    Output: catalogue_productlifecycleauditevent.occurred_at, 'lifecycle'::text, catalogue_productlifecycleauditevent.id
+                    Recheck Cond: (catalogue_productlifecycleauditevent.inventory_id = 1)
+                    Filter: ((catalogue_productlifecycleauditevent.business_id = 1) AND (catalogue_productlifecycleauditevent.product_id = 1))
+                    Buffers: shared hit=2
+                    ->  Bitmap Index Scan on lifecycle_inv_time_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.004..0.004 rows=0.00 loops=1)
+                          Index Cond: (catalogue_productlifecycleauditevent.inventory_id = 1)
+                          Index Searches: 1
+                          Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=704 read=6
+Planning Time: 84.030 ms
+Execution Time: 1.447 ms
+
+Dashboard recent activity (10 newest rows)
+Limit  (cost=159.89..159.91 rows=9 width=434) (actual time=2.395..2.407 rows=10.00 loops=1)
+  Output: receiving_receiptauditevent.id, receiving_receiptauditevent.inventory_id, receiving_receiptauditevent.product_id, inventory_access_inventory.name, catalogue_product.name, ('Received'::text), receiving_receiptauditevent.occurred_at
+  Buffers: shared hit=47
+  ->  Sort  (cost=159.89..159.91 rows=9 width=434) (actual time=2.394..2.405 rows=10.00 loops=1)
+        Output: receiving_receiptauditevent.id, receiving_receiptauditevent.inventory_id, receiving_receiptauditevent.product_id, inventory_access_inventory.name, catalogue_product.name, ('Received'::text), receiving_receiptauditevent.occurred_at
+        Sort Key: receiving_receiptauditevent.occurred_at DESC, ('Received'::text), receiving_receiptauditevent.id DESC
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=47
+        ->  Append  (cost=15.15..159.74 rows=9 width=434) (actual time=0.268..1.876 rows=1014.00 loops=1)
+              Buffers: shared hit=47
+              ->  Nested Loop  (cost=15.15..51.53 rows=5 width=434) (actual time=0.267..1.446 rows=1007.00 loops=1)
+                    Output: receiving_receiptauditevent.id, receiving_receiptauditevent.inventory_id, receiving_receiptauditevent.product_id, inventory_access_inventory.name, catalogue_product.name, 'Received'::text, receiving_receiptauditevent.occurred_at
+                    Inner Unique: true
+                    Buffers: shared hit=23
+                    ->  Hash Join  (cost=15.00..50.86 rows=5 width=370) (actual time=0.120..0.747 rows=1007.00 loops=1)
+                          Output: receiving_receiptauditevent.id, receiving_receiptauditevent.inventory_id, receiving_receiptauditevent.product_id, receiving_receiptauditevent.occurred_at, inventory_access_inventory.name
+                          Inner Unique: true
+                          Hash Cond: ((receiving_receiptauditevent.inventory_id = inventory_access_inventory.id) AND (receiving_receiptauditevent.business_id = inventory_access_inventory.business_id))
+                          Buffers: shared hit=19
+                          ->  Seq Scan on public.receiving_receiptauditevent  (cost=0.00..30.59 rows=1005 width=40) (actual time=0.043..0.306 rows=1007.00 loops=1)
+                                Output: receiving_receiptauditevent.id, receiving_receiptauditevent.source, receiving_receiptauditevent.action, receiving_receiptauditevent.classification, receiving_receiptauditevent.quantity_before_units, receiving_receiptauditevent.quantity_change_units, receiving_receiptauditevent.quantity_after_units, receiving_receiptauditevent.occurred_at, receiving_receiptauditevent.actor_id, receiving_receiptauditevent.business_id, receiving_receiptauditevent.inventory_id, receiving_receiptauditevent.product_id, receiving_receiptauditevent.batch_id
+                                Filter: (receiving_receiptauditevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                Buffers: shared hit=18
+                          ->  Hash  (cost=12.00..12.00 rows=200 width=354) (actual time=0.033..0.034 rows=2.00 loops=1)
+                                Output: inventory_access_inventory.name, inventory_access_inventory.id, inventory_access_inventory.business_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on public.inventory_access_inventory  (cost=0.00..12.00 rows=200 width=354) (actual time=0.019..0.021 rows=2.00 loops=1)
+                                      Output: inventory_access_inventory.name, inventory_access_inventory.id, inventory_access_inventory.business_id
+                                      Buffers: shared hit=1
+                    ->  Memoize  (cost=0.15..0.22 rows=1 width=40) (actual time=0.000..0.000 rows=1.00 loops=1007)
+                          Output: catalogue_product.name, catalogue_product.id
+                          Cache Key: receiving_receiptauditevent.product_id
+                          Cache Mode: logical
+                          Hits: 1005  Misses: 2  Evictions: 0  Overflows: 0  Memory Usage: 1kB
+                          Buffers: shared hit=4
+                          ->  Index Scan using catalogue_product_pkey on public.catalogue_product  (cost=0.14..0.21 rows=1 width=40) (actual time=0.068..0.068 rows=1.00 loops=2)
+                                Output: catalogue_product.name, catalogue_product.id
+                                Index Cond: (catalogue_product.id = receiving_receiptauditevent.product_id)
+                                Index Searches: 2
+                                Buffers: shared hit=4
+              ->  Nested Loop  (cost=1.23..22.82 rows=1 width=434) (actual time=0.123..0.133 rows=4.00 loops=1)
+                    Output: receiving_demandauditevent.id, receiving_demandauditevent.inventory_id, receiving_demandauditevent.product_id, inventory_access_inventory_1.name, catalogue_product_1.name, 'Issued'::text, receiving_demandauditevent.occurred_at
+                    Inner Unique: true
+                    Buffers: shared hit=10
+                    ->  Hash Join  (cost=1.08..14.59 rows=1 width=370) (actual time=0.100..0.103 rows=4.00 loops=1)
+                          Output: receiving_demandauditevent.id, receiving_demandauditevent.inventory_id, receiving_demandauditevent.product_id, receiving_demandauditevent.occurred_at, inventory_access_inventory_1.name
+                          Hash Cond: ((inventory_access_inventory_1.id = receiving_demandauditevent.inventory_id) AND (inventory_access_inventory_1.business_id = receiving_demandauditevent.business_id))
+                          Buffers: shared hit=2
+                          ->  Seq Scan on public.inventory_access_inventory inventory_access_inventory_1  (cost=0.00..12.00 rows=200 width=354) (actual time=0.036..0.037 rows=2.00 loops=1)
+                                Output: inventory_access_inventory_1.id, inventory_access_inventory_1.name, inventory_access_inventory_1.is_active, inventory_access_inventory_1.created_at, inventory_access_inventory_1.business_id
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=1.05..1.05 rows=2 width=40) (actual time=0.041..0.042 rows=4.00 loops=1)
+                                Output: receiving_demandauditevent.id, receiving_demandauditevent.inventory_id, receiving_demandauditevent.product_id, receiving_demandauditevent.occurred_at, receiving_demandauditevent.business_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on public.receiving_demandauditevent  (cost=0.00..1.05 rows=2 width=40) (actual time=0.021..0.022 rows=4.00 loops=1)
+                                      Output: receiving_demandauditevent.id, receiving_demandauditevent.inventory_id, receiving_demandauditevent.product_id, receiving_demandauditevent.occurred_at, receiving_demandauditevent.business_id
+                                      Filter: (receiving_demandauditevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                      Buffers: shared hit=1
+                    ->  Index Scan using catalogue_product_pkey on public.catalogue_product catalogue_product_1  (cost=0.14..8.16 rows=1 width=40) (actual time=0.006..0.006 rows=1.00 loops=4)
+                          Output: catalogue_product_1.name, catalogue_product_1.id
+                          Index Cond: (catalogue_product_1.id = receiving_demandauditevent.product_id)
+                          Index Searches: 4
+                          Buffers: shared hit=8
+              ->  Nested Loop  (cost=1.21..22.81 rows=1 width=434) (actual time=0.079..0.086 rows=3.00 loops=1)
+                    Output: receiving_stockadjustmentauditevent.id, receiving_stockadjustmentauditevent.inventory_id, receiving_stockadjustmentauditevent.product_id, inventory_access_inventory_2.name, catalogue_product_2.name, 'Count adjusted'::text, receiving_stockadjustmentauditevent.occurred_at
+                    Inner Unique: true
+                    Buffers: shared hit=8
+                    ->  Hash Join  (cost=1.07..14.58 rows=1 width=370) (actual time=0.061..0.063 rows=3.00 loops=1)
+                          Output: receiving_stockadjustmentauditevent.id, receiving_stockadjustmentauditevent.inventory_id, receiving_stockadjustmentauditevent.product_id, receiving_stockadjustmentauditevent.occurred_at, inventory_access_inventory_2.name
+                          Hash Cond: ((inventory_access_inventory_2.id = receiving_stockadjustmentauditevent.inventory_id) AND (inventory_access_inventory_2.business_id = receiving_stockadjustmentauditevent.business_id))
+                          Buffers: shared hit=2
+                          ->  Seq Scan on public.inventory_access_inventory inventory_access_inventory_2  (cost=0.00..12.00 rows=200 width=354) (actual time=0.014..0.014 rows=2.00 loops=1)
+                                Output: inventory_access_inventory_2.id, inventory_access_inventory_2.name, inventory_access_inventory_2.is_active, inventory_access_inventory_2.created_at, inventory_access_inventory_2.business_id
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=1.04..1.04 rows=2 width=40) (actual time=0.029..0.029 rows=3.00 loops=1)
+                                Output: receiving_stockadjustmentauditevent.id, receiving_stockadjustmentauditevent.inventory_id, receiving_stockadjustmentauditevent.product_id, receiving_stockadjustmentauditevent.occurred_at, receiving_stockadjustmentauditevent.business_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                Buffers: shared hit=1
+                                ->  Seq Scan on public.receiving_stockadjustmentauditevent  (cost=0.00..1.04 rows=2 width=40) (actual time=0.017..0.018 rows=3.00 loops=1)
+                                      Output: receiving_stockadjustmentauditevent.id, receiving_stockadjustmentauditevent.inventory_id, receiving_stockadjustmentauditevent.product_id, receiving_stockadjustmentauditevent.occurred_at, receiving_stockadjustmentauditevent.business_id
+                                      Filter: (receiving_stockadjustmentauditevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                      Buffers: shared hit=1
+                    ->  Index Scan using catalogue_product_pkey on public.catalogue_product catalogue_product_2  (cost=0.14..8.16 rows=1 width=40) (actual time=0.006..0.006 rows=1.00 loops=3)
+                          Output: catalogue_product_2.name, catalogue_product_2.id
+                          Index Cond: (catalogue_product_2.id = receiving_stockadjustmentauditevent.product_id)
+                          Index Searches: 3
+                          Buffers: shared hit=6
+              ->  Nested Loop  (cost=9.68..31.27 rows=1 width=434) (actual time=0.058..0.059 rows=0.00 loops=1)
+                    Output: receiving_expiryquarantineevent.id, receiving_expiryquarantineevent.inventory_id, receiving_expiryquarantineevent.product_id, inventory_access_inventory_3.name, catalogue_product_3.name, 'Quarantined'::text, receiving_expiryquarantineevent.recorded_at
+                    Inner Unique: true
+                    Buffers: shared hit=3
+                    ->  Hash Join  (cost=9.53..23.04 rows=1 width=370) (actual time=0.057..0.058 rows=0.00 loops=1)
+                          Output: receiving_expiryquarantineevent.id, receiving_expiryquarantineevent.inventory_id, receiving_expiryquarantineevent.product_id, receiving_expiryquarantineevent.recorded_at, inventory_access_inventory_3.name
+                          Hash Cond: ((inventory_access_inventory_3.id = receiving_expiryquarantineevent.inventory_id) AND (inventory_access_inventory_3.business_id = receiving_expiryquarantineevent.business_id))
+                          Buffers: shared hit=3
+                          ->  Seq Scan on public.inventory_access_inventory inventory_access_inventory_3  (cost=0.00..12.00 rows=200 width=354) (actual time=0.013..0.013 rows=1.00 loops=1)
+                                Output: inventory_access_inventory_3.id, inventory_access_inventory_3.name, inventory_access_inventory_3.is_active, inventory_access_inventory_3.created_at, inventory_access_inventory_3.business_id
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=9.50..9.50 rows=2 width=40) (actual time=0.030..0.030 rows=0.00 loops=1)
+                                Output: receiving_expiryquarantineevent.id, receiving_expiryquarantineevent.inventory_id, receiving_expiryquarantineevent.product_id, receiving_expiryquarantineevent.recorded_at, receiving_expiryquarantineevent.business_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 8kB
+                                Buffers: shared hit=2
+                                ->  Bitmap Heap Scan on public.receiving_expiryquarantineevent  (cost=4.16..9.50 rows=2 width=40) (actual time=0.028..0.028 rows=0.00 loops=1)
+                                      Output: receiving_expiryquarantineevent.id, receiving_expiryquarantineevent.inventory_id, receiving_expiryquarantineevent.product_id, receiving_expiryquarantineevent.recorded_at, receiving_expiryquarantineevent.business_id
+                                      Recheck Cond: (receiving_expiryquarantineevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                      Buffers: shared hit=2
+                                      ->  Bitmap Index Scan on expiry_inv_time_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.011..0.011 rows=0.00 loops=1)
+                                            Index Cond: (receiving_expiryquarantineevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                            Index Searches: 1
+                                            Buffers: shared hit=2
+                    ->  Index Scan using catalogue_product_pkey on public.catalogue_product catalogue_product_3  (cost=0.14..8.16 rows=1 width=40) (never executed)
+                          Output: catalogue_product_3.name, catalogue_product_3.id
+                          Index Cond: (catalogue_product_3.id = receiving_expiryquarantineevent.product_id)
+                          Index Searches: 0
+              ->  Nested Loop  (cost=9.68..31.27 rows=1 width=434) (actual time=0.062..0.064 rows=0.00 loops=1)
+                    Output: receiving_disposalauditevent.id, receiving_disposalauditevent.inventory_id, receiving_disposalauditevent.product_id, inventory_access_inventory_4.name, catalogue_product_4.name, 'Disposed'::text, receiving_disposalauditevent.occurred_at
+                    Inner Unique: true
+                    Buffers: shared hit=3
+                    ->  Hash Join  (cost=9.53..23.04 rows=1 width=370) (actual time=0.062..0.063 rows=0.00 loops=1)
+                          Output: receiving_disposalauditevent.id, receiving_disposalauditevent.inventory_id, receiving_disposalauditevent.product_id, receiving_disposalauditevent.occurred_at, inventory_access_inventory_4.name
+                          Hash Cond: ((inventory_access_inventory_4.id = receiving_disposalauditevent.inventory_id) AND (inventory_access_inventory_4.business_id = receiving_disposalauditevent.business_id))
+                          Buffers: shared hit=3
+                          ->  Seq Scan on public.inventory_access_inventory inventory_access_inventory_4  (cost=0.00..12.00 rows=200 width=354) (actual time=0.010..0.010 rows=1.00 loops=1)
+                                Output: inventory_access_inventory_4.id, inventory_access_inventory_4.name, inventory_access_inventory_4.is_active, inventory_access_inventory_4.created_at, inventory_access_inventory_4.business_id
+                                Buffers: shared hit=1
+                          ->  Hash  (cost=9.50..9.50 rows=2 width=40) (actual time=0.026..0.026 rows=0.00 loops=1)
+                                Output: receiving_disposalauditevent.id, receiving_disposalauditevent.inventory_id, receiving_disposalauditevent.product_id, receiving_disposalauditevent.occurred_at, receiving_disposalauditevent.business_id
+                                Buckets: 1024  Batches: 1  Memory Usage: 8kB
+                                Buffers: shared hit=2
+                                ->  Bitmap Heap Scan on public.receiving_disposalauditevent  (cost=4.16..9.50 rows=2 width=40) (actual time=0.025..0.026 rows=0.00 loops=1)
+                                      Output: receiving_disposalauditevent.id, receiving_disposalauditevent.inventory_id, receiving_disposalauditevent.product_id, receiving_disposalauditevent.occurred_at, receiving_disposalauditevent.business_id
+                                      Recheck Cond: (receiving_disposalauditevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                      Buffers: shared hit=2
+                                      ->  Bitmap Index Scan on disposal_inv_time_idx  (cost=0.00..4.16 rows=2 width=0) (actual time=0.008..0.009 rows=0.00 loops=1)
+                                            Index Cond: (receiving_disposalauditevent.inventory_id = ANY ('{1,2}'::bigint[]))
+                                            Index Searches: 1
+                                            Buffers: shared hit=2
+                    ->  Index Scan using catalogue_product_pkey on public.catalogue_product catalogue_product_4  (cost=0.14..8.16 rows=1 width=40) (never executed)
+                          Output: catalogue_product_4.name, catalogue_product_4.id
+                          Index Cond: (catalogue_product_4.id = receiving_disposalauditevent.product_id)
+                          Index Searches: 0
+Planning:
+  Buffers: shared hit=189
+Planning Time: 15.088 ms
+Execution Time: 3.008 ms
