@@ -1,0 +1,36 @@
+# Version control and CI metadata
+.git
+.github
+.gitattributes
+
+# Local environments and secrets
+.venv
+venv
+env
+ENV
+.env
+.env.*
+
+# Caches and generated output
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+coverage.xml
+htmlcov
+staticfiles
+*.log
+*.dump
+*.backup
+*.sqlite3
+
+# Not needed at runtime
+benchmark-results
+docs
+Dockerfile
+docker-compose.yml
+.dockerignore
+.idea
+.vscode

@@ -50,6 +50,30 @@ The [documentation workflow](.github/workflows/docs-ci.yml) runs on pushes to `m
 
 Run locally with `python scripts/check_docs.py` (or `python3 scripts/check_docs.py`). After a push or pull request to `main` or `develop`, check **Actions → Documentation CI → Check documentation** for the intended commit. The Django/PostgreSQL workflow is separate; PR #20 contains its controlled failing and restored passing test commits. Record the corresponding hosted run URLs when available.
 
+## Quick start with Docker
+
+With Docker Desktop (or Docker Engine with the Compose plugin) installed, run from the repository root:
+
+```text
+docker compose up --build
+```
+
+Then open <http://localhost:8000/login/>. Compose starts PostgreSQL 18 with `track_commit_timestamp=on`, waits for its healthcheck, builds the Tory image, applies migrations on start and serves the app with gunicorn and WhiteNoise. To create the first Manager account:
+
+```text
+docker compose exec web python manage.py bootstrap_manager --business-name "Harbour Clinic" --manager-email manager@example.com --inventory "Main Store"
+```
+
+Run the full test suite inside the container with:
+
+```text
+docker compose run --rm -e DJANGO_ENV=test -e DJANGO_MIGRATE_ON_START=false web python manage.py test --noinput
+```
+
+`GET /healthz` returns `200` when the database answers and `503` when it does not. It needs no sign-in and is exempt from the HTTPS redirect so platform probes can call the container directly. Compose runs in `development` mode with local-only default credentials; set `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`, `POSTGRES_USER`, `POSTGRES_DB`, `DJANGO_ALLOWED_HOSTS` or `TORY_HTTP_PORT` in your shell or a `.env` file to override them. `docker compose down` stops the stack; add `--volumes` to delete the local database.
+
+The image itself defaults to `DJANGO_ENV=production`, runs as an unprivileged `tory` user, and contains no secrets: supply `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS` and the `POSTGRES_*` variables at run time. Set `WEB_CONCURRENCY` to change the gunicorn worker count, or `DJANGO_MIGRATE_ON_START=false` to run migrations as a separate release step.
+
 ## CI quality and security gates
 
 TORY-36 adds these gates. Every push and pull request to `develop` or `main` runs them. A newer push to the same ref cancels the run still in progress.
@@ -61,6 +85,7 @@ TORY-36 adds these gates. Every push and pull request to `develop` or `main` run
 | [Security](.github/workflows/security.yml) | Dependency audit (pip-audit) | a pinned runtime or development requirement has a known vulnerability |
 | | CodeQL (python) | analysis fails; alerts appear under **Security → Code scanning** |
 | | Secret scan (gitleaks) | a secret pattern is found anywhere in the Git history |
+| [Docker image](.github/workflows/docker-ci.yml) | Build image, smoke test and run tests in container | the image fails to build, the stack does not become healthy, `/healthz`, sign-in or static checks fail, the app runs as root, a secret or `.env`/`.git` is in the image, or a test fails in the container |
 
 The Security workflow also runs weekly on Mondays at 02:00 UTC. Each test run uploads the HTML coverage report as the `coverage-html-<sha>` artifact and writes a coverage table to the job summary. [Dependabot](.github/dependabot.yml) opens weekly grouped pull requests into `develop` for pip and GitHub Actions updates. Third-party actions are pinned to full commit SHAs, with the release tag recorded in a comment.
 

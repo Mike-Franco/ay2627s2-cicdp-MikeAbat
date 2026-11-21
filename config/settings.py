@@ -1,6 +1,7 @@
 """Minimal Tory settings; PostgreSQL is required in every environment."""
 
 import os
+import warnings
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -62,6 +63,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -106,6 +108,24 @@ USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+# collectstatic writes here (the container image runs it at build time) and
+# WhiteNoise serves it. Hashed, compressed names are used where the manifest
+# is guaranteed to exist; development and test keep plain names.
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if DJANGO_ENV in {"staging", "production"}
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
+if DJANGO_ENV in {"development", "test"}:
+    # Outside the container image collectstatic has usually not run; the
+    # development static route serves files instead, so the warning is noise.
+    warnings.filterwarnings("ignore", message=r"No directory at: .*staticfiles")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Development settings are not a deployment configuration. Staging/production
@@ -119,6 +139,8 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = DJANGO_ENV in {"staging", "production"}
+# Platform health probes call the container directly over HTTP.
+SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 
