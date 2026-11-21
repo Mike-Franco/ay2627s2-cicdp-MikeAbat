@@ -1,0 +1,3 @@
+{% extends "errors/shell.html" %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}{% include "errors/message.html" with code="500" heading="Something went wrong" message="Tory hit an unexpected error. Your last action may not have been saved; check before trying again." %}{% endblock %}

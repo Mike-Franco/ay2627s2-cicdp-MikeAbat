@@ -46,3 +46,50 @@
 @media(max-width:600px){.balance-grid{grid-template-columns:1fr}.content>form{padding:16px}.product-tabs{gap:18px}}
 @media(max-width:1100px){.product-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.product-filter-actions{grid-column:1/-1;padding-top:0}}
 @media(max-width:600px){.product-filters{grid-template-columns:1fr;padding:0 16px 16px}}
+
+/* TORY-51: dashboard tiles, error pages, activity, cards, mobile product cards. */
+.stat-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.stat-tile{display:flex;flex-direction:column;gap:2px;padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:11px;text-decoration:none;color:var(--ink);box-shadow:0 12px 32px #1111}
+.stat-tile:hover{border-color:var(--accent)}
+.stat-label{font-size:11px;color:var(--muted);font-weight:600}
+.stat-value{font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat-unit{font-size:11px;color:var(--muted)}
+.stat-tile.attention .stat-value{color:var(--attention)}
+.stat-tile.success .stat-value{color:var(--success)}
+.activity-item{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px}
+.error-panel{max-width:560px;margin:40px auto;padding:36px 32px;text-align:center}
+.error-code{font-size:12px;letter-spacing:1.2px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:18px 0}
+.summary-card{padding:16px 18px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.summary-card .stat-value{font-size:24px}
+.help-text{color:var(--muted);font-size:12px;max-width:72ch}
+.inventory-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.inventory-card{display:flex;flex-direction:column;gap:10px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.inventory-card h3{font-size:16px;margin:0}
+.inventory-card .card-stats{display:flex;gap:18px;font-size:12px;color:var(--muted)}
+.inventory-card .card-stats strong{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
+.inventory-card .card-stats .attention strong{color:var(--attention)}
+.actions-compact{display:none}
+.more-menu{position:relative;display:inline-block}
+.more-menu summary{list-style:none}
+.more-menu summary::-webkit-details-marker{display:none}
+.more-items{position:absolute;right:0;z-index:5;min-width:150px;margin-top:4px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 12px 32px #1112}
+.more-items a{display:block;padding:7px 9px;border-radius:5px;text-decoration:none;font-size:12px}
+.more-items a:hover{background:var(--subtle)}
+.mobile-label{display:none}
+.staff-table{min-width:640px}
+@media(max-width:700px){
+  .products-table.product-cards{min-width:0}
+  .products-table.product-cards thead{display:none}
+  .products-table.product-cards tbody tr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"product available" "sku available" "status status" "actions actions";gap:6px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .products-table.product-cards tbody tr:hover{background:none}
+  .products-table.product-cards tbody th,.products-table.product-cards tbody td{padding:0;border:0}
+  .products-table.product-cards .cell-product{grid-area:product}
+  .products-table.product-cards .cell-sku{grid-area:sku;font-size:11px}
+  .products-table.product-cards .cell-available{grid-area:available;align-self:center;font-size:24px}
+  .products-table.product-cards .cell-status{grid-area:status}
+  .products-table.product-cards .cell-actions{grid-area:actions;min-width:0}
+  .products-table.product-cards .cell-physical,.products-table.product-cards .cell-quarantine,.actions-full{display:none}
+  .actions-compact{display:flex;flex-wrap:wrap;gap:6px}
+  .mobile-label{display:block;font-size:10px;font-weight:600;color:var(--muted)}
+}

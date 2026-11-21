@@ -9,7 +9,7 @@
 {% if imported %}<div class="alert alert-success" role="status">Import recorded: {{ imported.pk }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
-  <div class="mb-3">{{ form.file.label_tag }}{{ form.file }}{{ form.file.errors }}</div>
+  <div class="mb-3"><label class="form-label" for="{{ form.file.id_for_label }}">CSV file</label>{{ form.file }}{{ form.file.errors }}</div>
   <button class="btn btn-primary" type="submit">Import CSV</button>
 </form>
 <a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>

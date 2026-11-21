@@ -6,7 +6,8 @@
 <p>{{ business.name }}</p>
 <form method="post" class="panel p-3">
   {% csrf_token %}
-  {{ form.as_div }}
+  {{ form.non_field_errors }}
+  <div class="mb-3"><label class="form-label" for="{{ form.name.id_for_label }}">Inventory name</label>{{ form.name }}{{ form.name.errors }}</div>
   <button class="btn btn-primary" type="submit">{% if inventory %}Save changes{% else %}Add inventory{% endif %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'inventory-list' %}">Cancel</a>
 </form>
