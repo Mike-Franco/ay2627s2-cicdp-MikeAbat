@@ -22,6 +22,24 @@ def get_authorized_inventory(user, inventory_id):
     return authorized_inventories(user).get(pk=inventory_id)
 
 
+def manager_memberships(user):
+    """Active Manager memberships that may administer inventories."""
+    if not user.is_authenticated or not user.is_active:
+        return BusinessMembership.objects.none()
+    return BusinessMembership.objects.filter(
+        user=user, is_active=True, role=BusinessMembership.Role.MANAGER,
+    )
+
+
+def manageable_inventories(user):
+    """Return assigned inventories, including inactive shelves awaiting reactivation."""
+    return Inventory.objects.filter(
+        assignments__is_active=True,
+        assignments__membership__in=manager_memberships(user),
+        assignments__membership__business_id=F("business_id"),
+    ).distinct()
+
+
 def assign_staff_inventory(actor, staff_membership, inventory):
     """Assign Staff only where the Manager already has current same-business access."""
     actor_membership = BusinessMembership.objects.filter(

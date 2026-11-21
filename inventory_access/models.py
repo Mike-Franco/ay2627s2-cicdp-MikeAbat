@@ -1,6 +1,9 @@
+from typing import ClassVar
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.functions import Lower, Trim
 
 
 class Business(models.Model):
@@ -36,6 +39,15 @@ class Inventory(models.Model):
 
     class Meta:
         ordering = ["name", "pk"]
+        constraints: ClassVar = [
+            models.UniqueConstraint(
+                "business", Lower(Trim("name")), name="unique_inventory_business_name_ci",
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} — {self.business}"
@@ -64,3 +76,30 @@ class InventoryAssignment(models.Model):
 
     def __str__(self):
         return f"{self.membership} → {self.inventory}"
+
+
+class InventoryChangeAuditEvent(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "create", "Create"
+        RENAME = "rename", "Rename"
+        DEACTIVATE = "deactivate", "Deactivate"
+        REACTIVATE = "reactivate", "Reactivate"
+
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    business = models.ForeignKey(Business, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="change_audit_events")
+    action = models.CharField(max_length=10, choices=Action.choices)
+    before = models.JSONField(null=True)
+    after = models.JSONField()
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints: ClassVar = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(action="create", before__isnull=True)
+                    | models.Q(action__in=("rename", "deactivate", "reactivate"), before__isnull=False)
+                ),
+                name="inventory_change_action_before",
+            ),
+        ]
