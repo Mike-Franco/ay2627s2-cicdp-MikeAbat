@@ -99,6 +99,10 @@ DATABASES = {
         "PASSWORD": required_env("POSTGRES_PASSWORD"),
         "HOST": required_env("POSTGRES_HOST"),
         "PORT": required_env("POSTGRES_PORT"),
+        # Reuse connections across requests in a worker; health checks drop a
+        # stale connection (for example after a database restart) before use.
+        "CONN_MAX_AGE": 60,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 
