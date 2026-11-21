@@ -6,7 +6,8 @@ from django.db.models import Case, F, Sum, Value, When
 from catalogue.authorization import visible_product_links
 from catalogue.reorder import recommendation_from_evidence
 from inventory_access.authorization import authorized_inventories
-from receiving.demand import available_forecasts_for_links
+from inventory_access.models import BusinessMembership
+from receiving.demand import available_forecasts_for_links, unreviewed_demand_days
 from receiving.models import (
     DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent, ReceiptAuditEvent,
     ReceivingBatch, StockAdjustmentAuditEvent,
@@ -73,7 +74,15 @@ def inventory_dashboard(user, *, at):
     ).select_related("product", "inventory").order_by("expiry_date", "pk"):
         batch.eligible_units = batch.remaining_quantity_units - batch.quarantined_quantity_units
         (expiring_week if batch.expiry_date <= seven_days else expiring_later).append(batch)
+    managed_ids = set(BusinessMembership.objects.filter(
+        user=user, is_active=True, role=BusinessMembership.Role.MANAGER,
+        inventory_assignments__is_active=True,
+        inventory_assignments__inventory__in=inventories,
+    ).values_list("inventory_assignments__inventory_id", flat=True))
+    unreviewed = unreviewed_demand_days(sorted(managed_ids), at=at)
     return {
+        "unreviewed_demand": [(inventory, unreviewed[inventory.pk]) for inventory in inventories
+                              if unreviewed.get(inventory.pk)],
         "inventory_totals": [(inventory, inventory_totals[inventory.pk]) for inventory in inventories],
         "low_stock": low_stock,
         "reorder_unavailable": sum(link.product.is_active for link in links) - checked_count,

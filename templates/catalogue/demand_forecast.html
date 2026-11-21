@@ -28,11 +28,13 @@ Available to issue: {{ reorder.available_units }} units ({{ reorder.quarantined_
   <p>{% if reorder.alert %}<strong>Reorder alert</strong>: available stock is at or below the point.{% else %}No reorder alert: available stock is above the point.{% endif %}</p>
   <p>Suggested quantity: <strong>{{ reorder.suggested_units }} units</strong> (maximum of zero and the ceiling of reorder point minus {{ reorder.available_units }} available units). Pending deliveries are excluded.</p>
 {% endif %}
-<ul>
+<h2 class="h5 mt-4">Demand dates</h2>
+<ul class="list-unstyled d-flex flex-wrap gap-2" aria-label="Verification status of the previous seven Singapore dates">
   {% for day, state in forecast.days %}
-    <li>{{ day|date:"Y-m-d" }}: {{ state }}</li>
+    <li><span class="status-pill {% if state == 'verified' %}success{% elif state == 'missing' %}neutral{% else %}attention{% endif %}">{{ day|date:"D j M" }} · {% if state == 'verified' %}Verified{% elif state == 'missing' %}Unverified{% elif state == 'incomplete' %}Incomplete{% elif state == 'invalidated' %}Changed after verification{% else %}{{ state }}{% endif %}</span></li>
   {% endfor %}
 </ul>
+{% if is_manager and observation_active %}<p><a href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand for all products in {{ inventory.name }}</a></p>{% endif %}
 {% if is_manager and observation_active %}
   <form method="post">
     {% csrf_token %}

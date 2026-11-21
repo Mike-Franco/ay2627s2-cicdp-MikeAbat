@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Verify demand · {{ inventory.name }} · Tory{% endblock %}
+{% block breadcrumb %}Verify demand{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <div><p class="eyebrow">{{ inventory.name }}</p><h1>Verify demand for all products</h1>
+  <p>Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates.</p></div>
+</div>
+{% if result %}
+<section class="panel mb-3" aria-labelledby="bulk-result" role="status">
+  <div class="panel-heading">
+    <h2 id="bulk-result">Verified {{ result.verified|length }} product-day{{ result.verified|length|pluralize }}, skipped {{ result.skipped|length }}</h2>
+    <p>{% for day in result.days %}{{ day|date:"j M Y" }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  </div>
+  {% if result.skipped_reasons %}
+  <ul class="list-group list-group-flush">
+    {% for reason, count in result.skipped_reasons %}
+    <li class="list-group-item">Skipped {{ count }}: {{ reason }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+<section class="panel" aria-labelledby="bulk-form">
+  <div class="panel-heading"><h2 id="bulk-form">Dates to verify</h2>
+  <p>{% if window %}Reviewable: {{ window.0|date:"j M Y" }} to {{ window|last|date:"j M Y" }}.{% else %}Demand observation has not started yet.{% endif %} Already-reviewed and inactive products are skipped.</p></div>
+  <form method="post" class="p-3">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <fieldset class="mb-3">
+      <legend class="visually-hidden">Scope</legend>
+      {% for choice in form.scope %}<div class="form-check">{{ choice.tag }}<label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label></div>{% endfor %}
+      {{ form.scope.errors }}
+    </fieldset>
+    <div class="mb-3" style="max-width:16rem">{{ form.day.label_tag }}{{ form.day }}{{ form.day.errors }}<div class="form-text">Used with "Only this date". Defaults to yesterday.</div></div>
+    <button class="btn btn-primary" type="submit">Verify for all products</button>
+    <a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+  </form>
+</section>
+{% endblock %}

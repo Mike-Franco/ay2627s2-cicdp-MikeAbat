@@ -1,6 +1,6 @@
 """Verified Singapore-day demand from committed issue audit evidence."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from decimal import Decimal
@@ -8,11 +8,12 @@ from fractions import Fraction
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Prefetch, Sum
+from django.db.models import F, Prefetch, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 
-from inventory_access.models import BusinessMembership
+from catalogue.models import InventoryProduct
+from inventory_access.models import BusinessMembership, Inventory, InventoryAssignment
 
 from .commit_times import finalize_stock_import, tracking_enabled
 from .models import (
@@ -78,6 +79,95 @@ def verify_demand_day(*, user_id, inventory_id, product_id, day, at=None):
             coverage_day=coverage, actor_id=user_id, action="verified", reason="",
             recorded_at=timezone.now(), verified_total_units=totals.get(day, 0),
         )
+
+
+@dataclass(frozen=True)
+class BulkVerifyResult:
+    days: tuple
+    verified: tuple
+    skipped: tuple
+
+    @property
+    def skipped_reasons(self):
+        """(reason, count) pairs, most frequent first."""
+        return Counter(reason for _, _, reason in self.skipped).most_common()
+
+
+def reviewable_days(at=None):
+    """The last seven complete Singapore dates on or after activation, oldest first."""
+    activation = _activation()
+    if not activation:
+        return ()
+    today = _today(at)
+    return tuple(day for day in (today - timedelta(days=offset) for offset in range(7, 0, -1))
+                 if day >= activation.first_observed_date)
+
+
+def verify_demand_days_for_inventory(*, user_id, inventory_id, days, at=None):
+    """Verify the given complete dates for every product linked to an inventory.
+
+    Runs in one transaction. Each product-day goes through verify_demand_day,
+    so its locks, guards and DemandCoverageEvent audit record all apply; a
+    rejected product-day rolls back to its own savepoint and is reported as
+    skipped with the reason. Products are visited in primary-key order so
+    lock acquisition stays consistent with single-product writers.
+    """
+    days = tuple(sorted(set(days)))
+    with transaction.atomic():
+        manager_assigned = InventoryAssignment.objects.filter(
+            inventory_id=inventory_id, is_active=True, membership__user_id=user_id,
+            membership__user__is_active=True, membership__is_active=True,
+            membership__role=BusinessMembership.Role.MANAGER,
+            membership__business_id=F("inventory__business_id"),
+        ).exists()
+        if not manager_assigned:
+            raise ReceiptRejected("__all__", "This inventory or product is unavailable.")
+        if not Inventory.objects.filter(pk=inventory_id, is_active=True).exists():
+            raise ReceiptRejected("__all__", "This inventory is inactive.")
+        activation = _activation()
+        if not activation:
+            raise ReceiptRejected("day", "Demand observation has not been activated.")
+        if not tracking_enabled():
+            raise ReceiptRejected("day", "PostgreSQL commit-time tracking is unavailable.")
+        today = _today(at)
+        if not days or any(day >= today or day < activation.first_observed_date for day in days):
+            raise ReceiptRejected("day", "Choose a complete observed Singapore date.")
+        verified, skipped = [], []
+        links = InventoryProduct.objects.filter(inventory_id=inventory_id).select_related("product").order_by(
+            "product_id")
+        for link in links:
+            for day in days:
+                if not link.product.is_active:
+                    skipped.append((link.product, day, "Product is inactive."))
+                    continue
+                try:
+                    verify_demand_day(user_id=user_id, inventory_id=inventory_id,
+                                      product_id=link.product_id, day=day, at=at)
+                except ReceiptRejected as error:
+                    skipped.append((link.product, day, str(error)))
+                else:
+                    verified.append((link.product, day))
+        return BulkVerifyResult(days, tuple(verified), tuple(skipped))
+
+
+def unreviewed_demand_days(inventory_ids, *, at=None):
+    """Count never-reviewed product-days in the reviewable window, per inventory.
+
+    Days already marked incomplete are reviewed (there is no correction path),
+    so they are not counted. Inactive products are excluded.
+    """
+    days = reviewable_days(at)
+    if not days or not inventory_ids:
+        return {}
+    links = list(InventoryProduct.objects.filter(
+        inventory_id__in=inventory_ids, product__is_active=True,
+    ).values_list("pk", "inventory_id"))
+    reviewed = Counter(inventory_id for _, inventory_id in DemandCoverageDay.objects.filter(
+        inventory_product_id__in=[pk for pk, _ in links], day__in=days, events__isnull=False,
+    ).values_list("pk", "inventory_product__inventory_id").distinct())
+    expected = Counter(inventory_id for _, inventory_id in links)
+    return {inventory_id: count * len(days) - reviewed[inventory_id]
+            for inventory_id, count in expected.items() if count * len(days) > reviewed[inventory_id]}
 
 
 def mark_demand_day_incomplete(*, user_id, inventory_id, product_id, day, reason):

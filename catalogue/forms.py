@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django import forms
 from django.db.models import Value
 from django.db.models.functions import Lower, Trim
@@ -86,3 +88,38 @@ class ReorderSettingsForm(forms.ModelForm):
             "lead_time_days": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 365}),
             "safety_stock_units": forms.NumberInput(attrs={"class": "form-control", "min": 0, "max": 2147483647}),
         }
+
+
+class BulkDemandVerifyForm(forms.Form):
+    SCOPE_DAY = "day"
+    SCOPE_WEEK = "week"
+    scope = forms.ChoiceField(
+        choices=(
+            (SCOPE_DAY, "Only this date"),
+            (SCOPE_WEEK, "Every unreviewed date in the last 7 days"),
+        ),
+        initial=SCOPE_DAY,
+        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
+    )
+    day = forms.DateField(
+        required=False,
+        label="Singapore date",
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    def __init__(self, *args, today, **kwargs):
+        super().__init__(*args, **kwargs)
+        yesterday = today - timedelta(days=1)
+        self.today = today
+        self.fields["day"].initial = yesterday
+        self.fields["day"].widget.attrs["max"] = yesterday.isoformat()
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("scope") == self.SCOPE_DAY:
+            day = cleaned.get("day")
+            if day is None:
+                self.add_error("day", "Choose a date.")
+            elif day >= self.today:
+                self.add_error("day", "Choose a complete Singapore date before today.")
+        return cleaned
