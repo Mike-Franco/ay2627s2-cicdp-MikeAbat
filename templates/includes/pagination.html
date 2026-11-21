@@ -1,4 +1,4 @@
-{% if always_show or page.has_other_pages %}
+{% if page.has_other_pages %}
 <nav aria-label="{{ pagination_label|default:'Pagination' }}" class="d-flex align-items-center gap-3 mb-3">
   {% if page.has_previous %}
     <a href="{% querystring page=page.previous_page_number %}" rel="prev">Previous</a>

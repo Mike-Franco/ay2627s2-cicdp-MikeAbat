@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tory_format %}
 {% block title %}Stock count saved · Tory{% endblock %}
 {% block breadcrumb %}{{ product.sku }} · Adjustment recorded{% endblock %}
 {% block content %}
@@ -12,7 +13,7 @@
   {% for allocation in allocations %}
     <li>Batch {{ allocation.batch.receipt_sequence }} · {{ allocation.batch.id }}:
       {{ allocation.quantity_before_units }} → {{ allocation.counted_quantity_units }} {{ adjustment.product.base_unit_label }}
-      {% if allocation.batch.expiry_date %}· expiry {{ allocation.batch.expiry_date }}{% else %}· undated{% endif %}
+      {% if allocation.batch.expiry_date %}· expiry {{ allocation.batch.expiry_date|sgdate }}{% else %}· undated{% endif %}
     </li>
   {% endfor %}
 </ul>

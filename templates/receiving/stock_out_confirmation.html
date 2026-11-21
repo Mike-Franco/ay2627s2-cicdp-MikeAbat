@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tory_format %}
 {% block title %}Stock issued · Tory{% endblock %}
 {% block breadcrumb %}{{ product.sku }} · Issue recorded{% endblock %}
 {% block content %}
@@ -6,6 +7,6 @@
 <h1>Stock issued</h1>
 <p>{{ stock_out.quantity_units }} {{ stock_out.product.base_unit_label }} issued from {{ stock_out.inventory.name }}.</p>
 <h2>Batches used</h2>
-<ul>{% for allocation in allocations %}<li>{{ allocation.batch.expiry_date|default:"Undated" }} · sequence {{ allocation.batch.receipt_sequence }} ({{ allocation.batch.pk }}): {{ allocation.quantity_units }} {{ allocation.batch.unit_label_snapshot }}</li>{% endfor %}</ul>
+<ul>{% for allocation in allocations %}<li>{{ allocation.batch.expiry_date|sgdate|default:"Undated" }} · sequence {{ allocation.batch.receipt_sequence }} ({{ allocation.batch.pk }}): {{ allocation.quantity_units }} {{ allocation.batch.unit_label_snapshot }}</li>{% endfor %}</ul>
 <a class="btn btn-secondary" href="{% url 'inventory-products' stock_out.inventory_id %}">Back to products</a>
 {% endblock %}

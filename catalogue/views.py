@@ -39,6 +39,7 @@ from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_p
                             visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
 from .forms import BulkDemandVerifyForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
+from .templatetags.tory_format import sgdate
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
@@ -106,7 +107,7 @@ def inventory_insights(request, inventory_id):
         index = (batch["expiry_date"] - window_start).days // 7
         expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
     expiry_data = [{
-        "week": f"{start.isoformat()} – {(start + timedelta(days=6)).isoformat()}",
+        "week": f"{sgdate(start)} – {sgdate(start + timedelta(days=6))}",
         "units": expiry_totals[index],
     } for index, start in enumerate(week_starts)]
     return render(request, "catalogue/inventory_insights.html", {
