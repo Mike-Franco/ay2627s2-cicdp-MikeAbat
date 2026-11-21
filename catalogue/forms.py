@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django import forms
 from django.db.models import Value
 from django.db.models.functions import Lower, Trim
@@ -12,17 +14,34 @@ PRODUCT_FIELDS = ("name", "sku", "base_unit_label", "expiry_tracking_required",
 DUPLICATE_SKU = "A product with this SKU already exists in this business."
 
 
-class ProductForm(forms.ModelForm):
-    base_unit_label = forms.CharField(max_length=40)
+class PlainLabelsMixin:
+    """Render labels without Django's default trailing colon."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+
+
+class ProductForm(PlainLabelsMixin, forms.ModelForm):
+    base_unit_label = forms.CharField(
+        max_length=40, label="Base unit",
+        help_text="The single item you count, receive and issue, such as bottle, box or bag. "
+                  "Quantities are always whole numbers of this unit.",
+    )
     expiry_tracking_required = forms.TypedChoiceField(
-        choices=(("", "Choose a policy"), ("yes", "Yes"), ("no", "No")),
+        label="Expiry policy",
+        choices=(("", "Choose a policy"), ("yes", "Track expiry dates"), ("no", "No expiry dates")),
         coerce=lambda value: value == "yes",
+        help_text="Track expiry dates: every receipt needs an expiry date, and expired stock is "
+                  "quarantined automatically. No expiry dates: an expiry date is optional.",
     )
 
     class Meta:
         model = Product
         fields = PRODUCT_FIELDS
         widgets = {"name": forms.TextInput()}
+        labels = {"name": "Product name", "sku": "SKU", "lead_time_days": "Lead time (days)",
+                  "safety_stock_units": "Safety stock (units)"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -55,7 +74,7 @@ class ProductCreateForm(ProductForm):
         self.fields["inventories"].queryset = inventories
 
 
-class ProductSearchForm(forms.Form):
+class ProductSearchForm(PlainLabelsMixin, forms.Form):
     q = forms.CharField(
         label="Search products", required=False, max_length=200,
         widget=forms.TextInput(attrs={
@@ -78,11 +97,47 @@ class InventoryProductFilterForm(ProductSearchForm):
     )
 
 
-class ReorderSettingsForm(forms.ModelForm):
+class ReorderSettingsForm(PlainLabelsMixin, forms.ModelForm):
     class Meta:
         model = Product
         fields = ("lead_time_days", "safety_stock_units")
+        labels = {"lead_time_days": "Lead time (days)", "safety_stock_units": "Safety stock (units)"}
         widgets = {
             "lead_time_days": forms.NumberInput(attrs={"class": "form-control", "min": 1, "max": 365}),
             "safety_stock_units": forms.NumberInput(attrs={"class": "form-control", "min": 0, "max": 2147483647}),
         }
+
+
+class BulkDemandVerifyForm(PlainLabelsMixin, forms.Form):
+    SCOPE_DAY = "day"
+    SCOPE_WEEK = "week"
+    scope = forms.ChoiceField(
+        choices=(
+            (SCOPE_DAY, "Only this date"),
+            (SCOPE_WEEK, "Every unreviewed date in the last 7 days"),
+        ),
+        initial=SCOPE_DAY,
+        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
+    )
+    day = forms.DateField(
+        required=False,
+        label="Singapore date",
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+
+    def __init__(self, *args, today, **kwargs):
+        super().__init__(*args, **kwargs)
+        yesterday = today - timedelta(days=1)
+        self.today = today
+        self.fields["day"].initial = yesterday
+        self.fields["day"].widget.attrs["max"] = yesterday.isoformat()
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("scope") == self.SCOPE_DAY:
+            day = cleaned.get("day")
+            if day is None:
+                self.add_error("day", "Choose a date.")
+            elif day >= self.today:
+                self.add_error("day", "Choose a complete Singapore date before today.")
+        return cleaned

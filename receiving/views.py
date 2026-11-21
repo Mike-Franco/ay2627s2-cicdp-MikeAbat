@@ -13,7 +13,18 @@ from .forms import (BatchCountFormSet, ManualReceiptForm, ManualStockAdjustmentF
                     ManualStockDisposalForm, ManualStockOutForm, StockCsvImportForm)
 from .csv_import import CsvImportRejected, MAX_BYTES, import_stock_csv
 from .models import ReceivingBatch, StockOut, StockAdjustment, StockDisposal
-from .services import ReceiptRejected, adjust_stock, dispose_quarantined, issue_stock, receive_manual
+from catalogue.templatetags.tory_format import sgdate
+
+from .services import (
+    ReceiptRejected, adjust_stock, dispose_quarantined, issue_stock, quarantine_quantity, receive_manual,
+)
+
+
+def _availability(link):
+    """Expiry-aware balances shown on stock-movement forms, as on the products page."""
+    now = timezone.now()
+    quarantined = sum(quarantine_quantity(batch, at=now) for batch in link.receiving_batches.all())
+    return {"available_units": link.physical_quantity_units - quarantined, "quarantined_units": quarantined}
 
 
 @protected_view
@@ -154,9 +165,9 @@ def issue_stock_view(request, inventory_id, product_id):
             )
         except ReceiptRejected as error:
             form.add_error(error.field, str(error))
-            return render(request, "receiving/issue_stock.html", {"inventory": inventory, "product": link.product, "form": form}, status=400)
+            return render(request, "receiving/issue_stock.html", {"inventory": inventory, "product": link.product, "form": form, **_availability(link)}, status=400)
         return redirect("stock-out-confirmation", stock_out_id=stock_out.pk)
-    return render(request, "receiving/issue_stock.html", {"inventory": inventory, "product": link.product, "form": form})
+    return render(request, "receiving/issue_stock.html", {"inventory": inventory, "product": link.product, "form": form, **_availability(link)})
 
 
 @protected_view
@@ -240,7 +251,7 @@ def adjust_stock_view(request, inventory_id, product_id):
             return redirect("stock-adjustment-confirmation", adjustment_id=adjustment.pk)
     return render(request, "receiving/adjust_stock.html", {
         "inventory": inventory, "product": link.product, "link": link, "form": form,
-        "formset": formset, "batches": eligible_batches,
+        "formset": formset, "batches": eligible_batches, **_availability(link),
     }, status=400 if request.method == "POST" and (form.errors or formset.errors or formset.non_form_errors()) else 200)
 
 
@@ -279,6 +290,11 @@ def dispose_stock_view(request, inventory_id, product_id):
         remaining_quantity_units__gt=0,
     ).order_by("expiry_date", "receipt_sequence", "id"))
     form = ManualStockDisposalForm(request.POST or None, batches=batches)
+    form.fields["batch_id"].choices = [
+        (str(batch.pk), f"Batch {batch.receipt_sequence} · expires {sgdate(batch.expiry_date)} · "
+                        f"{batch.remaining_quantity_units} {link.product.base_unit_label}")
+        for batch in batches
+    ]
     if request.method == "POST" and form.is_valid():
         try:
             disposal = dispose_quarantined(
@@ -294,7 +310,7 @@ def dispose_stock_view(request, inventory_id, product_id):
             return redirect("disposal-confirmation", disposal_id=disposal.pk)
     return render(request, "receiving/dispose_stock.html", {
         "inventory": inventory, "product": link.product, "form": form,
-        "batches": batches,
+        "batches": batches, **_availability(link),
     }, status=400 if request.method == "POST" else 200)
 
 

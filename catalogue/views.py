@@ -15,7 +15,14 @@ from accounts.sessions import protected_view
 from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
 from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
-from receiving.demand import _totals, forecasts_for_links, mark_demand_day_incomplete, verify_demand_day
+from receiving.demand import (
+    _totals,
+    forecasts_for_links,
+    mark_demand_day_incomplete,
+    reviewable_days,
+    verify_demand_day,
+    verify_demand_days_for_inventory,
+)
 from receiving.forms import DemandCoverageActionForm
 from receiving.models import (
     DemandAuditEvent,
@@ -31,7 +38,8 @@ from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
                             visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
-from .forms import InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
+from .forms import BulkDemandVerifyForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
+from .templatetags.tory_format import sgdate
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
@@ -99,7 +107,7 @@ def inventory_insights(request, inventory_id):
         index = (batch["expiry_date"] - window_start).days // 7
         expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
     expiry_data = [{
-        "week": f"{start.isoformat()} – {(start + timedelta(days=6)).isoformat()}",
+        "week": f"{sgdate(start)} – {sgdate(start + timedelta(days=6))}",
         "units": expiry_totals[index],
     } for index, start in enumerate(week_starts)]
     return render(request, "catalogue/inventory_insights.html", {
@@ -467,6 +475,38 @@ def demand_forecast(request, inventory_id, product_id):
         "observation_active": observation_active,
         "can_edit_reorder": can_edit_shared_settings(request.user, link.product),
     }, status=400 if request.method == "POST" else 200)
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def bulk_verify_demand(request, inventory_id):
+    """Manager action: verify complete Singapore dates for every product at once."""
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    if not _is_inventory_manager(request.user, inventory):
+        raise Http404
+    now = timezone.now()
+    today = now.astimezone(SINGAPORE).date()
+    initial = {"scope": BulkDemandVerifyForm.SCOPE_WEEK} if request.GET.get("scope") == "week" else None
+    form = BulkDemandVerifyForm(request.POST or None, initial=initial, today=today)
+    result = None
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data["scope"] == BulkDemandVerifyForm.SCOPE_WEEK:
+            days = reviewable_days(now)
+        else:
+            days = (form.cleaned_data["day"],)
+        try:
+            result = verify_demand_days_for_inventory(
+                user_id=request.user.pk, inventory_id=inventory.pk, days=days, at=now,
+            )
+        except ReceiptRejected as error:
+            form.add_error(None if error.field == "__all__" else "day", str(error))
+    return render(request, "catalogue/bulk_verify_demand.html", {
+        "inventory": inventory, "form": form, "result": result,
+        "window": reviewable_days(now),
+    }, status=400 if request.method == "POST" and result is None else 200)
 
 
 @protected_view
