@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, connection, transaction
@@ -22,6 +23,7 @@ from .models import (MAX_RECEIPT_UNITS, DemandAuditEvent, DisposalAuditEvent, Ex
 
 EXPIRY_CONSTRAINT_NAME = "receiving_expiry_after_singapore_today"
 SINGAPORE = ZoneInfo("Asia/Singapore")
+DEMO_BUSINESS_NAME = "Tory Demo"
 
 
 class ReceiptRejected(Exception):
@@ -236,7 +238,14 @@ def _has_constraint(error, name):
     return getattr(getattr(cause, "diag", None), "constraint_name", None) == name
 
 
-def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity_units, expiry_date):
+def _check_demo_movement(inventory, at):
+    if (settings.DJANGO_ENV == "production" or inventory.business.name != DEMO_BUSINESS_NAME
+            or not timezone.now() > at):
+        raise ReceiptRejected("__all__", "Historical movements are limited to the demo business.")
+
+
+def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity_units, expiry_date,
+                   demo_received_at=None):
     """Commit a manual receipt, audit, balance and sequence as one operation."""
     if type(quantity_units) is not int:
         raise ReceiptRejected("quantity_units", "Enter a whole quantity in base units.")
@@ -254,7 +263,11 @@ def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity
 
             if product.base_unit_label is None or product.expiry_tracking_required is None:
                 raise ReceiptRejected("__all__", "Receiving setup must be completed before this product can be received.")
-            if expiry_date and expiry_date <= timezone.localdate():
+            receipt_day = timezone.localdate()
+            if demo_received_at is not None:
+                _check_demo_movement(inventory, demo_received_at)
+                receipt_day = demo_received_at.astimezone(SINGAPORE).date()
+            if expiry_date and expiry_date <= receipt_day:
                 raise ReceiptRejected("expiry_date", "Expiry must be later than today's Singapore date.")
             if product.expiry_tracking_required and expiry_date is None:
                 raise ReceiptRejected("expiry_date", "Expiry date is required for this product.")
@@ -264,6 +277,9 @@ def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity
             if before + quantity_units > MAX_RECEIPT_UNITS:
                 raise ReceiptRejected("quantity_units", "This receipt would exceed the physical stock limit.")
 
+            if demo_received_at is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT set_config('tory.demo_receipt_token', %s, true)", [str(request_token)])
             batch = ReceivingBatch.objects.create(
                 actor=user,
                 inventory=inventory,
@@ -277,8 +293,11 @@ def receive_manual(*, user_id, inventory_id, product_id, request_token, quantity
                 unit_label_snapshot=product.base_unit_label,
                 expiry_date=expiry_date,
                 receipt_sequence=link.last_receipt_sequence + 1,
-                received_at=timezone.now(),
+                received_at=demo_received_at or timezone.now(),
             )
+            if demo_received_at is not None:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT set_config('tory.demo_receipt_token', '', true)")
             _create_receipt_audit(batch, before)
             return batch, False
     except IntegrityError as error:
@@ -323,7 +342,7 @@ def _create_receipt_audit(batch, quantity_before):
 
 
 def issue_stock(*, user_id, inventory_id, product_id, quantity_units,
-                request_token=None, import_record=None, import_row_number=None):
+                request_token=None, import_record=None, import_row_number=None, demo_issued_at=None):
     """Issue eligible stock using approved dated FEFO then undated FIFO."""
     if type(quantity_units) is not int or not 1 <= quantity_units <= MAX_RECEIPT_UNITS:
         raise ReceiptRejected("quantity_units", "Enter a positive whole quantity in base units.")
@@ -337,16 +356,20 @@ def issue_stock(*, user_id, inventory_id, product_id, quantity_units,
                     raise ReceiptRejected("request_token", token_conflict)
                 return existing
 
+        issue_day = timezone.localdate()
+        if demo_issued_at is not None:
+            _check_demo_movement(inventory, demo_issued_at)
+            issue_day = demo_issued_at.astimezone(SINGAPORE).date()
         candidates = list(ReceivingBatch.objects.select_for_update().filter(
             inventory_product=link,
             remaining_quantity_units__gt=F("quarantined_quantity_units"),
-        ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=timezone.localdate()))
+        ).filter(Q(expiry_date__isnull=True) | Q(expiry_date__gt=issue_day))
           .order_by("expiry_date", "receipt_sequence", "id"))
         physical_before = link.physical_quantity_units
         eligible_total = sum(b.remaining_quantity_units - b.quarantined_quantity_units for b in candidates)
         if eligible_total < quantity_units:
             raise ReceiptRejected("quantity_units", "There is not enough eligible, non-quarantined stock.")
-        now = timezone.now()
+        now = demo_issued_at or timezone.now()
         try:
             stock_out = StockOut.objects.create(
                 actor=user, inventory=inventory, product=product, inventory_product=link,
