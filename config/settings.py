@@ -141,6 +141,18 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = DJANGO_ENV in {"staging", "production"}
 # Platform health probes call the container directly over HTTP.
 SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
+
+# Set only where the app is reachable solely through the deployment's reverse
+# proxy (deploy/docker-compose.prod.yml). The proxy terminates TLS, so trust its
+# scheme header for SECURE_SSL_REDIRECT and secure cookies, and take the client
+# address it reports so the login throttle sees real visitor IPs.
+trusted_proxy_value = os.environ.get("DJANGO_TRUSTED_PROXY", "false").lower()
+if trusted_proxy_value not in {"true", "false"}:
+    raise ImproperlyConfigured("DJANGO_TRUSTED_PROXY must be true or false")
+TRUSTED_PROXY = trusted_proxy_value == "true"
+if TRUSTED_PROXY:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    MIDDLEWARE.insert(0, "config.proxy.TrustedProxyMiddleware")
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 
