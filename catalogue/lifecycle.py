@@ -1,10 +1,11 @@
 """Business-wide product lifecycle changes under the stock writers' Product lock."""
 
-from django.db import connection, transaction
+from django.db import transaction
 from django.utils import timezone
 
-from inventory_access.models import BusinessMembership, Inventory
+from inventory_access.models import Inventory
 
+from .authorization import lock_manager_assignment_ids
 from .models import InventoryProduct, Product, ProductLifecycleAuditEvent
 
 
@@ -24,23 +25,9 @@ def set_product_active(*, user_id, inventory_id, product_id, active):
             raise ProductLifecycleRejected(unavailable) from error
         # Match stock writers' authorization -> Product lock order. A concurrent
         # account, membership, or assignment revocation cannot slip past this check.
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT is_active FROM accounts_user WHERE id=%s FOR SHARE", [user_id])
-            user_state = cursor.fetchone()
-            cursor.execute(
-                "SELECT id, role, is_active FROM inventory_access_businessmembership "
-                "WHERE user_id=%s AND business_id=%s FOR SHARE",
-                [user_id, hint.business_id],
-            )
-            membership = cursor.fetchone()
-            if (not user_state or not user_state[0] or not membership
-                    or membership[1:] != (BusinessMembership.Role.MANAGER, True)):
-                raise ProductLifecycleRejected(unavailable)
-            cursor.execute(
-                "SELECT inventory_id, is_active FROM inventory_access_inventoryassignment "
-                "WHERE membership_id=%s ORDER BY inventory_id FOR SHARE", [membership[0]],
-            )
-            assigned_ids = {row[0] for row in cursor.fetchall() if row[1]}
+        assigned_ids = lock_manager_assignment_ids(user_id, hint.business_id)
+        if inventory_id not in assigned_ids:
+            raise ProductLifecycleRejected(unavailable)
         try:
             product = Product.objects.select_for_update().get(
                 pk=product_id, business_id=hint.business_id,

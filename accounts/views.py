@@ -1,10 +1,12 @@
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
 
+from .dashboard import inventory_dashboard
 from .forms import LoginForm
 from .sessions import protected_view, start_session
 from .throttle import check_and_authenticate
@@ -59,7 +61,7 @@ def login_view(request):
 
 @protected_view
 def home(request):
-    return render(request, "accounts/home.html")
+    return render(request, "accounts/home.html", inventory_dashboard(request.user, at=timezone.now()))
 
 
 @require_POST

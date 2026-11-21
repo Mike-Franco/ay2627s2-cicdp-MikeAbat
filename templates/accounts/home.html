@@ -1,6 +1,47 @@
 {% extends "base.html" %}
 {% block title %}Home · Tory{% endblock %}
 {% block content %}
-<h1>Tory</h1>
-<p>You are signed in.</p>
+<div class="products-heading"><h1>Inventory dashboard</h1></div>
+{% if inventory_totals %}
+<section class="panel mb-3" aria-labelledby="low-stock">
+  <div class="panel-heading"><h2 id="low-stock">At or below reorder point</h2></div>
+  <ul class="list-group list-group-flush">
+    {% for link, result in low_stock %}
+    <li class="list-group-item">
+      <a href="{% url 'product-stock' link.inventory_id link.product_id %}">{{ link.product.name }}</a>
+      · {{ link.inventory.name }} · {{ result.available_units }} available ·
+      <a href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a>
+    </li>
+    {% empty %}<li class="list-group-item">No products with a known reorder point need attention.</li>{% endfor %}
+  </ul>
+  {% if reorder_unavailable %}<p class="p-3 mb-0">Reorder point unavailable for {{ reorder_unavailable }} inventory product{{ reorder_unavailable|pluralize }}.</p>{% endif %}
+</section>
+<section class="panel mb-3" aria-labelledby="expiring">
+  <div class="panel-heading"><h2 id="expiring">Expiring soon</h2><p>Singapore dates</p></div>
+  {% include "accounts/dashboard_expiry.html" with heading="Next 7 days" batches=expiring_week %}
+  {% include "accounts/dashboard_expiry.html" with heading="Days 8–30" batches=expiring_later %}
+</section>
+<section class="panel mb-3" aria-labelledby="quarantine">
+  <div class="panel-heading"><h2 id="quarantine">Quarantined units by inventory</h2></div>
+  <ul class="list-group list-group-flush">
+    {% for inventory, units in inventory_totals %}
+    <li class="list-group-item"><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a> · {{ units }} units</li>
+    {% endfor %}
+  </ul>
+</section>
+<section class="panel" aria-labelledby="activity">
+  <div class="panel-heading"><h2 id="activity">Recent stock activity</h2></div>
+  <ol class="list-group list-group-flush">
+    {% for event in recent_activity %}
+    <li class="list-group-item">
+      {{ event.movement }} · {{ event.inventory_name }} ·
+      <a href="{% url 'stock-history' event.inventory_id event.product_id %}">{{ event.product_name }} history</a>
+      · {{ event.movement_at|date:"j M Y, H:i" }}
+    </li>
+    {% empty %}<li class="list-group-item">No stock movements recorded in your inventories.</li>{% endfor %}
+  </ol>
+</section>
+{% else %}
+<p>No active inventories are assigned to you.</p>
+{% endif %}
 {% endblock %}
