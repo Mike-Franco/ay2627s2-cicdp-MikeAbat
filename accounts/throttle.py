@@ -30,16 +30,14 @@ def _lock(key):
         cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_id])
 
 
-def check_and_authenticate(email, password, ip_address, authenticate):
-    """Enforce G-07's independent rolling identity and IP failure limits.
+def _reserve_attempt(identity_key, ip_key):
+    """Count and claim one attempt slot under both locks, then release them.
 
-    Locking both keys in stable order makes the count-and-record step atomic
-    across workers and avoids opposite-order lock waits. The limit is inclusive:
-    the fifth identity or twentieth IP failure is recorded; later attempts are
-    denied until the 15-minute window passes. Success does not erase failures.
+    The reservation is stored as a failure before the password is checked, so
+    concurrent attempts see each other and can never exceed the limits. It is
+    removed only after a successful sign-in; a crash mid-check leaves it
+    counted, which errs towards throttling.
     """
-    identity_key = _key("identity", email.strip().casefold())
-    ip_key = _key("ip", ip_address)
     with transaction.atomic():
         for key in sorted((identity_key, ip_key)):
             _lock(key)
@@ -52,11 +50,30 @@ def check_and_authenticate(email, password, ip_address, authenticate):
             ip_key=ip_key, occurred_at__gt=cutoff
         ).count()
         if identity_count >= IDENTITY_LIMIT or ip_count >= IP_LIMIT:
-            return None, True
+            return None
+        return LoginFailure.objects.create(
+            identity_key=identity_key, ip_key=ip_key, occurred_at=now
+        )
 
-        user = authenticate(email, password)
-        if user is None:
-            LoginFailure.objects.create(
-                identity_key=identity_key, ip_key=ip_key, occurred_at=now
-            )
-        return user, False
+
+def check_and_authenticate(email, password, ip_address, authenticate):
+    """Enforce G-07's independent rolling identity and IP failure limits.
+
+    Both keys are locked in stable order only while the attempt is counted and
+    reserved, which keeps the count-and-record step atomic across workers and
+    avoids opposite-order lock waits. The slow password hash then runs outside
+    the lock, so concurrent sign-ins sharing a key are not serialised behind it.
+    The limit is inclusive: the fifth identity or twentieth IP failure is
+    recorded; later attempts are denied until the 15-minute window passes.
+    Success removes only its own reservation and never erases earlier failures.
+    """
+    identity_key = _key("identity", email.strip().casefold())
+    ip_key = _key("ip", ip_address)
+    reservation = _reserve_attempt(identity_key, ip_key)
+    if reservation is None:
+        return None, True
+
+    user = authenticate(email, password)
+    if user is not None:
+        LoginFailure.objects.filter(pk=reservation.pk).delete()
+    return user, False

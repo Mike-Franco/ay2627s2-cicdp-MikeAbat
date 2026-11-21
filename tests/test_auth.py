@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, timezone as utc_timezone
 from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier
+from threading import Barrier, Event
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, close_old_connections, connections, transaction
 from django.test import Client, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
+from accounts import throttle
 from accounts.models import LoginFailure
 from accounts.sessions import ABSOLUTE_SECONDS, IDLE_SECONDS
 from accounts.views import GENERIC_ERROR
@@ -211,3 +213,86 @@ class ConcurrentThrottleTests(TransactionTestCase):
             results = list(pool.map(attempt, range(6)))
         self.assertEqual(results, [200] * 6)
         self.assertEqual(LoginFailure.objects.count(), 5)
+
+    def _in_thread(self, function):
+        def run():
+            try:
+                close_old_connections()
+                return function()
+            finally:
+                connections.close_all()
+        return run
+
+    def test_slow_password_check_does_not_block_same_key_attempt(self):
+        started, release = Event(), Event()
+
+        def slow_authenticate(email, password):
+            started.set()
+            self.assertTrue(release.wait(timeout=20))
+            return None
+
+        attempt = self._in_thread(lambda: throttle.check_and_authenticate(
+            "same@example.test", "wrong", "192.0.2.9", slow_authenticate))
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            slow = pool.submit(attempt)
+            self.assertTrue(started.wait(timeout=10))
+            try:
+                # Before TORY-46 this waited on the advisory lock until the slow
+                # check finished, so it would time out here.
+                fast = pool.submit(self._in_thread(lambda: throttle.check_and_authenticate(
+                    "same@example.test", "wrong", "192.0.2.9", lambda email, password: None)))
+                self.assertEqual(fast.result(timeout=5), (None, False))
+                self.assertFalse(slow.done())
+            finally:
+                release.set()
+            self.assertEqual(slow.result(timeout=10), (None, False))
+        self.assertEqual(LoginFailure.objects.count(), 2)
+
+    def test_in_flight_attempt_counts_towards_limit_until_it_succeeds(self):
+        identity_key = throttle._key("identity", "busy@example.test")
+        ip_key = throttle._key("ip", "192.0.2.10")
+        for _ in range(throttle.IDENTITY_LIMIT - 1):
+            LoginFailure.objects.create(identity_key=identity_key, ip_key=ip_key, occurred_at=timezone.now())
+        started, release = Event(), Event()
+        user = get_user_model()(email="busy@example.test")
+
+        def slow_success(email, password):
+            started.set()
+            self.assertTrue(release.wait(timeout=20))
+            return user
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            slow = pool.submit(self._in_thread(lambda: throttle.check_and_authenticate(
+                "busy@example.test", "right", "192.0.2.10", slow_success)))
+            self.assertTrue(started.wait(timeout=10))
+            try:
+                self.assertEqual(
+                    throttle.check_and_authenticate(
+                        "BUSY@example.test", "right", "192.0.2.10", lambda email, password: user),
+                    (None, True),
+                )
+            finally:
+                release.set()
+            self.assertEqual(slow.result(timeout=10), (user, False))
+        self.assertEqual(LoginFailure.objects.count(), throttle.IDENTITY_LIMIT - 1)
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class ThrottleReservationTests(TestCase):
+    def test_success_removes_only_its_own_reservation(self):
+        for _ in range(2):
+            throttle.check_and_authenticate("keep@example.test", "wrong", "192.0.2.11", lambda e, p: None)
+        user = get_user_model()(email="keep@example.test")
+        self.assertEqual(
+            throttle.check_and_authenticate("keep@example.test", "right", "192.0.2.11", lambda e, p: user),
+            (user, False),
+        )
+        self.assertEqual(LoginFailure.objects.count(), 2)
+
+    def test_error_during_password_check_stays_counted(self):
+        def broken(email, password):
+            raise RuntimeError("hasher failed")
+
+        with self.assertRaises(RuntimeError):
+            throttle.check_and_authenticate("crash@example.test", "pw", "192.0.2.12", broken)
+        self.assertEqual(LoginFailure.objects.count(), 1)
