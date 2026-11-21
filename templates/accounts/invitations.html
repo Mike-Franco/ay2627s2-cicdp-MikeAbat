@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tory_format %}
 {% block title %}Staff invitations · Tory{% endblock %}
 {% block breadcrumb %}Staff invitations{% endblock %}
 {% block content %}
@@ -18,7 +19,7 @@
 <div class="card mb-3"><div class="card-body">
   <strong>{{ invitation.target_email }}</strong> — {{ invitation.get_status_display }}<br>
   {% for inventory in invitation.inventories.all %}{{ inventory.name }}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
-  Issued {{ invitation.issued_at }}; expires {{ invitation.expires_at }}
+  Issued {{ invitation.issued_at|sgdate }}; expires {{ invitation.expires_at|sgdate }}
   {% if invitation.status == 'pending' %}
   <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-primary" type="submit">Replace / resend</button></form>
   <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Revoke</button></form>

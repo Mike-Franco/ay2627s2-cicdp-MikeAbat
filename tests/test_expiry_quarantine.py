@@ -85,15 +85,15 @@ class ExpiryQuarantineTests(TransactionTestCase):
         )
         self.assertContains(
             page,
-            '<td class="numeric available">0<span class="unit">each</span></td>',
+            '<td class="numeric available cell-available"><span class="mobile-label">Available</span>0<span class="unit">each</span></td>',
             html=True,
         )
-        self.assertContains(
-            page,
-            '<td class="numeric">5<span class="unit">each</span></td>',
-            count=2,
-            html=True,
-        )
+        for cell in ("cell-physical", "cell-quarantine"):
+            self.assertContains(
+                page,
+                f'<td class="numeric {cell}">5<span class="unit">each</span></td>',
+                html=True,
+            )
         self.link.refresh_from_db()
         self.assertEqual(self.link.physical_quantity_units, 5)
 

@@ -1,8 +1,22 @@
 {% extends "base.html" %}
+{% load tory_format %}
 {% block title %}Home · Tory{% endblock %}
 {% block content %}
 <div class="products-heading"><h1>Inventory dashboard</h1></div>
 {% if inventory_totals %}
+<div class="stat-tiles mb-3">
+  {% for tile in stat_tiles %}
+  <a class="stat-tile {{ tile.tone }}" href="{{ tile.anchor }}"><span class="stat-label">{{ tile.label }}</span><strong class="stat-value">{{ tile.value }}</strong><span class="stat-unit">{{ tile.unit }}</span></a>
+  {% endfor %}
+</div>
+<div id="unverified">
+{% for inventory, count in unreviewed_demand %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="status">
+  <span><strong>{{ count }} unverified demand day{{ count|pluralize }}</strong> in the last 7 days · {{ inventory.name }}. Forecasts and reorder points need every date verified.</span>
+  <a class="btn btn-sm btn-primary" href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand</a>
+</div>
+{% endfor %}
+</div>
 <section class="panel mb-3" aria-labelledby="low-stock">
   <div class="panel-heading"><h2 id="low-stock">At or below reorder point</h2></div>
   <ul class="list-group list-group-flush">
@@ -33,10 +47,11 @@
   <div class="panel-heading"><h2 id="activity">Recent stock activity</h2></div>
   <ol class="list-group list-group-flush">
     {% for event in recent_activity %}
-    <li class="list-group-item">
-      {{ event.movement }} · {{ event.inventory_name }} ·
-      <a href="{% url 'stock-history' event.inventory_id event.product_id %}">{{ event.product_name }} history</a>
-      · {{ event.movement_at|date:"j M Y, H:i" }}
+    <li class="list-group-item activity-item">
+      <span>{{ event.movement }} {{ event.quantity }} {{ event.unit|default:"units" }} ·
+      <a href="{% url 'product-stock' event.inventory_id event.product_id %}">{{ event.product_name }}</a>
+      <a class="small" href="{% url 'stock-history' event.inventory_id event.product_id %}">History</a></span>
+      <span class="text-muted small">{{ event.inventory_name }} · {{ event.movement_at|sgdate }}</span>
     </li>
     {% empty %}<li class="list-group-item">No stock movements recorded in your inventories.</li>{% endfor %}
   </ol>

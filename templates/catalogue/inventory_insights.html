@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tory_format %}
 {% load static %}
 {% block title %}{{ inventory.name }} insights &middot; Tory{% endblock %}
 {% block breadcrumb %}Insights{% endblock %}
@@ -12,7 +13,7 @@
   <div class="panel-heading"><h2 id="demand-heading">Daily units issued</h2><p>Last 30 Singapore dates</p></div>
   {% if has_products %}<div class="chart-frame"><canvas id="demand-chart" role="img" aria-label="Daily units issued over the last 30 Singapore dates"></canvas></div>
   <div class="table-scroll" role="region" aria-label="Daily demand data"><table class="products-table"><thead><tr><th>Singapore date</th><th>Units issued</th><th>Verified seven-day average</th></tr></thead><tbody>
-  {% for row in demand_data %}<tr><th>{{ row.day }}</th><td>{{ row.issued }}</td><td>{% if row.verified_average %}{{ row.verified_average }}{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
+  {% for row in demand_data %}<tr><th>{{ row.day|sgdate }}</th><td>{{ row.issued }}</td><td>{% if row.verified_average %}{{ row.verified_average }}{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>{% else %}<p>No linked products or issue data are available yet.</p>{% endif %}
 </section>
 <section class="panel mb-4" aria-labelledby="reorder-heading">

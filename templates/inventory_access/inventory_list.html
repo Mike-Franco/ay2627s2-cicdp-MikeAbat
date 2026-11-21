@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load tory_cards %}
 {% block title %}Inventories &middot; Tory{% endblock %}
 {% block breadcrumb %}Your inventories{% endblock %}
 {% block content %}
@@ -14,14 +15,19 @@
 </div>
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
 {% if inventories %}
-<ul class="list-group">
-  {% for inventory in inventories %}
-  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <span><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a><small class="text-muted"> &middot; {{ inventory.business.name }}</small></span>
+{% inventory_card_stats inventories as card_stats %}
+<div class="inventory-cards">
+  {% for inventory in inventories %}{% with stats=card_stats|get_item:inventory.pk %}
+  <article class="inventory-card" aria-labelledby="inventory-{{ inventory.pk }}">
+    <div><h3 id="inventory-{{ inventory.pk }}"><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a></h3><small class="text-muted">{{ inventory.business.name }}</small></div>
+    <div class="card-stats">
+      <span><strong>{{ stats.products }}</strong>product{{ stats.products|pluralize }}</span>
+      <span class="{% if stats.low_stock %}attention{% endif %}"><strong>{{ stats.low_stock }}</strong>at or below reorder point</span>
+    </div>
     {% if inventory.can_manage %}{% include "inventory_access/inventory_actions.html" %}{% endif %}
-  </li>
-  {% endfor %}
-</ul>
+  </article>
+  {% endwith %}{% endfor %}
+</div>
 {% else %}
 <p>No inventories are assigned to your account.</p>
 {% endif %}

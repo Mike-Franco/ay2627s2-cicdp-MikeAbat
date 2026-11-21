@@ -72,3 +72,8 @@ urlpatterns += [
     path("inventories/<int:inventory_id>/insights/", catalogue_views.inventory_insights,
          name="inventory-insights"),
 ]
+
+urlpatterns += [
+    path("inventories/<int:inventory_id>/demand/verify/", catalogue_views.bulk_verify_demand,
+         name="bulk-verify-demand"),
+]

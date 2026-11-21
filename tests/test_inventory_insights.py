@@ -10,6 +10,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
+from catalogue.templatetags.tory_format import sgdate
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import (
@@ -115,7 +116,7 @@ class InventoryInsightsTests(TestCase):
         expiry = self.client.get(self.url).context["expiry_data_json"]
         self.assertEqual([row["units"] for row in expiry], [3, 4, 0, 8])
         first = today + timedelta(days=1)
-        self.assertEqual(expiry[0]["week"], f"{first.isoformat()} – {(first + timedelta(days=6)).isoformat()}")
+        self.assertEqual(expiry[0]["week"], f"{sgdate(first)} – {sgdate(first + timedelta(days=6))}")
 
     def test_reorder_point_reuses_verified_forecast(self):
         today = timezone.now().astimezone(SINGAPORE).date()
