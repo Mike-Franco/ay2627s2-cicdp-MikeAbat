@@ -149,6 +149,7 @@ class ReceiptAuditEvent(models.Model):
     occurred_at = models.DateTimeField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-occurred_at"], name="receipt_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(condition=Q(action="receipt"), name="receipt_audit_action_is_receipt"),
             models.CheckConstraint(condition=Q(classification="non_demand"), name="receipt_audit_is_non_demand"),
@@ -186,6 +187,7 @@ class ExpiryQuarantineEvent(models.Model):
     quarantine_after_units = models.PositiveIntegerField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-recorded_at"], name="expiry_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(condition=Q(actor_identity="system:expiry_quarantine"), name="expiry_event_system_actor"),
             models.CheckConstraint(condition=Q(action="expiry_quarantine"), name="expiry_event_action"),
@@ -255,6 +257,7 @@ class DisposalAuditEvent(models.Model):
     occurred_at = models.DateTimeField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-occurred_at"], name="disposal_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(condition=Q(action="disposal"), name="disposal_audit_action"),
             models.CheckConstraint(condition=Q(classification="non_demand"), name="disposal_audit_non_demand"),
@@ -314,6 +317,7 @@ class DemandAuditEvent(models.Model):
     occurred_at = models.DateTimeField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-occurred_at"], name="demand_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") - F("quantity_change_units")), name="demand_audit_quantity_reconciles"),
             models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_change_units__lte=MAX_RECEIPT_UNITS), name="demand_audit_quantity_cap"),
@@ -377,6 +381,7 @@ class StockAdjustmentAuditEvent(models.Model):
     occurred_at = models.DateTimeField()
 
     class Meta:
+        indexes = (models.Index(fields=["inventory", "-occurred_at"], name="adjust_inv_time_idx"),)
         constraints = [
             models.CheckConstraint(condition=Q(quantity_before_units__lte=MAX_RECEIPT_UNITS) & Q(quantity_after_units__lte=MAX_RECEIPT_UNITS), name="stock_adjustment_audit_cap"),
             models.CheckConstraint(condition=Q(quantity_after_units=F("quantity_before_units") + F("quantity_change_units")), name="stock_adjustment_audit_reconciles"),
