@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{% if product %}Edit product{% else %}New product{% endif %} · Tory{% endblock %}
+{% block breadcrumb %}{% if product %}Edit product{% else %}New product{% endif %}{% endblock %}
+{% block content %}
+<h1>{% if product %}Edit product{% else %}New product{% endif %}</h1>
+<p>{% if product %}Changes apply to this product across its linked inventories.{% else %}{{ inventory.business.name }}{% endif %}</p>
+<form method="post" class="panel p-3">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <button class="btn btn-primary" type="submit">{% if product %}Save changes{% else %}Create product{% endif %}</button>
+  {% if product %}<a class="btn btn-outline-secondary" href="{% url 'product-stock' inventory.pk product.pk %}">Cancel</a>
+  {% else %}<a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Cancel</a>{% endif %}
+</form>
+{% endblock %}

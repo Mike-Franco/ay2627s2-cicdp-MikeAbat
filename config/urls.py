@@ -51,3 +51,8 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
     urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
         "document_root": settings.BASE_DIR / "static", "show_indexes": False,
     })]
+
+urlpatterns += [
+    path("inventories/<int:inventory_id>/products/new/", catalogue_views.product_create, name="product-create"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/edit/", catalogue_views.product_edit, name="product-edit"),
+]

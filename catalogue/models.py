@@ -112,3 +112,26 @@ class ProductLifecycleAuditEvent(models.Model):
                 name="product_lifecycle_audit_non_demand",
             ),
         ]
+
+
+class ProductChangeAuditEvent(models.Model):
+    """Immutable evidence of product creation or a change to shared settings."""
+
+    class Action(models.TextChoices):
+        CREATE = "create", "Create"
+        EDIT = "edit", "Edit"
+
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    business = models.ForeignKey(Business, on_delete=models.PROTECT)
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="change_audit_events")
+    action = models.CharField(max_length=6, choices=Action.choices)
+    before = models.JSONField(null=True)
+    after = models.JSONField()
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [models.CheckConstraint(
+            condition=(Q(action="create", before__isnull=True) | Q(action="edit", before__isnull=False)),
+            name="product_change_audit_action_and_before",
+        )]
