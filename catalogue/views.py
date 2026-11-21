@@ -1,26 +1,32 @@
 from collections import defaultdict
+from datetime import timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Case, CharField, F, Q, Sum, Value, When
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
-from django.shortcuts import redirect
-from django.views.decorators.http import require_GET
-from django.views.decorators.http import require_http_methods
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_http_methods
 
 from accounts.sessions import protected_view
 from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
 from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
-from django.utils import timezone
-from receiving.models import (DemandAuditEvent, DisposalAuditEvent, ExpiryQuarantineEvent,
-                              ObservationActivation, ReceiptAuditEvent, StockAdjustmentAuditEvent)
-from receiving.services import SINGAPORE, quarantine_quantity
-from receiving.demand import forecasts_for_links, mark_demand_day_incomplete, verify_demand_day
+from receiving.demand import _totals, forecasts_for_links, mark_demand_day_incomplete, verify_demand_day
 from receiving.forms import DemandCoverageActionForm
-from receiving.services import ReceiptRejected
+from receiving.models import (
+    DemandAuditEvent,
+    DisposalAuditEvent,
+    ExpiryQuarantineEvent,
+    ObservationActivation,
+    ReceiptAuditEvent,
+    ReceivingBatch,
+    StockAdjustmentAuditEvent,
+)
+from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
                             visible_inventory_product_links, visible_product_links)
@@ -29,6 +35,77 @@ from .forms import InventoryProductFilterForm, ProductCreateForm, ProductForm, P
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
+
+
+@protected_view
+def inventory_insights(request, inventory_id):
+    try:
+        inventory, links = visible_inventory_product_links(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    now = timezone.now()
+    today = now.astimezone(SINGAPORE).date()
+    first_day = today - timedelta(days=29)
+    demand = _totals(
+        {"business_id": inventory.business_id, "inventory_id": inventory.pk},
+        first_day, today + timedelta(days=1),
+    )
+    forecast_data = forecasts_for_links([link.pk for link in links if link.product.is_active], at=now)
+    labels = [first_day + timedelta(days=offset) for offset in range(30)]
+    active_link_ids = [link.pk for link in links if link.product.is_active]
+    active_forecasts = [forecast_data.get(link_id) for link_id in active_link_ids]
+    average = None
+    if active_forecasts and all(item and item.available for item in active_forecasts):
+        total_average = sum((item.average for item in active_forecasts), start=0)
+        average = f"{Decimal(total_average.numerator) / Decimal(total_average.denominator):.2f}"
+    demand_data = [
+        {"day": day.isoformat(), "issued": demand.get(day, 0), "verified_average": average}
+        for day in labels
+    ] if links else []
+    batch_totals = ReceivingBatch.objects.filter(
+        inventory_product__in=links, remaining_quantity_units__gt=0,
+    ).order_by().values("inventory_product_id").annotate(
+        quarantined=Sum(Case(
+            When(expiry_date__lte=today, then=F("remaining_quantity_units")),
+            When(expiry_date__gt=today, then=F("quarantined_quantity_units")),
+            default=F("quarantined_quantity_units"),
+        ), default=0),
+    )
+    quarantine_by_link = dict(batch_totals.values_list("inventory_product_id", "quarantined"))
+    reorder_data = []
+    for link in links:
+        quarantine = quarantine_by_link.get(link.pk, 0)
+        forecast = forecast_data.get(link.pk)
+        result = None
+        if link.product.is_active and forecast and forecast.available:
+            result = recommendation_from_evidence(link.product, link.physical_quantity_units, forecast, quarantine)
+        reorder_data.append({
+            "sku": link.product.sku, "name": link.product.name,
+            "available": link.physical_quantity_units - quarantine,
+            "reorder_point": str(result.reorder_point) if result and result.reorder_point is not None else None,
+            "alert": bool(result and result.alert),
+        })
+    first_week = today + timedelta(days=(7 - today.weekday()) % 7)
+    week_starts = [first_week + timedelta(days=7 * offset) for offset in range(4)]
+    expiry_totals = defaultdict(int)
+    expiring = ReceivingBatch.objects.filter(
+        inventory_product__in=links, expiry_date__gt=today,
+        expiry_date__lte=week_starts[-1] + timedelta(days=6),
+        remaining_quantity_units__gt=F("quarantined_quantity_units"),
+    ).values("expiry_date", "remaining_quantity_units", "quarantined_quantity_units")
+    for batch in expiring:
+        index = (batch["expiry_date"] - week_starts[0]).days // 7
+        if 0 <= index < 4:
+            expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
+    expiry_data = [{
+        "week": f"{start.isoformat()} – {(start + timedelta(days=6)).isoformat()}",
+        "units": expiry_totals[index],
+    } for index, start in enumerate(week_starts)]
+    return render(request, "catalogue/inventory_insights.html", {
+        "inventory": inventory, "demand_data": demand_data,
+        "demand_data_json": demand_data, "reorder_data_json": reorder_data, "expiry_data_json": expiry_data,
+        "reorder_data": reorder_data, "expiry_data": expiry_data, "has_products": bool(links),
+    })
 
 
 @protected_view
