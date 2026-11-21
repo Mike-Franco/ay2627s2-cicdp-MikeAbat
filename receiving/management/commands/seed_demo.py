@@ -108,11 +108,13 @@ def _seed_inventory(inventory, manager, staff, dates, now):
         if sku == "PH-03":
             receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=6,
                            expiry_date=today - timedelta(days=1), demo_received_at=received_at)
-        if daily_issue:
-            for day in dates:
+        for day in dates:
+            if daily_issue:
                 issue_stock(user_id=staff.pk, **scope, quantity_units=daily_issue,
                             demo_issued_at=datetime.combine(day, time(12), SINGAPORE))
-                verify_demand_day(user_id=manager.pk, **scope, day=day, at=now)
+            # Verify every seeded date, including zero-demand ones, so a fresh
+            # demo shows numeric forecasts and no unverified-day warnings.
+            verify_demand_day(user_id=manager.pk, **scope, day=day, at=now)
 
 
 class Command(BaseCommand):
