@@ -1,15 +1,17 @@
 from collections import defaultdict
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import CharField, F, Q, Value
 from django.http import Http404
 from django.shortcuts import get_object_or_404, render
 from django.shortcuts import redirect
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
 from accounts.sessions import protected_view
-from catalogue.models import InventoryProduct, ProductLifecycleAuditEvent
+from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
 from inventory_access.authorization import get_authorized_inventory
 from inventory_access.models import BusinessMembership, Inventory
 from django.utils import timezone
@@ -20,10 +22,12 @@ from receiving.demand import mark_demand_day_incomplete, verify_demand_day
 from receiving.forms import DemandCoverageActionForm
 from receiving.services import ReceiptRejected
 
-from .authorization import (can_manage_product_lifecycle, visible_inventory_product_links,
+from .authorization import (can_manage_product_lifecycle, managed_inventories, visible_inventory_product_links,
                             visible_product_links)
-from .forms import InventoryProductFilterForm, ReorderSettingsForm
+from .csv_exports import csv_download, history_rows, stock_rows
+from .forms import InventoryProductFilterForm, ProductCreateForm, ProductForm, ReorderSettingsForm
 from .lifecycle import ProductLifecycleRejected, set_product_active
+from .product_changes import save_product_change
 from .reorder import can_edit_shared_settings, recommendation, save_shared_settings
 
 
@@ -32,8 +36,57 @@ def product_catalogue(request):
     return render(
         request,
         "catalogue/product_catalogue.html",
-        {"product_links": visible_product_links(request.user)},
+        {"product_links": visible_product_links(request.user),
+         "create_inventories": managed_inventories(request.user).select_related("business")
+         .order_by("business_id", "name", "pk").distinct("business_id")},
     )
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def product_create(request, inventory_id):
+    inventory = get_object_or_404(managed_inventories(request.user), pk=inventory_id)
+    choices = managed_inventories(request.user).filter(business_id=inventory.business_id)
+    form = ProductCreateForm(
+        request.POST if request.method == "POST" else None, inventories=choices,
+        instance=Product(business_id=inventory.business_id), initial={"inventories": [inventory.pk]},
+    )
+    if request.method == "POST" and form.is_valid():
+        inventory_ids = [shelf.pk for shelf in form.cleaned_data["inventories"]]
+        try:
+            product = save_product_change(user=request.user, inventory=inventory,
+                                          values=form.cleaned_data, inventory_ids=inventory_ids)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            return redirect("product-stock", inventory_id=min(inventory_ids), product_id=product.pk)
+    return render(request, "catalogue/product_form.html", {"inventory": inventory, "form": form},
+                  status=400 if request.method == "POST" else 200)
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def product_edit(request, inventory_id, product_id):
+    inventory = get_object_or_404(managed_inventories(request.user), pk=inventory_id)
+    link = get_object_or_404(
+        InventoryProduct.objects.select_related("product"), inventory=inventory,
+        product_id=product_id, product__business_id=inventory.business_id,
+    )
+    product = link.product
+    if not can_manage_product_lifecycle(request.user, product):
+        raise Http404
+    form = ProductForm(request.POST if request.method == "POST" else None, instance=product)
+    if request.method == "POST" and form.is_valid():
+        try:
+            save_product_change(user=request.user, inventory=inventory,
+                                product_id=product.pk, values=form.cleaned_data)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            return redirect("product-stock", inventory_id=inventory.pk, product_id=product.pk)
+    return render(request, "catalogue/product_form.html", {
+        "inventory": inventory, "product": product, "form": form,
+    }, status=400 if request.method == "POST" else 200)
 
 
 @protected_view
@@ -164,11 +217,9 @@ def product_lifecycle(request, inventory_id, product_id):
     }, status=400 if error_message else 200)
 
 
-@protected_view
-def stock_history(request, inventory_id, product_id):
-    """Show committed audit evidence within one assigned inventory/product."""
+def _history_scope(user, inventory_id, product_id):
     try:
-        inventory = get_authorized_inventory(request.user, inventory_id)
+        inventory = get_authorized_inventory(user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     link = get_object_or_404(
@@ -178,6 +229,38 @@ def stock_history(request, inventory_id, product_id):
     )
     scope = {"business_id": inventory.business_id,
              "inventory_id": inventory.pk, "product_id": link.product_id}
+    return inventory, link, scope
+
+
+@protected_view
+@require_GET
+def export_inventory_stock(request, inventory_id):
+    try:
+        inventory, links = visible_inventory_product_links(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    return csv_download(
+        f"inventory-{inventory.pk}-stock.csv",
+        ("SKU", "Product", "Base unit", "Physical", "Quarantined", "Available"),
+        stock_rows(links, today=timezone.localdate()),
+    )
+
+
+@protected_view
+@require_GET
+def export_stock_history(request, inventory_id, product_id):
+    inventory, link, scope = _history_scope(request.user, inventory_id, product_id)
+    return csv_download(
+        f"inventory-{inventory.pk}-product-{link.product_id}-history.csv",
+        ("Recorded at (Singapore)", "Action", "Actor", "Physical before", "Physical after", "Reason", "Note"),
+        history_rows(scope),
+    )
+
+
+@protected_view
+def stock_history(request, inventory_id, product_id):
+    """Show committed audit evidence within one assigned inventory/product."""
+    inventory, link, scope = _history_scope(request.user, inventory_id, product_id)
     audit_sources = {
         "receipt": ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
         "issue": DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(

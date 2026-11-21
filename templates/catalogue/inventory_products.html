@@ -4,10 +4,10 @@
 {% block content %}
 <div class="products-heading">
   <div><p class="eyebrow">{{ inventory.name }}</p><h1>Products</h1><p>Stock balances and reorder status for this inventory.</p></div>
-  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a></div>{% endif %}
+  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product</a><a class="btn btn-outline-secondary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a></div>{% endif %}
 </div>
 <section class="panel" aria-labelledby="linked-products-title">
-  <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{% if has_filters and not filter_form.errors %}{{ product_links|length }} of {% endif %}{{ total_product_count }} product{{ total_product_count|pluralize }} in {{ inventory.name }}</p></div>
+  <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{% if has_filters and not filter_form.errors %}{{ product_links|length }} of {% endif %}{{ total_product_count }} product{{ total_product_count|pluralize }} in {{ inventory.name }}</p><a href="{% url 'export-inventory-stock' inventory.pk %}">Download current stock CSV</a></div>
   <form method="get" action="{% url 'inventory-products' inventory.pk %}" class="product-filters" role="search" aria-label="Filter inventory products">
     <div class="product-filter-field"><label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>{{ filter_form.q }}{% if filter_form.q.errors %}<div class="filter-errors" role="alert">{{ filter_form.q.errors }}</div>{% endif %}</div>
     <div class="product-filter-field"><label for="{{ filter_form.reorder.id_for_label }}">{{ filter_form.reorder.label }}</label>{{ filter_form.reorder }}{% if filter_form.reorder.errors %}<div class="filter-errors" role="alert">{{ filter_form.reorder.errors }}</div>{% endif %}</div>

@@ -5,7 +5,7 @@
 {% include 'includes/product_tabs.html' with active_tab='stock' %}
 <div class="stock-actions" aria-label="Stock actions">
   {% if product.is_active %}<a class="btn btn-primary" href="{% url 'receive-batch' inventory.pk product.pk %}">Receive stock</a><a class="btn btn-outline-primary" href="{% url 'issue-stock' inventory.pk product.pk %}">Issue stock</a>{% if can_adjust_stock %}<a class="btn btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk product.pk %}">Adjust batch count</a><a class="btn btn-outline-secondary" href="{% url 'dispose-stock' inventory.pk product.pk %}">Dispose stock</a>{% endif %}{% endif %}
-  {% if link.can_manage_lifecycle %}<a class="btn btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk product.pk %}">Product status</a>{% endif %}
+  {% if link.can_manage_lifecycle %}<a class="btn btn-outline-secondary" href="{% url 'product-edit' inventory.pk product.pk %}">Edit product</a><a class="btn btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk product.pk %}">Product status</a>{% endif %}
 </div>
 <div class="balance-grid">
   <section class="balance-card"><h2>Physical</h2><strong>{{ link.display_physical_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} recorded on hand</small></section>

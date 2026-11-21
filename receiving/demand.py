@@ -1,5 +1,6 @@
 """Verified Singapore-day demand from committed issue audit evidence."""
 
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, timezone as utc_timezone
 from decimal import Decimal
@@ -96,14 +97,14 @@ def mark_demand_day_incomplete(*, user_id, inventory_id, product_id, day, reason
         )
 
 
-def _totals(scope, start, end):
+def _totals(scope, start, end, *, group_by=()):
     start_at = datetime.combine(start, time.min, SINGAPORE).astimezone(utc_timezone.utc)
     end_at = datetime.combine(end, time.min, SINGAPORE).astimezone(utc_timezone.utc)
     totals = {}
     manual = DemandAuditEvent.objects.filter(
         **scope, stock_out__import_record__isnull=True,
         occurred_at__gte=start_at, occurred_at__lt=end_at,
-    ).annotate(local_day=TruncDate("occurred_at", tzinfo=SINGAPORE)).values("local_day").annotate(
+    ).annotate(local_day=TruncDate("occurred_at", tzinfo=SINGAPORE)).values("local_day", *group_by).annotate(
         total=Sum("quantity_change_units"),
     )
     csv = DemandAuditEvent.objects.filter(
@@ -112,10 +113,11 @@ def _totals(scope, start, end):
         stock_out__import_record__actual_committed_at__lt=end_at,
     ).annotate(local_day=TruncDate(
         "stock_out__import_record__actual_committed_at", tzinfo=SINGAPORE,
-    )).values("local_day").annotate(total=Sum("quantity_change_units"))
+    )).values("local_day", *group_by).annotate(total=Sum("quantity_change_units"))
     for rows in (manual, csv):
         for row in rows:
-            totals[row["local_day"]] = totals.get(row["local_day"], 0) + row["total"]
+            key = tuple(row[field] for field in group_by) + (row["local_day"],) if group_by else row["local_day"]
+            totals[key] = totals.get(key, 0) + row["total"]
     return totals
 
 
@@ -154,12 +156,56 @@ def _forecast_locked(product, inventory, link, *, at):
     totals = _totals({"business_id": inventory.business_id,
                       "inventory_id": inventory.pk, "product_id": product.pk},
                      dates[0], today)
-    late_days = [day for day in dates
-                 if latest_events[day].verified_total_units != totals.get(day, 0)]
+    return _verified_forecast(days, {day: event.verified_total_units for day, event in latest_events.items()}, totals)
+
+
+def _verified_forecast(days, verified_totals, totals):
+    late_days = [day for day, _ in days if verified_totals[day] != totals.get(day, 0)]
     if late_days:
         days = tuple((day, "invalidated" if day in late_days else state) for day, state in days)
         return ForecastResult(False, "Later issue evidence changed a verified date.", days)
-    total = sum(totals.get(day, 0) for day in dates)
+    total = sum(totals.get(day, 0) for day, _ in days)
     average = Fraction(total, 7)
     displayed = f"{Decimal(total) / Decimal(7):.2f}"
     return ForecastResult(True, "", days, average, displayed)
+
+
+def available_forecasts_for_links(links, *, at):
+    """Read verified forecasts in bulk for already-scoped links.
+
+    Unresolved attribution stays unavailable here. Opening a dashboard does
+    not finalize imports; the individual forecast path can do that.
+    """
+    if not links or not tracking_enabled():
+        return {}
+    activation = _activation()
+    today = _today(at)
+    dates = tuple(today - timedelta(days=offset) for offset in range(7, 0, -1))
+    if not activation or dates[0] < activation.first_observed_date:
+        return {}
+    verified = defaultdict(dict)
+    latest = DemandCoverageEvent.objects.filter(
+        coverage_day__inventory_product_id__in=links, coverage_day__day__in=dates,
+    ).order_by("coverage_day_id", "-pk").distinct("coverage_day_id").values_list(
+        "coverage_day__inventory_product_id", "coverage_day__day", "action", "verified_total_units",
+    )
+    for link_id, day, action, units in latest:
+        if action == "verified":
+            verified[link_id][day] = units
+    eligible = {link_id for link_id, days in verified.items() if len(days) == len(dates)}
+    if not eligible:
+        return {}
+    unresolved = StockImport.objects.filter(
+        observation_eligible=True, stockout__inventory_product_id__in=eligible,
+    ).exclude(commit_attribution="resolved").values_list("stockout__inventory_product_id", flat=True)
+    eligible.difference_update(unresolved)
+    if not eligible:
+        return {}
+    group = "stock_out__inventory_product_id"
+    totals = defaultdict(dict)
+    for (link_id, day), units in _totals(
+        {f"{group}__in": eligible}, dates[0], today, group_by=(group,),
+    ).items():
+        totals[link_id][day] = units
+    days = tuple((day, "verified") for day in dates)
+    return {link_id: _verified_forecast(days, verified[link_id], totals[link_id]) for link_id in eligible}
