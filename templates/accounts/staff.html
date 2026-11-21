@@ -11,4 +11,5 @@
   {% if staff.is_active %}<div class="mt-2"><a class="btn btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a></div>{% endif %}
 </div></div>
 {% empty %}<p>No Staff accounts in your current scope.</p>{% endfor %}
+{% include "includes/pagination.html" with pagination_label="Staff pages" %}
 {% endblock %}

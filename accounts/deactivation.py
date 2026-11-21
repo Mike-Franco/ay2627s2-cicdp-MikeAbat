@@ -2,6 +2,7 @@
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Exists, OuterRef
 
 from inventory_access.models import BusinessMembership, Inventory, InventoryAssignment
 
@@ -52,15 +53,27 @@ def _eligible(actor, target, business_id, *, lock=False):
 
 def visible_staff(actor_id, business_id):
     """Only return account details for currently eligible targets."""
-    User = get_user_model()
-    actor = User.objects.filter(pk=actor_id).first()
-    if actor is None:
-        return []
-    candidates = User.objects.filter(
+    manager = BusinessMembership.objects.filter(
+        user_id=actor_id, user__is_active=True, business_id=business_id,
+        role=BusinessMembership.Role.MANAGER, is_active=True,
+    )
+    allowed = InventoryAssignment.objects.filter(
+        membership__in=manager, is_active=True,
+        inventory__is_active=True, inventory__business_id=business_id,
+    ).values("inventory_id")
+    other_memberships = BusinessMembership.objects.filter(
+        user_id=OuterRef("pk"),
+    ).exclude(business_id=business_id)
+    outside_assignments = InventoryAssignment.objects.filter(
+        membership__user_id=OuterRef("pk"), membership__business_id=business_id,
+    ).exclude(inventory_id__in=allowed)
+    return get_user_model().objects.filter(
+        Exists(manager), ~Exists(other_memberships), ~Exists(outside_assignments),
+        is_staff=False, is_superuser=False,
         business_memberships__business_id=business_id,
         business_memberships__role=BusinessMembership.Role.STAFF,
-    ).distinct().order_by("email", "pk")
-    return [user for user in candidates if _eligible(actor, user, business_id)]
+        business_memberships__is_active=True,
+    ).exclude(pk=actor_id).order_by("email", "pk")
 
 
 def deactivate_staff(actor_id, business_id, target_id):
