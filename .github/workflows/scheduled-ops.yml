@@ -1,0 +1,59 @@
+name: Staging scheduled jobs monitor
+
+# The VM's crontab (installed by deploy/deploy.sh on every deploy) runs
+# process_expiry_quarantine and finalize_commit_times every five minutes, as
+# TORY-19 requires; GitHub's scheduler is too irregular for that. This hourly
+# run fails, and so alerts, if the jobs have not succeeded in 15 minutes.
+# Run it by hand with "run_now" to execute the jobs immediately as well.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      run_now:
+        description: Run the scheduled jobs now before checking
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: Check expiry and commit-time jobs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: staging
+    steps:
+      - name: Configure SSH
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_SSH_KNOWN_HOSTS: ${{ secrets.VM_SSH_KNOWN_HOSTS }}
+          VM_SSH_PORT: ${{ vars.VM_SSH_PORT || '22' }}
+        run: |
+          if [ -z "$VM_HOST" ] || [ -z "$VM_USER" ] || [ -z "$VM_SSH_KEY" ]; then
+            echo "::notice::Staging VM secrets are not configured yet; nothing to run."
+            echo "SKIP=true" >> "$GITHUB_ENV"; exit 0
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          if [ -n "$VM_SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VM_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VM_SSH_KNOWN_HOSTS is not set; trusting the host key scanned now."
+            ssh-keyscan -p "$VM_SSH_PORT" -H "$VM_HOST" > ~/.ssh/known_hosts
+          fi
+          printf 'Host staging\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/deploy_key\n  IdentitiesOnly yes\n  BatchMode yes\n  StrictHostKeyChecking yes\n' \
+            "$VM_HOST" "$VM_USER" "$VM_SSH_PORT" > ~/.ssh/config
+      - name: Run the jobs now
+        if: env.SKIP != 'true' && inputs.run_now
+        run: ssh staging 'tory/deploy.sh scheduled'
+      - name: Check the jobs ran recently
+        if: env.SKIP != 'true'
+        run: ssh staging 'tory/deploy.sh check-scheduled'
