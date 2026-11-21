@@ -64,3 +64,9 @@ urlpatterns += [
 from .ops_admin import ops_admin_site
 
 urlpatterns += [path("ops-admin/", ops_admin_site.urls)]
+
+urlpatterns += [
+    path("businesses/<int:business_id>/inventories/new/", inventory_views.inventory_create, name="inventory-create"),
+    path("inventories/<int:inventory_id>/rename/", inventory_views.inventory_rename, name="inventory-rename"),
+    path("inventories/<int:inventory_id>/status/", inventory_views.inventory_status, name="inventory-status"),
+]

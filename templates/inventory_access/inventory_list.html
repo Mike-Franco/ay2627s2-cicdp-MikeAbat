@@ -1,11 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Inventories · Tory{% endblock %}
+{% block title %}Inventories &middot; Tory{% endblock %}
 {% block breadcrumb %}Your inventories{% endblock %}
 {% block content %}
-<h1>Your inventories</h1>
+<div class="products-heading">
+  <h1>Your inventories</h1>
+  {% if manager_memberships %}
+  <div class="heading-actions">
+    {% for membership in manager_memberships %}
+    <a class="btn btn-primary" href="{% url 'inventory-create' membership.business_id %}">Add inventory{% if manager_memberships|length > 1 %} &middot; {{ membership.business.name }}{% endif %}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
 {% if inventories %}
-  <ul class="list-group">{% for inventory in inventories %}<li class="list-group-item"><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a></li>{% endfor %}</ul>
+<ul class="list-group">
+  {% for inventory in inventories %}
+  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a><small class="text-muted"> &middot; {{ inventory.business.name }}</small></span>
+    {% if inventory.can_manage %}{% include "inventory_access/inventory_actions.html" %}{% endif %}
+  </li>
+  {% endfor %}
+</ul>
 {% else %}
-  <p>No inventories are assigned to your account.</p>
+<p>No inventories are assigned to your account.</p>
+{% endif %}
+{% if inactive_inventories %}
+<h2 class="mt-4">Inactive inventories</h2>
+<ul class="list-group">
+  {% for inventory in inactive_inventories %}
+  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span>{{ inventory.name }}<small class="text-muted"> &middot; {{ inventory.business.name }}</small></span>
+    {% include "inventory_access/inventory_actions.html" %}
+  </li>
+  {% endfor %}
+</ul>
 {% endif %}
 {% endblock %}

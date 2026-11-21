@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{% if inventory %}Rename inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
+{% block breadcrumb %}{% if inventory %}Rename inventory{% else %}Add inventory{% endif %}{% endblock %}
+{% block content %}
+<h1>{% if inventory %}Rename inventory{% else %}Add inventory{% endif %}</h1>
+<p>{{ business.name }}</p>
+<form method="post" class="panel p-3">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <button class="btn btn-primary" type="submit">{% if inventory %}Save changes{% else %}Add inventory{% endif %}</button>
+  <a class="btn btn-outline-secondary" href="{% url 'inventory-list' %}">Cancel</a>
+</form>
+{% endblock %}
