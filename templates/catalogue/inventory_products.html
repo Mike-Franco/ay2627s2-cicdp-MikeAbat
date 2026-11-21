@@ -4,7 +4,7 @@
 {% block content %}
 <div class="products-heading">
   <div><p class="eyebrow">{{ inventory.name }}</p><h1>Products</h1><p>Stock balances and reorder status for this inventory.</p></div>
-  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product</a><a class="btn btn-outline-secondary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a></div>{% endif %}
+  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product</a><a class="btn btn-outline-secondary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a><a class="btn btn-outline-secondary" href="{% url 'bulk-verify-demand' inventory.pk %}">Verify demand</a></div>{% endif %}
 </div>
 <section class="panel" aria-labelledby="linked-products-title">
   <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{% if has_filters and not filter_form.errors %}{{ page.paginator.count }} of {% endif %}{{ total_product_count }} product{{ total_product_count|pluralize }} in {{ inventory.name }}</p><a href="{% url 'export-inventory-stock' inventory.pk %}">Download current stock CSV</a></div>
