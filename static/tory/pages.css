@@ -115,3 +115,18 @@ th[aria-sort=ascending] .sort-link::after{content:" ↑"}
 th[aria-sort=descending] .sort-link::after{content:" ↓"}
 /* CSV import example table. */
 .products-table.csv-example{min-width:0}
+
+/* TORY-52: sidebar navigation. The selected inventory's pages form one group. */
+.sidebar{overflow-y:auto}
+.sidebar .manage-label{margin-top:20px}
+.inventory-switcher{margin:26px 0 18px}
+.nav-group{margin:0 0 5px}
+.nav-group-summary{list-style:none;display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:8px;cursor:pointer;color:var(--ink);font-weight:650;font-size:13px}
+.nav-group-summary::-webkit-details-marker{display:none}
+.nav-group-summary:hover{background:var(--subtle)}
+.nav-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-group-caret{margin-left:auto;transition:transform .15s ease}
+.nav-group:not([open]) .nav-group-caret{transform:rotate(-90deg)}
+.nav-group-links{margin-left:14px;padding-left:8px;border-left:1px solid var(--line)}
+.nav-group-links .sidebar-link{padding:7px 11px;margin-bottom:2px}
+@media(prefers-reduced-motion:reduce){.nav-group-caret{transition:none}}
