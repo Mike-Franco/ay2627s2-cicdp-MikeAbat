@@ -98,3 +98,9 @@
 .field-wide{max-width:28rem}
 .account-link{color:var(--muted)}
 .account-link:hover,.account-link[aria-current]{color:var(--accent)}
+/* Moved from inline styles so the Content-Security-Policy needs no 'unsafe-inline'. */
+.field-narrow{max-width:16rem}
+.chart-frame{height:18rem;min-width:0;padding:1rem}
+.chart-frame canvas{max-width:100%}
+.chart-data{padding:0 1rem 1rem}
+.chart-data summary{cursor:pointer;color:var(--accent);font-size:12px;margin-bottom:.5rem}

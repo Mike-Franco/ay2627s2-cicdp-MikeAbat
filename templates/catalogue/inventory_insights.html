@@ -4,12 +4,6 @@
 {% block title %}{{ inventory.name }} insights &middot; Tory{% endblock %}
 {% block breadcrumb %}Insights{% endblock %}
 {% block content %}
-<style>
-  .chart-frame { height: 18rem; min-width: 0; padding: 1rem; }
-  .chart-frame canvas { max-width: 100%; }
-  .chart-data { padding: 0 1rem 1rem; }
-  .chart-data summary { cursor: pointer; color: var(--accent); font-size: 12px; margin-bottom: .5rem; }
-</style>
 <div class="products-heading"><div><p class="eyebrow">{{ inventory.name }}</p><h1>Inventory insights</h1></div></div>
 <section class="panel mb-4" aria-labelledby="demand-heading">
   <div class="panel-heading"><h2 id="demand-heading">Daily units issued</h2><p>Last 30 Singapore dates</p></div>
