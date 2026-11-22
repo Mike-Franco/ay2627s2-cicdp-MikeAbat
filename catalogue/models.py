@@ -3,12 +3,45 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.functions import Lower, Trim
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 
 from inventory_access.models import Business, Inventory
 
 
+class Category(models.Model):
+    business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="categories")
+    name = models.CharField(max_length=80)
+    colour = models.CharField(
+        max_length=7, blank=True, validators=[RegexValidator(r"^#[0-9a-fA-F]{6}$", "Use a hex colour such as #306DB0.")],
+    )
+
+    class Meta:
+        ordering = ("name", "pk")
+        constraints = [
+            models.UniqueConstraint(F("business"), Lower(Trim("name")), name="unique_business_category_name"),
+            models.UniqueConstraint(fields=("id", "business"), name="category_id_business_key"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        super().clean()
+        self.name = self.name.strip()
+        if not self.name:
+            raise ValidationError({"name": "Name is required."})
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
 class Product(models.Model):
+    category = models.ForeignKey(
+        Category, on_delete=models.PROTECT, related_name="products", null=True, blank=True,
+    )
+
     business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="products")
     sku = models.CharField(max_length=64)
     name = models.TextField()
@@ -48,6 +81,10 @@ class Product(models.Model):
 
     def clean(self):
         super().clean()
+        if self.category_id is not None and not Category.objects.filter(
+            pk=self.category_id, business_id=self.business_id,
+        ).exists():
+            raise ValidationError({"category": "Choose a category from this business."})
         self.sku = self.sku.strip()
         if self.base_unit_label is not None:
             self.base_unit_label = self.base_unit_label.strip()

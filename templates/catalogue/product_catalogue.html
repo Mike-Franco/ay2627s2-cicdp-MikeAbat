@@ -11,13 +11,17 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% for membership in category_managers %}
+  <a href="{% url 'category-list' membership.business_id %}">Manage categories{% if category_managers|length > 1 %} · {{ membership.business.name }}{% endif %}</a>
+  {% endfor %}
 </div>
 <form method="get" action="{% url 'product-catalogue' %}" class="product-filters" role="search" aria-label="Search catalogue">
   <div class="product-filter-field"><label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>{{ search_form.q }}{% if search_form.q.errors %}<div class="filter-errors" role="alert">{{ search_form.q.errors }}</div>{% endif %}</div>
-  <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Search</button>{% if search_form.q.value %}<a class="btn btn-outline-secondary" href="{% url 'product-catalogue' %}">Clear search</a>{% endif %}</div>
+  <div class="product-filter-field">{{ search_form.category.label_tag }}{{ search_form.category }}{{ search_form.category.errors }}</div>
+  <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Search</button>{% if search_form.q.value or search_form.category.value %}<a class="btn btn-outline-secondary" href="{% url 'product-catalogue' %}">Clear search</a>{% endif %}</div>
 </form>
 {% if product_links %}
-  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {{ link.inventory.name }}</span></li>{% endfor %}</ul>
+  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {% include "includes/inventory_badge.html" with inventory=link.inventory %} · {{ link.product.category|default:"Uncategorised" }}</span></li>{% endfor %}</ul>
 {% elif not search_form.errors and search_form.cleaned_data.q %}
   <p>No authorised products match your search.</p>
 {% elif not search_form.errors %}
