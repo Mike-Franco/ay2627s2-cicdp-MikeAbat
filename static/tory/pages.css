@@ -104,3 +104,6 @@
 .chart-frame canvas{max-width:100%}
 .chart-data{padding:0 1rem 1rem}
 .chart-data summary{cursor:pointer;color:var(--accent);font-size:12px;margin-bottom:.5rem}
+
+/* CSV import example table. */
+.products-table.csv-example{min-width:0}
