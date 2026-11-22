@@ -48,3 +48,49 @@ jobs:
       - name: Stop the stack
         if: always()
         run: docker compose down --volumes
+
+  e2e:
+    name: Browser smoke test (Playwright)
+    needs: compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install playwright==1.64.1
+          python -m playwright install --with-deps chromium
+      - name: Build and start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Seed demo data
+        run: |
+          password="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+          echo "::add-mask::$password"
+          echo "DEMO_MANAGER_PASSWORD=$password" >> "$GITHUB_ENV"
+          docker compose exec -T -e DEMO_MANAGER_PASSWORD="$password" \
+            -e DEMO_STAFF_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')" \
+            web python manage.py seed_demo
+      - name: Run the browser smoke test
+        run: >-
+          python scripts/e2e_smoke.py --base-url http://localhost:8000
+          --email manager@tory-demo.test --password "$DEMO_MANAGER_PASSWORD"
+          --screenshots e2e-screenshots
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-screenshots-${{ github.sha }}
+          path: e2e-screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
