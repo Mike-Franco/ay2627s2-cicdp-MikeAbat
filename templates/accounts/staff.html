@@ -13,6 +13,7 @@
         {% include "includes/sortable_header.html" with key="name" label="Name" %}
         {% include "includes/sortable_header.html" with key="email" label="Email" %}
         <th scope="col">Job title</th>
+        <th scope="col">Phone</th>
         {% include "includes/sortable_header.html" with key="status" label="Status" %}
         <th scope="col">Inventories</th>
         {% include "includes/sortable_header.html" with key="last_login" label="Last sign-in" %}
@@ -21,9 +22,10 @@
       <tbody>
       {% for staff in staff_accounts %}
         <tr>
-          <th scope="row"><span class="d-flex align-items-center gap-2">{% include "includes/user_avatar.html" with user=staff %}{{ staff.get_full_name|default:"—" }}</span></th>
+          <th scope="row"><span class="user-ref">{% include "includes/user_avatar.html" with user=staff %}<span class="user-ref-name">{{ staff.display_name|default:staff.get_full_name|default:"—" }}</span></span></th>
           <td><span class="list-mobile-label" aria-hidden="true">Email</span>{{ staff.email }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Job title</span>{{ staff.job_title|default:"—" }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Phone</span>{% if staff.phone %}<a href="tel:{{ staff.phone|cut:' ' }}">{{ staff.phone }}</a>{% else %}—{% endif %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Status</span>{% if staff.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Assigned inventories</span><div class="d-flex flex-wrap gap-2">{% for inventory in staff.assigned_inventories %}{% include "includes/inventory_badge.html" with inventory=inventory %}{% empty %}—{% endfor %}</div></td>
           <td><span class="list-mobile-label" aria-hidden="true">Last sign-in</span>{{ staff.last_login|sgdate }}</td>

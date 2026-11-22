@@ -21,6 +21,7 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("account/", account_views.account, name="account"),
+    path("account/profile/", account_views.account_profile, name="account-profile"),
     path("businesses/<int:business_id>/staff-invitations/", team_lists.invitation_list, name="staff-invitations"),
     path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
     path("businesses/<int:business_id>/staff/", team_lists.staff_list, name="manager-staff"),
