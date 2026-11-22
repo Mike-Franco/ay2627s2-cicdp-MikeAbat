@@ -1,0 +1,13 @@
+{% load tory_format %}
+<div class="stat-tiles stock-kpis mb-3" aria-label="Stock metrics">
+  {% for card in kpi_cards %}
+  <div class="stat-tile neutral">
+    <span class="stat-label">{{ card.label }}</span>
+    <span class="metric-tip" tabindex="0" aria-label="{{ card.description }}" title="{{ card.description }}">
+      <span aria-hidden="true">?</span><span class="metric-tip-text">{{ card.description }}</span>
+    </span>
+    <strong class="stat-value">{% if card.value is None %}—{% elif card.format == "currency" %}{{ card.value|sgd }}{% elif card.format == "decimal" %}{{ card.value|floatformat:2 }}{% else %}{{ card.value }}{% endif %}</strong>
+    {% if card.note %}<span class="stat-unit">{{ card.note }}</span>{% endif %}
+  </div>
+  {% endfor %}
+</div>
