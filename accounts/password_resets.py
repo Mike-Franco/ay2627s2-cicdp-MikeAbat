@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare, salted_hmac
 
 from .password_feedback import PasswordFeedbackError, UNSET, validate_new_password
 
@@ -21,7 +22,7 @@ IDENTITY_LIMIT = 3
 IP_LIMIT = 20
 ACKNOWLEDGEMENT = "If eligible, instructions will be sent."
 TOKEN_PURPOSE = b"tory:password-reset:v1\0"
-PASSWORD_PURPOSE = b"tory:password-reset-password:v1\0"
+PASSWORD_FINGERPRINT_SALT = "tory.accounts.password_resets.PasswordFingerprint"
 
 
 class PasswordResetError(Exception):
@@ -46,6 +47,17 @@ class ResetRequestResult:
 
 def _digest(purpose, value):
     return hashlib.sha256(purpose + value.encode("utf-8")).hexdigest()
+
+
+def _password_fingerprint(user):
+    """Keyed fingerprint binding a reset link to the password it was issued for.
+
+    The input is Django's stored password hash, never a plaintext password.
+    Like Django's PasswordResetTokenGenerator, it is an HMAC keyed with
+    SECRET_KEY and a Tory-specific key_salt, so changing the password
+    invalidates the link and the stored value is useless without the key.
+    """
+    return salted_hmac(PASSWORD_FINGERPRINT_SALT, user.password, algorithm="sha256").hexdigest()
 
 
 def _normalized_email(value):
@@ -86,7 +98,7 @@ def request_password_reset(email, source_ip, *, at=None):
         token = secrets.token_urlsafe(32)
         link = PasswordResetLink.objects.create(
             user=user, token_digest=_digest(TOKEN_PURPOSE, token),
-            password_digest=_digest(PASSWORD_PURPOSE, user.password),
+            password_digest=_password_fingerprint(user),
             issued_at=now, expires_at=now + LIFETIME,
         )
         return ResetRequestResult(credentials=ResetCredentials(link, token))
@@ -109,7 +121,7 @@ def redeem_password_reset(token, password, *, at=None, confirmation=UNSET):
         if (not user.is_active or not user.has_usable_password() or
                 link.status != PasswordResetLink.Status.PENDING or
                 link.token_digest != digest or link.expires_at <= now or
-                link.password_digest != _digest(PASSWORD_PURPOSE, user.password)):
+                not constant_time_compare(link.password_digest, _password_fingerprint(user))):
             raise PasswordResetError("This reset link cannot be used.")
         validate_new_password(password, user, confirmation, PasswordRejected)
         user.set_password(password)

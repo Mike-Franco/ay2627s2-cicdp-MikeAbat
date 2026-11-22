@@ -99,6 +99,33 @@ class PasswordResetCoreTests(TestCase):
         with self.assertRaises(PasswordResetError):
             redeem_password_reset(result.credentials.token, PASSWORD, at=ANCHOR + timedelta(minutes=1))
 
+    def test_password_change_alone_invalidates_link(self):
+        result = self.issue()
+        self.user.set_password("changed-outside-reset-9382")
+        self.user.save(update_fields=["password"])
+        with self.assertRaises(PasswordResetError):
+            redeem_password_reset(result.credentials.token, PASSWORD, at=ANCHOR + timedelta(minutes=1))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("changed-outside-reset-9382"))
+        self.assertEqual(PasswordResetLink.objects.get(pk=result.credentials.link.pk).status, "pending")
+
+    def test_link_stays_valid_when_password_is_unchanged(self):
+        result = self.issue()
+        self.user.last_login = ANCHOR
+        self.user.save(update_fields=["last_login"])
+        redeem_password_reset(result.credentials.token, PASSWORD, at=ANCHOR + timedelta(minutes=1))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(PASSWORD))
+        self.assertEqual(PasswordResetLink.objects.get(pk=result.credentials.link.pk).status, "redeemed")
+
+    def test_password_fingerprint_is_keyed_hmac_of_stored_hash(self):
+        from django.utils.crypto import salted_hmac
+        from accounts.password_resets import PASSWORD_FINGERPRINT_SALT
+        stored = self.issue().credentials.link.password_digest
+        self.assertEqual(stored, salted_hmac(PASSWORD_FINGERPRINT_SALT, self.user.password, algorithm="sha256").hexdigest())
+        with self.settings(SECRET_KEY="a-different-secret-key-for-this-test-only-0123456789"):
+            self.assertNotEqual(stored, salted_hmac(PASSWORD_FINGERPRINT_SALT, self.user.password, algorithm="sha256").hexdigest())
+
     def test_open_left_hour_boundary(self):
         for _ in range(3):
             self.issue("missing@example.test")
