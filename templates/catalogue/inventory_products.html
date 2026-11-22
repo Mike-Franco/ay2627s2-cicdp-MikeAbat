@@ -11,12 +11,18 @@
   <form method="get" action="{% url 'inventory-products' inventory.pk %}" class="product-filters" role="search" aria-label="Filter inventory products">
     <div class="product-filter-field"><label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>{{ filter_form.q }}{% if filter_form.q.errors %}<div class="filter-errors" role="alert">{{ filter_form.q.errors }}</div>{% endif %}</div>
     <div class="product-filter-field"><label for="{{ filter_form.reorder.id_for_label }}">{{ filter_form.reorder.label }}</label>{{ filter_form.reorder }}{% if filter_form.reorder.errors %}<div class="filter-errors" role="alert">{{ filter_form.reorder.errors }}</div>{% endif %}</div>
+    <div class="product-filter-field"><label for="{{ filter_form.sort.id_for_label }}">{{ filter_form.sort.label }}</label>{{ filter_form.sort }}{% if filter_form.sort.errors %}<div class="filter-errors" role="alert">{{ filter_form.sort.errors }}</div>{% endif %}</div>
     <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button>{% if has_filters %}<a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Clear filters</a>{% endif %}</div>
   </form>
   {% if product_links %}
   <div class="table-scroll" role="region" aria-label="Products and stock balances" tabindex="0">
     <table class="products-table product-cards">
-      <thead><tr><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="numeric">Physical</th><th scope="col" class="numeric">Quarantined</th><th scope="col" class="numeric">Available</th><th scope="col">Reorder status</th><th scope="col">Actions</th></tr></thead>
+      <thead><tr>
+        <th scope="col"{% if sort == 'name' %} aria-sort="ascending"{% elif sort == '-name' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'name' %}{% querystring sort='-name' page=None %}{% else %}{% querystring sort='name' page=None %}{% endif %}">Product</a></th>
+        <th scope="col">SKU</th><th scope="col" class="numeric">Physical</th><th scope="col" class="numeric">Quarantined</th>
+        <th scope="col" class="numeric"{% if sort == 'available' %} aria-sort="ascending"{% elif sort == '-available' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'available' %}{% querystring sort='-available' page=None %}{% else %}{% querystring sort='available' page=None %}{% endif %}">Available</a></th>
+        <th scope="col"{% if sort == 'status' %} aria-sort="ascending"{% elif sort == '-status' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'status' %}{% querystring sort='-status' page=None %}{% else %}{% querystring sort='status' page=None %}{% endif %}">Reorder status</a></th>
+        <th scope="col">Actions</th></tr></thead>
       <tbody>{% for link in product_links %}<tr>
         <th scope="row" class="cell-product"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
         <td class="product-sku cell-sku">{{ link.product.sku }}</td>
