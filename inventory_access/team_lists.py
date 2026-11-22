@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 from django.db.models import Case, CharField, Exists, F, OuterRef, Value, When
-from django.db.models.functions import Lower
+from django.db.models.functions import Coalesce, Lower, NullIf
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
@@ -17,7 +17,8 @@ from .models import InventoryAssignment
 
 
 STAFF_SORTS = {
-    "name": Lower("first_name"), "email": Lower("email"),
+    # Display name first (TORY-55), then the legacy first name.
+    "name": Lower(Coalesce(NullIf("display_name", Value("")), "first_name")), "email": Lower("email"),
     "status": "is_active", "last_login": F("last_login"),
 }
 STAFF_STATUSES = (("", "All statuses"), ("active", "Active"), ("inactive", "Inactive"))
@@ -49,7 +50,7 @@ def _staff_inventories(request, business_id, accounts):
 def staff_list(request, business_id):
     staff = _scoped_staff(request, business_id)
     controls = TableControls.from_request(request, STAFF_SORTS, default="email")
-    staff = search_rows(staff, controls.query, "email", "first_name", "last_name")
+    staff = search_rows(staff, controls.query, "email", "first_name", "last_name", "display_name", "job_title")
     status = request.GET.get("status")
     if status in ("active", "inactive"):
         staff = staff.filter(is_active=status == "active")
@@ -62,7 +63,7 @@ def staff_list(request, business_id):
     _staff_inventories(request, business_id, accounts)
     return render(request, "accounts/staff.html", {
         "business_id": business_id, "staff_accounts": accounts, "page": page,
-        "toolbar": controls.toolbar(request, page, search_label="Search name or email",
+        "toolbar": controls.toolbar(request, page, search_label="Search name, email or job title",
                                     filters=(("status", "Status", STAFF_STATUSES),)),
     })
 

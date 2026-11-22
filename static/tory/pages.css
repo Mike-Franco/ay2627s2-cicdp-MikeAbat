@@ -131,6 +131,44 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 .nav-group-links .sidebar-link{padding:7px 11px;margin-bottom:2px}
 @media(prefers-reduced-motion:reduce){.nav-group-caret{transition:none}}
 
+/* TORY-55/TORY-54: preset colours (config/palette.py). White text passes WCAG AA on each. */
+.tone-slate{--tone:#475569}.tone-indigo{--tone:#4338ca}.tone-blue{--tone:#1d4ed8}.tone-sky{--tone:#0369a1}
+.tone-teal{--tone:#0f766e}.tone-green{--tone:#15803d}.tone-amber{--tone:#b45309}.tone-orange{--tone:#c2410c}
+.tone-rose{--tone:#be123c}.tone-purple{--tone:#7e22ce}
+[class*=" tone-"],[class^="tone-"]{background:var(--tone);color:#fff}
+
+/* TORY-55: avatars (templates/includes/user_avatar.html). */
+.avatar{display:inline-grid;place-items:center;flex:0 0 auto;border-radius:50%;font-weight:700;line-height:1;letter-spacing:.3px;object-fit:cover;user-select:none}
+.avatar-sm{width:24px;height:24px;flex-basis:24px;font-size:10px}
+.avatar-md{width:34px;height:34px;flex-basis:34px;font-size:12px}
+.avatar-lg{width:72px;height:72px;flex-basis:72px;font-size:24px}
+.avatar-photo{background:var(--subtle)}
+.user-ref{display:inline-flex;align-items:center;gap:7px;min-width:0;vertical-align:middle}
+.user-ref-name{overflow:hidden;text-overflow:ellipsis}
+.user-card .account-link{display:flex;align-items:center;gap:8px;min-width:0;flex:1;color:inherit;font-size:inherit}
+.user-card .account-link:hover strong,.user-card .account-link[aria-current] strong{color:var(--accent)}
+
+/* TORY-55: profile page. */
+.profile-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.profile-tabs a{padding:9px 14px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.profile-tabs a:hover{color:var(--ink)}
+.profile-tabs a[aria-current]{color:var(--accent);border-bottom-color:var(--accent);font-weight:650}
+.profile-summary{display:flex;align-items:center;gap:16px;padding:20px 22px}
+.profile-summary h2{font-size:19px;margin:0}
+.profile-summary p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.profile-facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0;padding:0 22px 20px;font-size:13px}
+.profile-facts dt{color:var(--muted);font-weight:500}
+.profile-facts dd{margin:0}
+.swatch-picker{display:flex;flex-wrap:wrap;gap:8px;border:0;padding:0;margin:0}
+.swatch-picker legend{font-size:14px;margin-bottom:6px}
+.swatch{position:relative}
+.swatch input{position:absolute;opacity:0;width:1px;height:1px}
+.swatch label{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;font-size:0}
+.swatch input:checked+label{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
+.swatch input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.swatch input:checked+label::after{content:"✓";font-size:14px;color:#fff}
+@media(max-width:520px){.profile-facts{grid-template-columns:1fr}.profile-facts dd{margin-bottom:6px}}
+
 .list-result-count { margin: 0; padding: .5rem 1rem; color: var(--bs-secondary-color); }
 .table-sort-link { display: inline-flex; align-items: center; gap: .3rem; }
 .table-sort-link span { font-size: .9em; }

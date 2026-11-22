@@ -1,12 +1,45 @@
 {% extends "base.html" %}
-{% block title %}Account · Tory{% endblock %}
-{% block breadcrumb %}Account{% endblock %}
+{% load tory_format %}
+{% block title %}Profile · Tory{% endblock %}
+{% block breadcrumb %}Profile{% endblock %}
 {% block content %}
-<div class="products-heading"><div><h1>Account</h1><p>{{ request.user.email }}</p></div></div>
+<div class="products-heading"><div><h1>Your profile</h1><p>How you appear to your team, and your sign-in password.</p></div></div>
+<nav class="profile-tabs" aria-label="Profile sections"><a href="#profile">Profile</a><a href="#password">Password</a></nav>
 {% for message in messages %}<div class="alert alert-success" role="status">{{ message }}</div>{% endfor %}
-<section class="panel" aria-labelledby="password-heading">
+
+<section class="panel mb-4" id="profile" aria-labelledby="profile-heading">
+  <div class="profile-summary">
+    {% include "includes/user_avatar.html" with user=request.user size="lg" %}
+    <div><h2 id="profile-heading">{{ request.user.display_label }}</h2><p>{% if request.user.job_title %}{{ request.user.job_title }} · {% endif %}{{ request.user.email }}</p></div>
+  </div>
+  <dl class="profile-facts">
+    <dt>Email</dt><dd>{{ request.user.email }} <span class="text-muted">(sign-in name; ask your Manager to change it)</span></dd>
+    <dt>Role</dt><dd>{% for membership in memberships %}{{ membership.get_role_display }} at {{ membership.business.name }}{% if not forloop.last %}<br>{% endif %}{% empty %}No active role{% endfor %}</dd>
+    <dt>Assigned inventories</dt><dd>{% for inventory in assigned_inventories %}{{ inventory.name }}{% if not forloop.last %}, {% endif %}{% empty %}None{% endfor %}</dd>
+    <dt>Account created</dt><dd>{{ request.user.date_joined|sgdate }}</dd>
+    <dt>Last sign-in</dt><dd>{% if request.user.last_login %}{{ request.user.last_login|sgdate }}{% else %}—{% endif %}</dd>
+  </dl>
+  <form method="post" action="{% url 'account-profile' %}" enctype="multipart/form-data" class="p-3 border-top" novalidate>
+    {% csrf_token %}
+    {{ profile_form.non_field_errors }}
+    <div class="mb-3 field-wide"><label class="form-label" for="{{ profile_form.display_name.id_for_label }}">{{ profile_form.display_name.label }}</label>{{ profile_form.display_name }}<div class="form-text">{{ profile_form.display_name.help_text }}</div>{{ profile_form.display_name.errors }}</div>
+    <div class="mb-3 field-wide"><label class="form-label" for="{{ profile_form.job_title.id_for_label }}">{{ profile_form.job_title.label }}</label>{{ profile_form.job_title }}<div class="form-text">{{ profile_form.job_title.help_text }}</div>{{ profile_form.job_title.errors }}</div>
+    <div class="mb-3 field-wide"><label class="form-label" for="{{ profile_form.phone.id_for_label }}">{{ profile_form.phone.label }}</label>{{ profile_form.phone }}<div class="form-text">{{ profile_form.phone.help_text }}</div>{{ profile_form.phone.errors }}</div>
+    <fieldset class="mb-3 swatch-picker" aria-describedby="avatar-colour-help">
+      <legend class="form-label">{{ profile_form.avatar_colour.label }}</legend>
+      {% for choice in profile_form.avatar_colour %}<span class="swatch"><input type="radio" name="{{ choice.data.name }}" value="{{ choice.data.value }}" id="{{ choice.id_for_label }}" {% if choice.data.selected %}checked{% endif %}><label for="{{ choice.id_for_label }}" class="tone-{{ choice.data.value }}" title="{{ choice.choice_label }}">{{ choice.choice_label }}</label></span>{% endfor %}
+      <div class="form-text w-100" id="avatar-colour-help">Used behind your initials when you have no photo.</div>
+      {{ profile_form.avatar_colour.errors }}
+    </fieldset>
+    <div class="mb-3 field-wide"><label class="form-label" for="{{ profile_form.photo_upload.id_for_label }}">{{ profile_form.photo_upload.label }}</label>{{ profile_form.photo_upload }}<div class="form-text">{{ profile_form.photo_upload.help_text }}</div>{{ profile_form.photo_upload.errors }}</div>
+    {% if request.user.photo %}<div class="mb-3 form-check"><input class="form-check-input" type="checkbox" name="remove_photo" id="{{ profile_form.remove_photo.id_for_label }}"{% if profile_form.remove_photo.value %} checked{% endif %}><label class="form-check-label" for="{{ profile_form.remove_photo.id_for_label }}">{{ profile_form.remove_photo.label }}</label>{{ profile_form.remove_photo.errors }}</div>{% endif %}
+    <button class="btn btn-primary" type="submit">Save profile</button>
+  </form>
+</section>
+
+<section class="panel" id="password" aria-labelledby="password-heading">
   <div class="panel-heading"><h2 id="password-heading">Change password</h2><p>Changing your password signs out your other sessions. This one stays signed in.</p></div>
-  <form method="post" class="p-3" novalidate>
+  <form method="post" action="{% url 'account' %}" class="p-3" novalidate>
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div class="mb-3 field-wide"><label class="form-label" for="{{ form.old_password.id_for_label }}">{{ form.old_password.label }}</label>{{ form.old_password }}{{ form.old_password.errors }}</div>

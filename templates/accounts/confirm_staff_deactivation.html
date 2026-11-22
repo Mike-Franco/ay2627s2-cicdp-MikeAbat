@@ -3,7 +3,7 @@
 {% block breadcrumb %}Deactivate Staff{% endblock %}
 {% block content %}
 <h1>Deactivate Staff</h1>
-<p>Deactivate {{ target.get_full_name|default:target.email }} ({{ target.email }})? Their previous sessions will be denied on the next protected request. Their account and history will be retained.</p>
+<p>Deactivate {{ target.display_label }} ({{ target.email }})? Their previous sessions will be denied on the next protected request. Their account and history will be retained.</p>
 {% if target.is_active %}
 <form method="post" action="{% url 'deactivate-staff' business_id target.pk %}">
   {% csrf_token %}

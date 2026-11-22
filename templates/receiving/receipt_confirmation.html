@@ -12,7 +12,7 @@
   <dt class="col-sm-3">Quantity</dt><dd class="col-sm-9">{{ batch.quantity_units }} {{ batch.unit_label_snapshot }}</dd>
   <dt class="col-sm-3">Expiry</dt><dd class="col-sm-9">{{ batch.expiry_date|sgdate|default:"Undated" }}</dd>
   <dt class="col-sm-3">Receipt sequence</dt><dd class="col-sm-9">{{ batch.receipt_sequence }}</dd>
-  <dt class="col-sm-3">Recorded by</dt><dd class="col-sm-9">{{ batch.actor.email }}</dd>
+  <dt class="col-sm-3">Recorded by</dt><dd class="col-sm-9">{% include "includes/user_avatar.html" with user=batch.actor size="sm" with_name=True %}</dd>
   <dt class="col-sm-3">Recorded at</dt><dd class="col-sm-9">{{ batch.received_at|sgdate }}</dd>
 </dl>
 <p class="text-muted">This receipt is recorded as non-demand.</p>
