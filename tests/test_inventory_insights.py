@@ -1,18 +1,22 @@
-from datetime import timedelta
+from datetime import date, datetime, timedelta, timezone as utc_timezone
+from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import connection
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
 from catalogue.templatetags.tory_format import sgdate
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
-from catalogue.models import InventoryProduct, Product
+from catalogue.insights import supply_series, traffic_series
+from catalogue.metrics import DailyMovement
+from catalogue.models import Category, InventoryProduct, Product
 from inventory_access.models import (
     Business,
     BusinessMembership,
@@ -25,6 +29,34 @@ from receiving.models import (
     ObservationActivation,
 )
 from receiving.services import SINGAPORE, issue_stock, receive_manual
+
+
+class WeeklyMovementTests(SimpleTestCase):
+    def test_sunday_and_monday_use_different_singapore_weeks(self):
+        at = datetime(2026, 11, 22, 16, 30, tzinfo=utc_timezone.utc)
+        sunday, monday = date(2026, 11, 22), date(2026, 11, 23)
+        movements = {
+            1: {sunday: DailyMovement(received=3), monday: DailyMovement(issued=2)},
+            2: {monday: DailyMovement(received=11)},
+        }
+        rows = traffic_series([1], movements, at=at)
+        self.assertEqual(len(rows), 8)
+        self.assertEqual(rows[-2:], [
+            {"week": "2026-11-16", "received": 3, "issued": 0},
+            {"week": "2026-11-23", "received": 0, "issued": 2},
+        ])
+        self.assertEqual(traffic_series([], movements, at=at), [])
+
+
+    def test_supply_ranking_limits_to_ten_and_orders_ties_by_link_id(self):
+        positions = []
+        for pk in range(13, 0, -1):
+            product = SimpleNamespace(sku=f"SKU-{pk}", name=f"Item {pk}")
+            link = SimpleNamespace(pk=pk, product=product)
+            positions.append(SimpleNamespace(link=link, supply=None if pk == 13 else Decimal(pk // 2)))
+        ranked = supply_series(positions)
+        self.assertEqual([row["sku"] for row in ranked], [f"SKU-{pk}" for pk in range(1, 11)])
+        self.assertEqual(ranked[0], {"sku": "SKU-1", "name": "Item 1", "days": 0.0})
 
 
 class InventoryInsightsTests(TestCase):
@@ -173,5 +205,53 @@ class InventoryInsightsTests(TestCase):
 
     def test_data_tables_are_collapsed_under_show_data(self):
         response = self.client.get(self.url)
-        self.assertContains(response, '<details class="chart-data"><summary>Show data</summary>', count=3)
+        self.assertContains(response, '<details class="chart-data"><summary>Show data</summary>', count=6)
         self.assertNotContains(response, "<details open")
+        timestamp = response.context["as_of"].isoformat(timespec="seconds")
+        self.assertContains(response, f'datetime="{timestamp}"', count=6)
+        for label in ("What this shows", "How to read it", "What to do", "Data as of"):
+            self.assertContains(response, label, count=6)
+
+    def test_new_chart_shapes_product_category_and_value_controls(self):
+        category = Category.objects.create(business=self.business, name="First aid")
+        Product.objects.filter(pk=self.product.pk).update(category=category)
+        InventoryProduct.objects.filter(pk=self.link.pk).update(selling_price="3.25")
+        receive_manual(
+            user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
+            request_token=uuid4(), quantity_units=5, expiry_date=None,
+        )
+        issue_stock(
+            user_id=self.staff.pk, inventory_id=self.inventory.pk, product_id=self.product.pk, quantity_units=2,
+        )
+        uncategorised = self.create_product("PLAIN", "Uncategorised product")
+        InventoryProduct.objects.create(inventory=self.inventory, product=uncategorised)
+        receive_manual(
+            user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=uncategorised.pk,
+            request_token=uuid4(), quantity_units=7, expiry_date=None,
+        )
+        response = self.client.get(self.url, {"product": self.product.pk, "category": category.pk, "value_by": "category"})
+        self.assertEqual(response.status_code, 200)
+        stock = response.context["stock_data_json"]
+        self.assertEqual(len(stock), 30)
+        self.assertEqual(set(stock[0]), {"day", "on_hand", "reorder_point", "safety_stock"})
+        self.assertEqual(stock[-1]["on_hand"], 0)
+        self.assertEqual(stock[-1]["safety_stock"], 1)
+        self.assertIsNone(stock[-1]["reorder_point"])
+        self.assertEqual(stock[-1]["day"], (timezone.now().astimezone(SINGAPORE).date() - timedelta(days=1)).isoformat())
+        traffic = response.context["traffic_data_json"]
+        self.assertEqual(len(traffic), 8)
+        self.assertEqual((traffic[-1]["received"], traffic[-1]["issued"]), (5, 2))
+        unfiltered = self.client.get(self.url).context
+        self.assertEqual(unfiltered["traffic_data_json"][-1]["received"], 12)
+        self.assertEqual(sum(Decimal(row["value"]) for row in unfiltered["value_data_json"]), Decimal("9.75"))
+        self.assertEqual(response.context["supply_data_json"], [])
+        values = response.context["value_data_json"]
+        self.assertEqual(values[0]["label"], "First aid")
+        self.assertEqual(float(values[0]["value"]), 9.75)
+        for key in ("stock", "traffic", "supply", "value"):
+            self.assertContains(response, f'id="{key}-data"')
+        other = self.create_product("HIDDEN", "Unassigned item")
+        InventoryProduct.objects.create(inventory=self.other_inventory, product=other)
+        other_category = Category.objects.create(business=self.other_business, name="Outside")
+        self.assertEqual(self.client.get(self.url, {"product": other.pk}).status_code, 404)
+        self.assertEqual(self.client.get(self.url, {"category": other_category.pk}).status_code, 404)
