@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Case, CharField, F, Q, Sum, Value, When
+from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -216,10 +217,27 @@ def inventory_products(request, inventory_id):
                  then=F("receiving_batches__remaining_quantity_units")),
             default=F("receiving_batches__quarantined_quantity_units"),
         ), default=0))
-        if selected_status:
-            links = [link for link in _prepare_stock_list(links, at=now) if _reorder_status(link) == selected_status]
+        sort = filter_form.cleaned_data["sort"]
+        descending, sort_key = sort.startswith("-"), sort.lstrip("-")
+        # Every ordering ends with SKU and id so pages never overlap or skip rows.
+        if sort_key == "name":
+            name = Lower("product__name")
+            links = links.order_by(name.desc() if descending else name.asc(), "product__sku", "pk")
+        elif sort_key == "available":
+            links = links.annotate(
+                sort_available=F("physical_quantity_units") - F("display_quarantine_units"),
+            ).order_by(("-" if descending else "") + "sort_available", "product__sku", "pk")
+        computed = bool(selected_status) or sort_key == "status"
+        if computed:
+            links = _prepare_stock_list(links, at=now)
+            if selected_status:
+                links = [link for link in links if _reorder_status(link) == selected_status]
+            if sort_key == "status":
+                rank = {"attention": 0, "above": 1, "unavailable": 2}
+                links.sort(key=lambda link: ((-1 if descending else 1) * rank[_reorder_status(link)],
+                                             link.product.sku, link.pk))
         page = Paginator(links, 25).get_page(request.GET.get("page"))
-        product_links = page.object_list if selected_status else _prepare_stock_list(page.object_list, at=now)
+        product_links = page.object_list if computed else _prepare_stock_list(page.object_list, at=now)
         if can_adjust_stock:
             manageable = manageable_lifecycle_product_ids(
                 request.user, inventory.business_id, [link.product_id for link in product_links],
@@ -232,6 +250,7 @@ def inventory_products(request, inventory_id):
         {"inventory": inventory, "product_links": product_links, "page": page,
          "filter_form": filter_form, "total_product_count": total_product_count,
          "has_filters": bool(request.GET.get("q") or request.GET.get("reorder")),
+         "sort": filter_form.cleaned_data.get("sort", "") if valid_filters else "",
          "can_adjust_stock": can_adjust_stock},
         status=200 if valid_filters else 400,
     )

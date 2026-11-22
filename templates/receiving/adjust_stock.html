@@ -22,7 +22,7 @@
           <td>{{ row.batch_id }}Batch {{ row.initial.batch.receipt_sequence }} · {{ row.initial.batch.id }}</td>
           <td>{{ row.initial.batch.remaining_quantity_units }}</td>
           <td>{{ row.initial.batch.expiry_date|sgdate|default:"Undated" }}</td>
-          <td>{{ row.counted_quantity_units }}{{ row.counted_quantity_units.errors }}</td>
+          <td><label class="visually-hidden" for="{{ row.counted_quantity_units.id_for_label }}">Observed units for batch {{ row.initial.batch.receipt_sequence }}</label>{{ row.counted_quantity_units }}{{ row.counted_quantity_units.errors }}</td>
           <td>{{ row.confirmed }} <label for="{{ row.confirmed.id_for_label }}">I verified this batch identity and physically counted it.</label>{{ row.confirmed.errors }}</td>
         </tr>
       {% endfor %}

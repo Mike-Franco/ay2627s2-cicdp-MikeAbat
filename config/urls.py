@@ -35,6 +35,8 @@ urlpatterns = [
     path("inventories/<int:inventory_id>/products/<int:product_id>/", catalogue_views.product_stock, name="product-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/lifecycle/", catalogue_views.product_lifecycle, name="product-lifecycle"),
     path("inventories/<int:inventory_id>/import/", receiving_views.import_stock_csv_view, name="import-stock-csv"),
+    path("inventories/<int:inventory_id>/import/template.csv", receiving_views.import_template_csv,
+         name="import-stock-csv-template"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/history/", catalogue_views.stock_history, name="stock-history"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/forecast/", catalogue_views.demand_forecast, name="demand-forecast"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/reorder-settings/", catalogue_views.reorder_settings, name="reorder-settings"),

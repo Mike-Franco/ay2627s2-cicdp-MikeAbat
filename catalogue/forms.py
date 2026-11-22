@@ -95,6 +95,19 @@ class InventoryProductFilterForm(ProductSearchForm):
         ),
         widget=forms.Select(attrs={"class": "form-select"}),
     )
+    sort = forms.ChoiceField(
+        label="Sort by", required=False,
+        choices=(
+            ("", "SKU"),
+            ("name", "Name (A–Z)"),
+            ("-name", "Name (Z–A)"),
+            ("available", "Available (lowest first)"),
+            ("-available", "Available (highest first)"),
+            ("status", "Reorder status (needs attention first)"),
+            ("-status", "Reorder status (unavailable first)"),
+        ),
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
 
 
 class ReorderSettingsForm(PlainLabelsMixin, forms.ModelForm):
