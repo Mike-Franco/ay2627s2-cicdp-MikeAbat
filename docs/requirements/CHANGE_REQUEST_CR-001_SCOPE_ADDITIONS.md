@@ -42,7 +42,3 @@ The rest of SRS section 2.2 stands unchanged:
 - any production-readiness claim.
 
 Insights shows no monetary forecasts or cost figures. Its only money figure is the current stock value at the inventory's own selling price, which follows from BR-016 and BR-018.
-
-## Dashboard v2 scope extension
-
-TORY-58 records a further dashboard scope request for owner review. The inventory filter, reorder action table, and compact expiry and activity views present data already covered by FR-002, FR-010 and FR-011. The new read-only stock metrics add availability counts, days of supply, retail value at current selling prices, and a 30-day unit turnover measure. They use the current stock ledger and existing verified demand evidence. Moving-average forecasting, lead time, safety stock and order-quantity calculations remain as specified in FR-010 and FR-011. Manager and Staff views use their existing inventory assignments and role permissions.

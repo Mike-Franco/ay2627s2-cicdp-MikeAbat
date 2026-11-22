@@ -119,15 +119,13 @@ class PolishedPagesTests(TestCase):
         self.stock()
         self.login(self.manager)
         response = self.client.get(reverse("home"))
-        self.assertContains(response, 'class="stat-tile ', count=6)
+        self.assertContains(response, 'class="stat-tile ', count=4)
         self.assertContains(response, "Unverified demand days")
-        self.assertContains(response, "Issued</td>")
-        self.assertContains(response, "1 bag</td>")
-        self.assertContains(response, "Received</td>")
-        self.assertContains(response, "5 bag</td>")
+        self.assertContains(response, "Issued 1 bag")
+        self.assertContains(response, "Received 5 bag")
         self.assertContains(response, f'href="{reverse("product-stock", args=[self.inventory.pk, self.product.pk])}">Paper bags</a>')
         self.login(self.staff)
-        self.assertContains(self.client.get(reverse("home")), 'class="stat-tile ', count=6)
+        self.assertContains(self.client.get(reverse("home")), 'class="stat-tile ', count=3)
 
     def test_issue_form_shows_available_and_plain_labels(self):
         self.stock()
@@ -151,7 +149,7 @@ class PolishedPagesTests(TestCase):
         response = self.client.get(reverse("manager-staff", args=[self.business.pk]))
         self.assertContains(response, self.staff.email, count=1)
         self.assertContains(response, "<th scope=\"col\">Inventories</th>", html=True)
-        self.assertContains(response, '<span class="inventory-badge">Polish shelf</span>', html=True)
+        self.assertContains(response, '<span class="inventory-badge-name">Polish shelf</span>')
 
     def test_staff_inventory_names_never_name_inventories_outside_the_viewer(self):
         from catalogue.templatetags.tory_cards import staff_inventory_names

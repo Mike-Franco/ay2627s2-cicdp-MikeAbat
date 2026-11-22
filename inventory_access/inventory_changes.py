@@ -4,6 +4,8 @@ from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from config.media import delete_image_after_commit
+
 from .authorization import manager_memberships
 from .models import Inventory, InventoryAssignment, InventoryChangeAuditEvent
 
@@ -16,8 +18,12 @@ def _lock_manager(user, business_id):
     return get_object_or_404(manager_memberships(user).select_for_update(no_key=True), business_id=business_id)
 
 
+APPEARANCE = ("icon", "colour", "picture")
+
+
 def _snapshot(inventory):
-    return {"name": inventory.name, "is_active": inventory.is_active}
+    return {"name": inventory.name, "is_active": inventory.is_active,
+            "icon": inventory.icon, "colour": inventory.colour, "picture": inventory.picture.name or ""}
 
 
 def _save_inventory(inventory):
@@ -38,16 +44,22 @@ def _record_change(user, inventory, action, before):
 
 
 @transaction.atomic
-def create_inventory(*, user, business_id, name):
+def create_inventory(*, user, business_id, name, icon=None, colour=None, picture=""):
+    """picture is a storage name already written by config.media, or ""."""
     manager = _lock_manager(user, business_id)
-    inventory = Inventory(business_id=business_id, name=name.strip())
+    inventory = Inventory(business_id=business_id, name=name.strip(), picture=picture)
+    if icon:
+        inventory.icon = icon
+    if colour:
+        inventory.colour = colour
     _save_inventory(inventory)
     InventoryAssignment.objects.create(membership=manager, inventory=inventory)
     _record_change(user, inventory, InventoryChangeAuditEvent.Action.CREATE, None)
 
 
 @transaction.atomic
-def update_inventory(*, user, inventory, name=None, is_active=None):
+def update_inventory(*, user, inventory, name=None, is_active=None, icon=None, colour=None, picture=None):
+    """Change one inventory. picture: a new storage name, "" to remove, or None to keep."""
     manager = _lock_manager(user, inventory.business_id)
     get_object_or_404(
         InventoryAssignment.objects.select_for_update(no_key=True),
@@ -58,12 +70,23 @@ def update_inventory(*, user, inventory, name=None, is_active=None):
     )
     before = _snapshot(inventory)
     actions = InventoryChangeAuditEvent.Action
-    if name is not None:
-        inventory.name = name.strip()
-        action = actions.RENAME
+    old_picture = inventory.picture.name
+    if name is not None or icon is not None or colour is not None or picture is not None:
+        if name is not None:
+            inventory.name = name.strip()
+        if icon is not None:
+            inventory.icon = icon
+        if colour is not None:
+            inventory.colour = colour
+        if picture is not None:
+            inventory.picture = picture
+        action = actions.RENAME if inventory.name != before["name"] else actions.RESTYLE
     else:
         inventory.is_active = is_active
         action = actions.REACTIVATE if is_active else actions.DEACTIVATE
     if _snapshot(inventory) != before:
+        inventory.full_clean(exclude=["business", "name"], validate_unique=False, validate_constraints=False)
         _save_inventory(inventory)
         _record_change(user, inventory, action, before)
+        if inventory.picture.name != old_picture:
+            delete_image_after_commit(old_picture)

@@ -62,7 +62,7 @@ class InventoryManagementTests(TestCase):
         self.assertTrue(InventoryAssignment.objects.get(inventory=inventory, membership=self.manager_membership).is_active)
         event = InventoryChangeAuditEvent.objects.get(inventory=inventory)
         self.assertEqual((event.actor, event.action, event.before, event.after), (
-            self.manager, "create", None, {"name": "Cold storage", "is_active": True},
+            self.manager, "create", None, {"name": "Cold storage", "is_active": True, "icon": "package", "colour": "slate", "picture": ""},
         ))
         self.assertContains(self.client.get(reverse("inventory-list")), "Cold storage")
 

@@ -1,14 +1,37 @@
 {% extends "base.html" %}
-{% block title %}{% if inventory %}Rename inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
-{% block breadcrumb %}{% if inventory %}Rename inventory{% else %}Add inventory{% endif %}{% endblock %}
+{% load static %}
+{% block title %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
+{% block breadcrumb %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endblock %}
 {% block content %}
-<h1>{% if inventory %}Rename inventory{% else %}Add inventory{% endif %}</h1>
-<p>{{ business.name }}</p>
-<form method="post" class="panel p-3">
+<div class="products-heading"><div><p class="eyebrow">{{ business.name }}</p><h1>{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}</h1></div></div>
+<form method="post" enctype="multipart/form-data" class="panel p-3 inventory-form" novalidate data-sprite="{% static 'tory/icons/lucide-sprite.svg' %}">
   {% csrf_token %}
   {{ form.non_field_errors }}
-  <div class="mb-3"><label class="form-label" for="{{ form.name.id_for_label }}">Inventory name</label>{{ form.name }}{{ form.name.errors }}</div>
+  <div class="inventory-preview" aria-live="polite">
+    <span class="form-label d-block">Preview</span>
+    <span class="inventory-badge inventory-badge-lg" data-preview>
+      {% if inventory.picture %}<img class="inventory-mark inventory-photo" src="{{ inventory.picture.url }}" alt="" data-preview-picture>{% else %}<img class="inventory-mark inventory-photo" alt="" data-preview-picture hidden>{% endif %}
+      <span class="inventory-mark tone-{{ form.colour.value|default:'slate' }}" data-preview-mark{% if inventory.picture %} hidden{% endif %}><svg class="icon" focusable="false" aria-hidden="true"><use href="{% static 'tory/icons/lucide-sprite.svg' %}#{{ form.icon.value|default:'package' }}"></use></svg></span>
+      <span class="inventory-badge-name" data-preview-name>{{ form.name.value|default:'New inventory' }}</span>
+    </span>
+  </div>
+  <div class="mb-3 field-wide"><label class="form-label" for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>{{ form.name }}{{ form.name.errors }}</div>
+  <fieldset class="mb-3">
+    <legend class="form-label">Icon</legend>
+    <div class="icon-picker">
+      {% for choice in form.icon %}<span class="icon-choice"><input type="radio" name="{{ choice.data.name }}" value="{{ choice.data.value }}" id="{{ choice.id_for_label }}"{% if choice.data.selected %} checked{% endif %}><label for="{{ choice.id_for_label }}" title="{{ choice.choice_label }}"><svg class="icon" focusable="false" aria-hidden="true"><use href="{% static 'tory/icons/lucide-sprite.svg' %}#{{ choice.data.value }}"></use></svg><span class="visually-hidden">{{ choice.choice_label }}</span></label></span>{% endfor %}
+    </div>
+    {{ form.icon.errors }}
+  </fieldset>
+  <fieldset class="mb-3 swatch-picker">
+    <legend class="form-label">Colour</legend>
+    {% for choice in form.colour %}<span class="swatch"><input type="radio" name="{{ choice.data.name }}" value="{{ choice.data.value }}" id="{{ choice.id_for_label }}"{% if choice.data.selected %} checked{% endif %}><label for="{{ choice.id_for_label }}" class="tone-{{ choice.data.value }}" title="{{ choice.choice_label }}">{{ choice.choice_label }}</label></span>{% endfor %}
+    {{ form.colour.errors }}
+  </fieldset>
+  <div class="mb-3 field-wide"><label class="form-label" for="{{ form.picture_upload.id_for_label }}">{{ form.picture_upload.label }}</label>{{ form.picture_upload }}<div class="form-text">{{ form.picture_upload.help_text }}</div>{{ form.picture_upload.errors }}</div>
+  {% if inventory.picture %}<div class="mb-3 form-check"><input class="form-check-input" type="checkbox" name="remove_picture" id="{{ form.remove_picture.id_for_label }}" data-remove-picture{% if form.remove_picture.value %} checked{% endif %}><label class="form-check-label" for="{{ form.remove_picture.id_for_label }}">{{ form.remove_picture.label }}</label>{{ form.remove_picture.errors }}</div>{% endif %}
   <button class="btn btn-primary" type="submit">{% if inventory %}Save changes{% else %}Add inventory{% endif %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'inventory-list' %}">Cancel</a>
 </form>
+<script src="{% static 'tory/inventory_form.js' %}" defer></script>
 {% endblock %}
