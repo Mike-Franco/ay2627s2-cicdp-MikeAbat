@@ -134,3 +134,48 @@ class DashboardTests(TestCase):
         user = get_user_model().objects.create_user(email="unassigned-dashboard@example.test")
         self.login(user)
         self.assertContains(self.client.get(url), "No active inventories are assigned to you.")
+
+    def test_dashboard_filter_urgency_and_query_budget(self):
+        url = reverse("home")
+        self.receive(self.manager, self.hidden_link)
+        self.login(self.staff)
+        self.assertEqual(self.client.get(url, {"inventory": self.hidden_link.inventory_id}).status_code, 404)
+        self.assertEqual(self.client.get(url, {"inventory": self.outside_link.inventory_id}).status_code, 404)
+        self.login(self.manager)
+        params = {"inventory": self.inventory.pk, "panel": "actions"}
+        with CaptureQueriesContext(connection) as first:
+            response = self.client.get(url, params)
+        self.assertContains(response, "Out of stock")
+        self.assertNotContains(response, "Unassigned item")
+        self.assertContains(response, "Turnover (30d)")
+        for index in range(26):
+            self.create_link(self.inventory, f"MORE-{index}", f"Additional item {index}")
+        with CaptureQueriesContext(connection) as later:
+            response = self.client.get(url, {**params, "page": 2})
+        self.assertEqual(len(first), len(later))
+        self.assertEqual(response.context["actions"]["page"].number, 2)
+        self.assertContains(response, f"inventory={self.inventory.pk}&amp;panel=actions&amp;page=1")
+        self.assertTrue(all(row["label"] == "Out of stock" for row in response.context["actions"]["rows"]))
+
+    def test_unverified_kpi_and_role_action_when_review_window_is_partial(self):
+        now = timezone.now()
+        yesterday = now.astimezone(SINGAPORE).date() - timedelta(days=1)
+        ObservationActivation.objects.create(
+            environment=settings.DJANGO_ENV, first_observed_date=yesterday,
+            origin_xid="1", actual_committed_at=now, state="active",
+        )
+        extra = self.create_link(self.inventory, "EXTRA", "Extra item")
+        for viewer in (self.staff, self.manager):
+            self.login(viewer)
+            response = self.client.get(reverse("home"), {"inventory": self.inventory.pk})
+            kpi = next(card for card in response.context["kpi_cards"] if card["label"] == "Unverified demand days")
+            self.assertEqual(kpi["value"], 2)
+            self.assertEqual("scope=week" in response.content.decode(), viewer == self.manager)
+        day = DemandCoverageDay.objects.create(inventory_product=extra, day=yesterday)
+        DemandCoverageEvent.objects.create(
+            coverage_day=day, actor=self.manager, action="verified", reason="",
+            recorded_at=now, verified_total_units=0,
+        )
+        response = self.client.get(reverse("home"), {"inventory": self.inventory.pk})
+        kpi = next(card for card in response.context["kpi_cards"] if card["label"] == "Unverified demand days")
+        self.assertEqual(kpi["value"], 1)
