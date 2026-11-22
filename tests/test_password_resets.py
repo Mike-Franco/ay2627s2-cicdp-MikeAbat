@@ -9,6 +9,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.db import close_old_connections, connection, connections, transaction
 from django.test import Client, TestCase, TransactionTestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import PasswordResetAttempt, PasswordResetLink
@@ -157,11 +158,11 @@ class PasswordResetCoreTests(TestCase):
             session[CREATED_KEY] = timezone.now().timestamp()
             session[ACTIVE_KEY] = timezone.now().timestamp()
             session.save()
-            self.assertEqual(client.get("/").status_code, 200)
+            self.assertEqual(client.get(reverse("home")).status_code, 200)
         result = request_password_reset(self.user.email, "127.0.0.1")
         redeem_password_reset(result.credentials.token, PASSWORD)
         for client in clients:
-            self.assertEqual(client.get("/").status_code, 302)
+            self.assertEqual(client.get(reverse("home")).status_code, 302)
         fresh = Client()
         self.assertTrue(fresh.login(username=self.user.email, password=PASSWORD))
 

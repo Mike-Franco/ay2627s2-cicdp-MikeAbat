@@ -72,7 +72,10 @@ def main():
 
         page.get_by_role("button", name="Sign out").click()
         expect(page).to_have_url(f"{base}/login/")
+        # TORY-60: "/" is the public landing page; the dashboard needs sign-in again.
         page.goto(f"{base}/")
+        expect(page.get_by_role("link", name="Sign in").first).to_be_visible()
+        page.goto(f"{base}/dashboard/")
         expect(page).to_have_url(f"{base}/login/")
         snap("5-signed-out")
         browser.close()
