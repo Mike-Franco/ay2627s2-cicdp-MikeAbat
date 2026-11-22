@@ -5,6 +5,7 @@ from django.urls import path, re_path
 from django.views.static import serve as serve_static
 
 from accounts import views
+from accounts import account_views
 from accounts import invitation_views
 from accounts import reset_views
 from accounts import deactivation_views
@@ -18,6 +19,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("account/", account_views.account, name="account"),
     path("businesses/<int:business_id>/staff-invitations/", invitation_views.manager_invitations, name="staff-invitations"),
     path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
     path("businesses/<int:business_id>/staff/", deactivation_views.manager_staff, name="manager-staff"),
