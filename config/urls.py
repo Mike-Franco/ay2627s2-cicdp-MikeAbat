@@ -5,6 +5,7 @@ from django.urls import path, re_path
 from django.views.static import serve as serve_static
 
 from accounts import views
+from accounts import account_views
 from accounts import invitation_views
 from accounts import reset_views
 from accounts import deactivation_views
@@ -18,6 +19,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
+    path("account/", account_views.account, name="account"),
     path("businesses/<int:business_id>/staff-invitations/", invitation_views.manager_invitations, name="staff-invitations"),
     path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
     path("businesses/<int:business_id>/staff/", deactivation_views.manager_staff, name="manager-staff"),
@@ -33,6 +35,8 @@ urlpatterns = [
     path("inventories/<int:inventory_id>/products/<int:product_id>/", catalogue_views.product_stock, name="product-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/lifecycle/", catalogue_views.product_lifecycle, name="product-lifecycle"),
     path("inventories/<int:inventory_id>/import/", receiving_views.import_stock_csv_view, name="import-stock-csv"),
+    path("inventories/<int:inventory_id>/import/template.csv", receiving_views.import_template_csv,
+         name="import-stock-csv-template"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/history/", catalogue_views.stock_history, name="stock-history"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/forecast/", catalogue_views.demand_forecast, name="demand-forecast"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/reorder-settings/", catalogue_views.reorder_settings, name="reorder-settings"),
@@ -59,6 +63,8 @@ urlpatterns += [
     path("inventories/<int:inventory_id>/products/<int:product_id>/history.csv", catalogue_views.export_stock_history, name="export-stock-history"),
     path("inventories/<int:inventory_id>/products/new/", catalogue_views.product_create, name="product-create"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/edit/", catalogue_views.product_edit, name="product-edit"),
+    path("inventories/<int:inventory_id>/products/<int:product_id>/price/", catalogue_views.selling_price,
+         name="selling-price"),
 ]
 
 from .ops_admin import ops_admin_site
