@@ -136,6 +136,15 @@ if DJANGO_ENV in {"development", "test"}:
     warnings.filterwarnings("ignore", message=r"No directory at: .*staticfiles")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# Uploaded pictures (TORY-53). Only images re-encoded by config.media are ever
+# stored here. Staging mounts a persistent volume at /app/media and Caddy serves
+# /media/ directly; development serves it through Django (config/urls.py).
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
+# Readable by the proxy container, writable only by the app user.
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
 # Development settings are not a deployment configuration. Staging/production
 # require explicit hostnames, TLS/proxy review, secure cookies, and secret storage.
 SESSION_COOKIE_SECURE = DJANGO_ENV in {"staging", "production"}

@@ -5,15 +5,40 @@
 	encode zstd gzip
 
 	header {
-		# Only Tory's own files plus Bootstrap and Chart.js from jsDelivr (both
-		# loaded with SRI). No inline scripts or styles: templates are kept free
-		# of them, and a test enforces that. data: images are Bootstrap's form
-		# control icons. Django already sends X-Frame-Options, HSTS, nosniff and
-		# Referrer-Policy; frame-ancestors repeats the framing rule for CSP.
-		Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
 		-Server
 	}
 
-	reverse_proxy web:8000
+	# Uploaded pictures (TORY-53), served straight from the read-only media
+	# volume. The app re-encodes every upload to WebP under a random UUID name,
+	# so only *.webp files are served; anything else (including directory
+	# paths) is a 404. nosniff stops a browser treating a file as anything but
+	# its declared type, and the sandboxing CSP means a file opened directly can
+	# never run script. Names never change, so caching can be long.
+	@media path /media/*
+	handle @media {
+		@not_picture not path_regexp ^/media/[A-Za-z0-9_/-]+\.webp$
+		respond @not_picture 404
+		root * /srv
+		header {
+			X-Content-Type-Options "nosniff"
+			Content-Security-Policy "default-src 'none'; sandbox; frame-ancestors 'none'"
+			Cache-Control "public, max-age=31536000, immutable"
+			Cross-Origin-Resource-Policy "same-origin"
+		}
+		file_server
+	}
+
+	handle {
+		header {
+			# Only Tory's own files plus Bootstrap and Chart.js from jsDelivr (both
+			# loaded with SRI). No inline scripts or styles: templates are kept free
+			# of them, and a test enforces that. data: images are Bootstrap's form
+			# control icons; uploaded pictures come from 'self' (/media/). Django
+			# already sends X-Frame-Options, HSTS, nosniff and Referrer-Policy;
+			# frame-ancestors repeats the framing rule for CSP.
+			Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		}
+		reverse_proxy web:8000
+	}
 }

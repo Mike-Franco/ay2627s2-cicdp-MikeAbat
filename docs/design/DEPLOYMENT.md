@@ -15,11 +15,14 @@ flowchart TB
         db[("postgres:18.3<br/>track_commit_timestamp=on")]
         pgdata[["volume: pgdata"]]
         caddydata[["volume: caddy_data<br/>(certificates)"]]
+        mediavol[["volume: media<br/>(uploaded pictures, TORY-53)"]]
         cron["host cron · every 5 min<br/>deploy.sh scheduled<br/>process_expiry_quarantine<br/>finalize_commit_times"]
         caddy -->|"HTTP :8000<br/>no published port"| gunicorn
         django -->|"psycopg, CONN_MAX_AGE 60"| db
         db --- pgdata
         caddy --- caddydata
+        django -->|"writes re-encoded WebP"| mediavol
+        caddy -->|"serves /media/ read-only"| mediavol
         cron -->|"docker compose exec"| django
     end
 
@@ -38,7 +41,7 @@ flowchart TB
 
 | Element | Responsibility |
 | --- | --- |
-| Caddy | Obtains and renews the certificate for `TORY_DOMAIN`, redirects HTTP to HTTPS, and is the only container publishing ports. |
+| Caddy | Obtains and renews the certificate for `TORY_DOMAIN`, redirects HTTP to HTTPS, and is the only container publishing ports. Serves uploaded pictures under `/media/` directly from the read-only `media` volume (TORY-53). |
 | web (gunicorn + Django) | Runs migrations on start (entrypoint) and serves the app and static files. `/healthz` checks the database. It trusts Caddy's forwarded scheme and client address only because nothing else can reach it. |
 | PostgreSQL | Stores all data on the `pgdata` volume. Its triggers enforce stock and audit invariants, and commit timestamps attribute CSV demand. |
 | Host cron | Runs the idempotent TORY-19 jobs every five minutes and records a heartbeat. An hourly GitHub workflow fails if the heartbeat is older than 15 minutes. |

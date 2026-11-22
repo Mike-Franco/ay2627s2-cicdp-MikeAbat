@@ -31,7 +31,11 @@ RUN DJANGO_SECRET_KEY=collectstatic-build-only-placeholder \
     POSTGRES_DB=unused POSTGRES_USER=unused POSTGRES_PASSWORD=unused \
     POSTGRES_HOST=unused POSTGRES_PORT=5432 \
     python manage.py collectstatic --noinput \
-    && chmod 0755 docker/entrypoint.sh
+    && chmod 0755 docker/entrypoint.sh \
+    && mkdir -p /app/media \
+    && chown tory:tory /app/media
+# /app/media holds uploaded pictures (TORY-53) and is the only directory the
+# app user can write. A named volume mounted there starts with this ownership.
 USER tory:tory
 EXPOSE 8000
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
