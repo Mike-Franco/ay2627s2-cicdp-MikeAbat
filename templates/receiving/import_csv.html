@@ -6,6 +6,16 @@
 <h1>Import stock CSV</h1>
 <p>Selected inventory: <strong>{{ inventory.name }}</strong></p>
 <p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>. Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>
+<section class="panel mb-3" aria-labelledby="csv-format">
+  <div class="panel-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div><h2 id="csv-format">File format</h2><p>A positive change receives stock (products without expiry tracking only); a negative change issues stock, oldest expiry first.</p></div>
+    <a class="btn btn-outline-primary" href="{% url 'import-stock-csv-template' inventory.pk %}" download>Download template</a>
+  </div>
+  <div class="table-scroll"><table class="products-table csv-example" aria-label="Example CSV rows">
+    <thead><tr><th scope="col">sku</th><th scope="col">change</th><th scope="col">Meaning</th></tr></thead>
+    <tbody>{% for sku, change, meaning in template_rows %}<tr><td><code>{{ sku }}</code></td><td><code>{{ change }}</code></td><td>{{ meaning }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
 {% if imported %}<div class="alert alert-success" role="status">Import recorded: {{ imported.pk }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
