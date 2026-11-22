@@ -50,7 +50,7 @@ In **Settings → Environments → New environment**, create `staging`, optional
 | Variable | `TORY_DOMAIN` | the DNS name from step 1 |
 | Variable | `VM_SSH_PORT` | optional; defaults to 22 |
 | Variable | `POSTGRES_DB`, `POSTGRES_USER` | optional; both default to `tory` |
-| Variable/secret | `EMAIL_HOST`, `EMAIL_HOST_USER`, `DEFAULT_FROM_EMAIL` / `EMAIL_HOST_PASSWORD` | optional; enables invitation and reset email |
+| Variable/secret | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `DEFAULT_FROM_EMAIL` / `EMAIL_HOST_PASSWORD` | optional; enables invitation and reset email (`EMAIL_PORT` defaults to 587) |
 
 Values must not contain a single quote or a newline. The workflow writes them to `~/tory/.env` with mode 600 on every deploy.
 

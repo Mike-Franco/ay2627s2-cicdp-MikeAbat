@@ -168,11 +168,12 @@ jobs:
           POSTGRES_DB: ${{ vars.POSTGRES_DB || 'tory' }}
           POSTGRES_USER: ${{ vars.POSTGRES_USER || 'tory' }}
           EMAIL_HOST: ${{ vars.EMAIL_HOST }}
+          EMAIL_PORT: ${{ vars.EMAIL_PORT }}
           EMAIL_HOST_USER: ${{ vars.EMAIL_HOST_USER }}
           EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
           DEFAULT_FROM_EMAIL: ${{ vars.DEFAULT_FROM_EMAIL }}
         run: |
-          names="TORY_DOMAIN DJANGO_SECRET_KEY POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL"
+          names="TORY_DOMAIN DJANGO_SECRET_KEY POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL"
           export TORY_DOMAIN="$DOMAIN"
           for name in DJANGO_SECRET_KEY POSTGRES_PASSWORD; do
             [ -n "${!name}" ] || { echo "::error::$name is not configured for the staging environment"; exit 1; }
