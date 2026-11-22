@@ -123,7 +123,8 @@ class NavigationTests(TestCase):
     def test_inventory_pages_show_the_inventory_in_the_breadcrumb(self):
         self.login(self.staff)
         crumb = self.crumb(reverse("stock-history", args=[self.inventory.pk, self.product.pk]))
-        self.assertIn(f'<a href="{reverse("inventory-products", args=[self.inventory.pk])}">Front shelf</a>', crumb)
+        self.assertIn(f'<a href="{reverse("inventory-products", args=[self.inventory.pk])}"><span class="inventory-badge', crumb)
+        self.assertIn('<span class="inventory-badge-name">Front shelf</span>', crumb)
         self.assertIn('aria-current="page">NAV-1 · History<', crumb)
 
     def test_dashboard_breadcrumb_is_the_current_page(self):

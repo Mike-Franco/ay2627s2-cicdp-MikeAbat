@@ -196,6 +196,29 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
   .list-mobile-label { display: inline; font-weight: 600; color: var(--bs-secondary-color); }
 }
 
+/* TORY-54: inventory badge (templates/includes/inventory_badge.html) and Lucide icons. */
+.icon{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.inventory-badge{display:inline-flex;align-items:center;gap:7px;min-width:0;vertical-align:middle}
+.inventory-badge-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.inventory-mark{display:inline-grid;place-items:center;flex:0 0 auto;object-fit:cover}
+.inventory-badge-sm .inventory-mark{width:20px;height:20px;font-size:13px;border-radius:5px}
+.inventory-badge-md .inventory-mark{width:32px;height:32px;font-size:18px;border-radius:8px}
+.inventory-badge-lg .inventory-mark{width:48px;height:48px;font-size:26px;border-radius:11px}
+.inventory-badge-lg{gap:12px;font-size:17px;font-weight:650}
+.inventory-photo{background:var(--subtle)}
+.inventory-mark[hidden]{display:none}
+.inventory-preview{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.icon-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-width:34rem}
+.icon-choice{position:relative}
+.icon-choice input{position:absolute;opacity:0;width:1px;height:1px}
+.icon-choice label{display:grid;place-items:center;height:44px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:20px;color:var(--muted);background:var(--panel)}
+.icon-choice label:hover{color:var(--ink);background:var(--subtle)}
+.icon-choice input:checked+label{color:var(--accent);border-color:var(--accent);background:var(--selected);box-shadow:0 0 0 1px var(--accent) inset}
+.icon-choice input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.inventory-switch .inventory-badge-md .inventory-mark{width:31px;height:31px}
+.switcher-options .inventory-badge{font-weight:500}
+.inventory-form legend{font-size:14px;font-weight:500;margin-bottom:8px}
+
 .stock-kpis .stat-tile { position: relative; padding-right: 2rem; }
 .metric-tip {
   position: absolute;

@@ -1,5 +1,5 @@
 <div class="d-flex flex-wrap gap-2">
-  <a class="btn btn-sm btn-outline-secondary" href="{% url 'inventory-rename' inventory.pk %}" aria-label="Rename {{ inventory.name }}">Rename</a>
+  <a class="btn btn-sm btn-outline-secondary" href="{% url 'inventory-rename' inventory.pk %}" aria-label="Edit {{ inventory.name }}">Edit</a>
   <form method="post" action="{% url 'inventory-status' inventory.pk %}">
     {% csrf_token %}
     <button class="btn btn-sm {% if inventory.is_active %}btn-outline-danger{% else %}btn-outline-primary{% endif %}" name="is_active" value="{{ inventory.is_active|yesno:'false,true' }}" type="submit" aria-label="{% if inventory.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ inventory.name }}">{% if inventory.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>

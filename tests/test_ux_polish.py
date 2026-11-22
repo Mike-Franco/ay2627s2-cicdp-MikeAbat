@@ -151,7 +151,7 @@ class PolishedPagesTests(TestCase):
         response = self.client.get(reverse("manager-staff", args=[self.business.pk]))
         self.assertContains(response, self.staff.email, count=1)
         self.assertContains(response, "<th scope=\"col\">Inventories</th>", html=True)
-        self.assertContains(response, '<span class="inventory-badge">Polish shelf</span>', html=True)
+        self.assertContains(response, '<span class="inventory-badge-name">Polish shelf</span>')
 
     def test_staff_inventory_names_never_name_inventories_outside_the_viewer(self):
         from catalogue.templatetags.tory_cards import staff_inventory_names

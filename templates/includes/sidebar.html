@@ -4,9 +4,9 @@
   <div class="inventory-switcher">
     <span class="switcher-label">CURRENT INVENTORY</span>
     <details>
-      <summary class="inventory-switch"><span class="location-mark" aria-hidden="true">▦</span><span><strong>{% if workspace_inventory %}{{ workspace_inventory.name }}{% else %}Choose inventory{% endif %}</strong><small>{% if workspace_inventory %}{{ workspace_inventory.business.name }}{% else %}Assigned inventories{% endif %}</small></span><span aria-hidden="true">⌄</span></summary>
+      <summary class="inventory-switch">{% if workspace_inventory %}{% include "includes/inventory_badge.html" with inventory=workspace_inventory size="md" icon_only=True %}{% else %}<span class="location-mark" aria-hidden="true">▦</span>{% endif %}<span><strong>{% if workspace_inventory %}{{ workspace_inventory.name }}{% else %}Choose inventory{% endif %}</strong><small>{% if workspace_inventory %}{{ workspace_inventory.business.name }}{% else %}Assigned inventories{% endif %}</small></span><span aria-hidden="true">⌄</span></summary>
       <div class="switcher-options">
-        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_inventory.pk == item.pk %}aria-current="page"{% endif %}>{{ item.name }}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
+        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_inventory.pk == item.pk %}aria-current="page"{% endif %}>{% include "includes/inventory_badge.html" with inventory=item %}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
         <a href="{% url 'inventory-list' %}">View all inventories</a>
       </div>
     </details>
