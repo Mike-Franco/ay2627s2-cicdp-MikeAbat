@@ -55,11 +55,14 @@ def main():
 
         page.goto(f"{base}/inventories/{inventory_id}/insights/")
         expect(page.get_by_role("heading", name="Inventory insights")).to_be_visible()
-        for chart in ("demand-chart", "reorder-chart", "expiry-chart"):
+        # TORY-59: six explained chart cards; seeded demo data always fills these four
+        # (the value and days-of-supply cards may legitimately show their empty state).
+        expect(page.locator("section.insight-card")).to_have_count(6)
+        charts = ("stock-chart", "traffic-chart", "demand-chart", "expiry-chart")
+        for chart in charts:
             expect(page.locator(f"canvas#{chart}")).to_be_visible()
         page.wait_for_function(
-            "() => window.Chart && ['demand-chart', 'reorder-chart', 'expiry-chart']"
-            ".every(id => Chart.getChart(document.getElementById(id)))")
+            "ids => window.Chart && ids.every(id => Chart.getChart(document.getElementById(id)))", arg=list(charts))
         snap("3-insights")
 
         page.goto(base + forecast_href)
