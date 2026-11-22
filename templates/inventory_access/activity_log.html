@@ -23,7 +23,7 @@
       <tbody>
       {% for row in rows %}
         <tr>
-          <td><span class="list-mobile-label" aria-hidden="true">Time</span><time datetime="{{ row.at|date:'c' }}">{{ row.at|sgdate }}</time></td>
+          <td><span class="list-mobile-label" aria-hidden="true">Time</span><time datetime="{{ row.at_iso }}">{{ row.at|sgdate }}</time></td>
           <th scope="row"><span class="list-mobile-label" aria-hidden="true">User</span>{% if row.actor %}{% include "includes/user_avatar.html" with user=row.actor size="sm" with_name=True %}{% else %}{{ row.actor_label }}{% endif %}{% if row.role %}<span class="unit">{{ row.role }}</span>{% endif %}</th>
           <td><span class="list-mobile-label" aria-hidden="true">Action</span>{{ row.label }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% if row.inventory %}{% include "includes/inventory_badge.html" with inventory=row.inventory %}{% else %}—{% endif %}</td>

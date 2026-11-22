@@ -230,6 +230,7 @@ def hydrate(business_id, tuples):
     role_labels = dict(BusinessMembership.Role.choices)
     for row in rows:
         row["label"] = KIND_LABELS[row["kind"]]
+        row["at_iso"] = row["at"].isoformat(timespec="seconds")
         row["actor"] = users.get(row["actor_id"])
         row["actor_label"] = row["actor"].display_label if row["actor"] else SYSTEM_ACTOR
         row["role"] = role_labels.get(roles.get(row["actor_id"]), "System" if row["actor"] is None else "")
