@@ -1,10 +1,11 @@
-name: Staging scheduled jobs monitor
+name: Staging scheduled jobs and backup monitor
 
 # The VM's crontab (installed by deploy/deploy.sh on every deploy) runs
 # process_expiry_quarantine and finalize_commit_times every five minutes, as
 # TORY-19 requires; GitHub's scheduler is too irregular for that. This hourly
 # run fails, and so alerts, if the jobs have not succeeded in 15 minutes.
 # Run it by hand with "run_now" to execute the jobs immediately as well.
+# It also fails if the VM's daily pg_dump backup is more than 26 hours old.
 on:
   schedule:
     - cron: "17 * * * *"
@@ -57,3 +58,6 @@ jobs:
       - name: Check the jobs ran recently
         if: env.SKIP != 'true'
         run: ssh staging 'tory/deploy.sh check-scheduled'
+      - name: Check the daily backup is recent (NFR-008)
+        if: env.SKIP != 'true' && always()
+        run: ssh staging 'tory/deploy.sh check-backup'
