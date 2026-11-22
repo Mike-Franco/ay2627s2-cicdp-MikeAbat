@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}{{ inventory.name }} products · Tory{% endblock %}
+{% block breadcrumb %}Products{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <div><p class="eyebrow">{{ inventory.name }}</p><h1>Products</h1><p>Stock balances and reorder status for this inventory.</p></div>
+  {% if can_adjust_stock %}<div class="heading-actions"><a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product</a><a class="btn btn-outline-secondary" href="{% url 'import-stock-csv' inventory.pk %}">Import CSV</a><a class="btn btn-outline-secondary" href="{% url 'bulk-verify-demand' inventory.pk %}">Verify demand</a></div>{% endif %}
+</div>
+<section class="panel" aria-labelledby="linked-products-title">
+  <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{% if has_filters and not filter_form.errors %}{{ page.paginator.count }} of {% endif %}{{ total_product_count }} product{{ total_product_count|pluralize }} in {{ inventory.name }}</p><a href="{% url 'export-inventory-stock' inventory.pk %}">Download current stock CSV</a></div>
+  <form method="get" action="{% url 'inventory-products' inventory.pk %}" class="product-filters" role="search" aria-label="Filter inventory products">
+    <div class="product-filter-field"><label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>{{ filter_form.q }}{% if filter_form.q.errors %}<div class="filter-errors" role="alert">{{ filter_form.q.errors }}</div>{% endif %}</div>
+    <div class="product-filter-field"><label for="{{ filter_form.reorder.id_for_label }}">{{ filter_form.reorder.label }}</label>{{ filter_form.reorder }}{% if filter_form.reorder.errors %}<div class="filter-errors" role="alert">{{ filter_form.reorder.errors }}</div>{% endif %}</div>
+    <div class="product-filter-field"><label for="{{ filter_form.sort.id_for_label }}">{{ filter_form.sort.label }}</label>{{ filter_form.sort }}{% if filter_form.sort.errors %}<div class="filter-errors" role="alert">{{ filter_form.sort.errors }}</div>{% endif %}</div>
+    <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button>{% if has_filters %}<a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Clear filters</a>{% endif %}</div>
+  </form>
+  {% if product_links %}
+  <div class="table-scroll" role="region" aria-label="Products and stock balances" tabindex="0">
+    <table class="products-table product-cards">
+      <thead><tr>
+        <th scope="col"{% if sort == 'name' %} aria-sort="ascending"{% elif sort == '-name' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'name' %}{% querystring sort='-name' page=None %}{% else %}{% querystring sort='name' page=None %}{% endif %}">Product</a></th>
+        <th scope="col">SKU</th><th scope="col" class="numeric">Physical</th><th scope="col" class="numeric">Quarantined</th><th scope="col" class="numeric">Selling price</th>
+        <th scope="col" class="numeric"{% if sort == 'available' %} aria-sort="ascending"{% elif sort == '-available' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'available' %}{% querystring sort='-available' page=None %}{% else %}{% querystring sort='available' page=None %}{% endif %}">Available</a></th>
+        <th scope="col"{% if sort == 'status' %} aria-sort="ascending"{% elif sort == '-status' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'status' %}{% querystring sort='-status' page=None %}{% else %}{% querystring sort='status' page=None %}{% endif %}">Reorder status</a></th>
+        <th scope="col">Actions</th></tr></thead>
+      <tbody>{% for link in product_links %}<tr>
+        <th scope="row" class="cell-product"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
+        <td class="product-sku cell-sku">{{ link.product.sku }}</td>
+        <td class="numeric cell-physical">{{ link.display_physical_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td class="numeric cell-quarantine">{{ link.display_quarantine_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td class="numeric cell-price"><span class="mobile-price-label">Selling price </span>{{ link.selling_price|sgd }}</td>
+        <td class="numeric available cell-available"><span class="mobile-label">Available</span>{{ link.display_available_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
+        <td class="cell-status">{% if link.reorder %}{% if link.reorder.reorder_point != None %}{% if link.reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}{% else %}<span class="status-pill neutral">Reorder point unavailable</span>{% if not link.reorder.forecast.available %}<div class="unit">{{ link.reorder.forecast.reason }}</div>{% endif %}{% if link.reorder.missing_settings %}<div class="unit">Set {{ link.reorder.missing_settings|join:", " }}.</div>{% endif %}{% endif %}{% else %}<span class="status-pill neutral">Reorder point unavailable</span><div class="unit">{% if not link.product.is_active %}Product inactive.{% else %}{{ link.reorder_error }}{% endif %}</div>{% endif %}</td>
+        <td class="actions cell-actions"><div class="actions-compact">{% if link.product.is_active %}<a class="btn btn-sm btn-primary" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-primary" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue</a>{% endif %}<details class="more-menu"><summary class="btn btn-sm btn-outline-secondary">More</summary><div class="more-items"><a href="{% url 'stock-history' inventory.pk link.product_id %}">History</a>{% if link.product.is_active %}<a href="{% url 'demand-forecast' inventory.pk link.product_id %}">Forecast</a>{% if can_adjust_stock %}<a href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust count</a><a href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose</a>{% endif %}{% endif %}{% if link.can_manage_lifecycle %}<a href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}</div></details></div><div class="actions-full"><a class="btn btn-sm btn-outline-secondary" href="{% url 'stock-history' inventory.pk link.product_id %}">History</a>{% if link.product.is_active %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' inventory.pk link.product_id %}">Forecast</a><a class="btn btn-sm btn-primary" href="{% url 'receive-batch' inventory.pk link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-primary" href="{% url 'issue-stock' inventory.pk link.product_id %}">Issue</a>{% if can_adjust_stock %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk link.product_id %}">Adjust</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'dispose-stock' inventory.pk link.product_id %}">Dispose</a>{% endif %}{% endif %}{% if link.can_manage_lifecycle %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk link.product_id %}">{% if link.product.is_active %}Deactivate{% else %}Reactivate{% endif %}</a>{% endif %}</div></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% elif not filter_form.errors %}<p class="p-4 mb-0">{% if total_product_count %}No products match your filters. <a href="{% url 'inventory-products' inventory.pk %}">Clear filters</a> to see all linked products.{% else %}No products are linked to this inventory.{% endif %}</p>{% endif %}
+</section>
+{% include "includes/pagination.html" with pagination_label="Inventory products pages" %}
+<p class="inventory-explanation">Physical is recorded stock. Quarantined stock remains on hand but cannot be issued. Available is the amount Tory currently allows users to issue.</p>
+{% endblock %}

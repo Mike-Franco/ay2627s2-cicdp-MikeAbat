@@ -1,0 +1,43 @@
+name: Release
+
+# Push a tag such as v1.0.0 on a commit that CD already published. This creates
+# the GitHub Release with generated notes and tags that commit's image.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Tag the published image with the version
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source="$repo:sha-$GITHUB_SHA"
+          if ! docker buildx imagetools inspect "$source" >/dev/null 2>&1; then
+            echo "::error::$source does not exist. Tag a commit that the CD workflow has deployed from main."
+            exit 1
+          fi
+          docker buildx imagetools create --tag "$repo:$GITHUB_REF_NAME" "$source"
+          echo "IMAGE=$repo:$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf 'Container image: `%s`\n\n' "$IMAGE" > notes.md
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Tory $GITHUB_REF_NAME" --generate-notes --notes-file notes.md

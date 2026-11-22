@@ -1,0 +1,112 @@
+name: Django PostgreSQL CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: django-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install pinned ruff
+        run: python -m pip install "$(grep -E '^ruff==' requirements-dev.txt)"
+      - name: Ruff lint
+        run: ruff check --output-format github .
+      # `ruff format --check` is deliberately not enforced yet: reformatting the
+      # codebase would conflict with open feature branches (see pyproject.toml).
+
+  django-postgres:
+    name: Check, migrate, and test on PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18.3
+        env:
+          POSTGRES_DB: tory_ci
+          POSTGRES_USER: tory_ci
+          POSTGRES_PASSWORD: ci-only-postgres-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tory_ci -d tory_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DJANGO_ENV: test
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ci-only-disposable-test-key-never-use-for-deployment
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      POSTGRES_DB: tory_ci
+      POSTGRES_USER: tory_ci
+      POSTGRES_PASSWORD: ci-only-postgres-password
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install pinned dependencies and test tooling
+        run: python -m pip install -r requirements-dev.txt
+      - name: Enable actual commit timestamps in disposable PostgreSQL
+        env:
+          PG_SERVICE_ID: ${{ job.services.postgres.id }}
+        run: |
+          docker exec -u postgres "$PG_SERVICE_ID" psql -U tory_ci -d tory_ci -c "ALTER SYSTEM SET track_commit_timestamp = on"
+          docker restart "$PG_SERVICE_ID"
+          for attempt in $(seq 1 30); do
+            if docker exec "$PG_SERVICE_ID" pg_isready -U tory_ci -d tory_ci; then break; fi
+            sleep 1
+          done
+          test "$(docker exec -u postgres "$PG_SERVICE_ID" psql -U tory_ci -d tory_ci -At -c 'SHOW track_commit_timestamp')" = on
+      - name: Apply migrations to fresh PostgreSQL database
+        run: python manage.py migrate --noinput
+      - name: Run Django system checks
+        run: python manage.py check
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+      - name: Run deployment checks with staging settings
+        env:
+          DJANGO_ENV: staging
+          DJANGO_ALLOWED_HOSTS: staging.example.test
+        run: DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(60))')" python manage.py check --deploy --fail-level WARNING
+      - name: Run PostgreSQL-backed Django tests under coverage
+        run: coverage run manage.py test --verbosity 2
+      - name: Enforce coverage threshold (90%)
+        run: |
+          coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          coverage report --fail-under=90
+      - name: Build HTML coverage report
+        if: ${{ !cancelled() }}
+        run: coverage html
+      - name: Upload HTML coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-html-${{ github.sha }}
+          path: htmlcov/
+          retention-days: 14
+          if-no-files-found: warn

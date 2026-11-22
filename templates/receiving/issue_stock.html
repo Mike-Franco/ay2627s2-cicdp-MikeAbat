@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Issue stock · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Issue{% endblock %}
+{% block content %}
+{% include 'includes/product_tabs.html' %}
+<h1>Issue stock</h1>
+<p>{{ product.sku }} — {{ product.name }} in {{ inventory.name }}</p>
+<p class="available-line">Available: <strong>{{ available_units }} {{ product.base_unit_label|default:"units" }}</strong>{% if quarantined_units %} <span class="text-muted">({{ quarantined_units }} quarantined, not issuable)</span>{% endif %}</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form.hidden_fields %}{{ field }}{{ field.errors }}{% endfor %}
+  <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.quantity_units.id_for_label }}">Quantity ({{ product.base_unit_label|default:"units" }})</label>{{ form.quantity_units }}{{ form.quantity_units.errors }}</div>
+  <button class="btn btn-primary" type="submit">Issue stock</button>
+  <a class="btn btn-secondary" href="{% url 'inventory-products' inventory.pk %}">Cancel</a>
+</form>
+{% endblock %}

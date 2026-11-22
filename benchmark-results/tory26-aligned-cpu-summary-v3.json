@@ -1,0 +1,33 @@
+{
+  "recorded_at_utc": "2026-11-09T15:26:16.526273+00:00",
+  "duration_seconds": 60,
+  "sample_interval_seconds": 1,
+  "sample_count": 60,
+  "logical_processors": 12,
+  "system_valid_counts": {
+    "% dpc time": 60,
+    "% interrupt time": 60,
+    "% privileged time": 60,
+    "% processor time": 60,
+    "% user time": 60
+  },
+  "system_medians_percent": {
+    "% dpc time": 0.5012099995215401,
+    "% interrupt time": 0.8777546106555636,
+    "% privileged time": 29.134672822087296,
+    "% processor time": 46.56749296663125,
+    "% user time": 17.006647023001275
+  },
+  "complete_process_interval_count": 60,
+  "process_interval_count": 60,
+  "normalized_process_sum_median_percent": 170.16147937646048,
+  "median_accounting_gap_percentage_points_complete_intervals_only": -123.28709376477015,
+  "process_observation_count": 12780,
+  "invalid_process_observation_count": 0,
+  "distinct_instance_pid_generations": 213,
+  "limitations": [
+    "Processes that start and exit entirely between one-second samples may not appear.",
+    "Instance, PID and elapsed time track observed process replacement and PID reuse.",
+    "No process aggregate or CPU gap is calculated for incomplete intervals."
+  ]
+}

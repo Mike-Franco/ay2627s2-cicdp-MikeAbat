@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Disposal recorded · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Disposal recorded{% endblock %}
+{% block content %}
+{% include 'includes/product_tabs.html' %}
+<h1>Disposal recorded</h1>
+<p>{{ disposal.inventory.name }} · {{ disposal.product.sku }} · Batch {{ disposal.batch.receipt_sequence }}</p>
+<p>{{ disposal.quantity_units }} {{ disposal.batch.unit_label_snapshot }} disposed. Physical balance: {{ disposal.physical_before_units }} → {{ disposal.physical_after_units }}.</p>
+<p>Reason: {{ disposal.reason_code }}{% if disposal.reason_note %} — {{ disposal.reason_note }}{% endif %}</p>
+<p>Recorded by {{ disposal.actor.email }} at {{ disposal.occurred_at|sgdate }}. Classification: {{ disposal.audit_event.classification }}.</p>
+<a href="{% url 'inventory-products' disposal.inventory_id %}">Back to products</a>
+{% endblock %}

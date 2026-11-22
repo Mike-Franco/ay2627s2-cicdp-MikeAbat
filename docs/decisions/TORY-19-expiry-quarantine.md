@@ -1,0 +1,19 @@
+# TORY-19 expiry quarantine and disposal
+
+**Owner timing approval:** 8 November 2026, [G-02 addendum](../requirements/BATCH_INTEGRITY_OWNER_DECISIONS.md#g-02-addendum--owner-approval-8-november-2026). An event must be recorded within one hour of the effective 00:00 Asia/Singapore expiry boundary. Issue eligibility and displayed quarantine change at the boundary independently of recording.
+
+**Owner disposal reason approval, 8 November 2026:** Use a controlled reason code plus a note. Initial codes are exactly **Expired**, **Damaged**, and **Other**. A note is mandatory for Other after trimming; it is optional for Expired and Damaged. Store both code and note in the Manager-attributed disposal audit. The Damaged code applies only to units already quarantined under BR-037; it does not authorize disposal of damaged nonquarantined goods or close G-05's separate physical-stock exception.
+
+## Implemented scope
+
+- Ordinary issue and Manager count adjustment continue to exclude expired batches by Singapore date. PostgreSQL now also rejects direct batch quantity changes on expired rows through the stock-out/adjustment paths.
+- Inventory product display derives quarantined and available quantities from batch expiry dates, including before the background command runs. Physical balance is unchanged by quarantine.
+- `manage.py process_expiry_quarantine` records one immutable system-attributed, non-demand event per due batch. Its effective timestamp is Singapore midnight on the immutable expiry date; its recorded timestamp comes from the PostgreSQL statement clock. The event identifies business, inventory, product, batch and the current residual physical/available/quarantine quantities. State and evidence commit together. A unique batch key and parent-to-batch locks make retries and overlapping runs safe. Reconciliation uses the residual physical quantity when evidence is recorded; it does not restore earlier removed units.
+- An assigned Manager may dispose of positive whole-unit quantities from an expired quarantined batch, including before the expiry evidence is recorded. Staff and unassigned Managers are denied. The batch deduction, product/inventory physical balance and one separately attributed non-demand audit commit together. The audit stores the approved code and trimmed note. A 2,000-character note limit is an input/storage safeguard, not a separate owner rule.
+- If disposal commits before expiry evidence, the later system event records the units disposed before recording, the remaining physical/quarantined units, and the pre-expiry available quantity. If evidence commits first, later disposal reduces stored quarantine and physical units without rewriting the immutable event. PostgreSQL guards bind both paths to their records.
+
+## Scheduler and staging proof
+
+Run the idempotent command on a durable scheduler every five minutes, beginning at 00:00 Singapore time. A successful run by 00:55 leaves five minutes of margin within the approved hour. The job must report errors and overdue unrecorded batches; alert on failures immediately and on a batch still missing evidence at 00:30, then retry or run the command manually before 01:00. The command alone does not guarantee the deadline: the scheduler, worker availability and alert response must be deployed and measured.
+
+On staging, verify scheduler timezone and clock synchronization, a 00:00 boundary run, p95 and worst-case completion for the expected batch volume, overlapping-job retries, missed-run recovery, database lock contention with receipts/issues/adjustments/disposals, one event per batch after recovery, and an alert before the one-hour limit. Record the event's effective-to-recorded delay and check every due batch remains below one hour. Local PostgreSQL tests cover disposal-before-recording and the disposal/processor race; staging timing and load remain unverified.

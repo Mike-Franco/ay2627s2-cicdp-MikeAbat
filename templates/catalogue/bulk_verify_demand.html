@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Verify demand · {{ inventory.name }} · Tory{% endblock %}
+{% block breadcrumb %}Verify demand{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <div><p class="eyebrow">{{ inventory.name }}</p><h1>Verify demand for all products</h1>
+  <p>Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates.</p></div>
+</div>
+{% if result %}
+<section class="panel mb-3" aria-labelledby="bulk-result" role="status">
+  <div class="panel-heading">
+    <h2 id="bulk-result">Verified {{ result.verified|length }} product-day{{ result.verified|length|pluralize }}, skipped {{ result.skipped|length }}</h2>
+    <p>{% for day in result.days %}{{ day|sgdate }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  </div>
+  {% if result.skipped_reasons %}
+  <ul class="list-group list-group-flush">
+    {% for reason, count in result.skipped_reasons %}
+    <li class="list-group-item">Skipped {{ count }}: {{ reason }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
+{{ form.non_field_errors }}
+<section class="panel mb-3" aria-labelledby="bulk-week">
+  <div class="panel-heading"><h2 id="bulk-week">Last 7 days</h2>
+  <p>{% if window %}{{ window.0|sgdate }} to {{ window|last|sgdate }}.{% else %}Demand observation has not started yet.{% endif %} Already-reviewed and inactive products are skipped.</p></div>
+  <form method="post" class="p-3">
+    {% csrf_token %}
+    <input type="hidden" name="scope" value="week">
+    <button class="btn btn-primary" type="submit"{% if not window %} disabled{% endif %}>Verify all unverified days in the last 7 complete Asia/Singapore dates</button>
+  </form>
+</section>
+<section class="panel" aria-labelledby="bulk-day">
+  <div class="panel-heading"><h2 id="bulk-day">One date</h2><p>Verify a single complete Asia/Singapore date for every product.</p></div>
+  <form method="post" class="p-3">
+    {% csrf_token %}
+    <input type="hidden" name="scope" value="day">
+    <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.day.id_for_label }}">{{ form.day.label }}</label>{{ form.day }}{{ form.day.errors }}<div class="form-text">Defaults to yesterday.</div></div>
+    <button class="btn btn-outline-primary" type="submit">Verify this date for all products</button>
+    <a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,219 @@
+name: CD
+
+# Every merge to main: wait for all checks on the merge commit, publish the
+# image to GHCR, deploy it to the staging VM over SSH, then smoke-test the live
+# HTTPS URL. A failed smoke test rolls back and leaves this run red. See ADR-005.
+on:
+  workflow_run:
+    workflows: ["Django PostgreSQL CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-staging
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: CD gate (all checks passed)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      checks: read
+      contents: read
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - name: Resolve commit
+        id: sha
+        run: echo "sha=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Wait for every other check on the commit to pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.sha.outputs.sha }}
+          REQUIRED: |
+            Lint (ruff)
+            Check, migrate, and test on PostgreSQL
+            Build image, smoke test and run tests in container
+        run: |
+          deadline=$((SECONDS + 1800))
+          while :; do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/check-runs?per_page=100" \
+              --jq '[.check_runs[] | select(.name | startswith("CD ") | not) | {name, status, conclusion}]')"
+            failed="$(jq -r '[.[] | select(.status == "completed" and
+              (.conclusion | IN("success", "skipped", "neutral") | not)) | .name] | join(", ")' <<<"$runs")"
+            if [ -n "$failed" ]; then
+              echo "::error::Not deploying: failed checks on $SHA: $failed"; exit 1
+            fi
+            pending="$(jq '[.[] | select(.status != "completed")] | length' <<<"$runs")"
+            missing=""
+            while IFS= read -r name; do
+              [ -z "$name" ] && continue
+              jq -e --arg n "$name" 'any(.[]; .name == $n)' <<<"$runs" >/dev/null || missing="$missing $name;"
+            done <<<"$REQUIRED"
+            if [ "$pending" -eq 0 ] && [ -z "$missing" ]; then
+              jq -r '.[] | "\(.conclusion)\t\(.name)"' <<<"$runs" | sort -k2
+              break
+            fi
+            if [ "$SECONDS" -gt "$deadline" ]; then
+              echo "::error::Timed out waiting for checks (pending: $pending; missing:$missing)"; exit 1
+            fi
+            sleep 20
+          done
+
+  build:
+    name: CD build and publish image
+    needs: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+    steps:
+      - name: Check out the gated commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+      - name: Image reference
+        id: ref
+        run: |
+          repo="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "image=$repo:sha-${{ needs.gate.outputs.sha }}" >> "$GITHUB_OUTPUT"
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.ref.outputs.image }}
+            ${{ steps.ref.outputs.repo }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ needs.gate.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: CD deploy to staging
+    needs: [gate, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: https://${{ vars.TORY_DOMAIN }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DOMAIN: ${{ vars.TORY_DOMAIN }}
+      IMAGE: ${{ needs.build.outputs.image }}
+    steps:
+      - name: Check out deploy files
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          sparse-checkout: deploy
+      - name: Configure SSH
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          VM_SSH_KNOWN_HOSTS: ${{ secrets.VM_SSH_KNOWN_HOSTS }}
+          VM_SSH_PORT: ${{ vars.VM_SSH_PORT || '22' }}
+        run: |
+          for name in VM_HOST VM_USER VM_SSH_KEY DOMAIN; do
+            [ -n "${!name}" ] || { echo "::error::$name is not configured for the staging environment"; exit 1; }
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          if [ -n "$VM_SSH_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$VM_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::VM_SSH_KNOWN_HOSTS is not set; trusting the host key scanned now. Store it as a secret to pin it."
+            ssh-keyscan -p "$VM_SSH_PORT" -H "$VM_HOST" > ~/.ssh/known_hosts
+          fi
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host staging
+            HostName $VM_HOST
+            User $VM_USER
+            Port $VM_SSH_PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+          EOF
+      - name: Upload deploy files and environment
+        env:
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'tory' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'tory' }}
+          EMAIL_HOST: ${{ vars.EMAIL_HOST }}
+          EMAIL_PORT: ${{ vars.EMAIL_PORT }}
+          EMAIL_HOST_USER: ${{ vars.EMAIL_HOST_USER }}
+          EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+          DEFAULT_FROM_EMAIL: ${{ vars.DEFAULT_FROM_EMAIL }}
+        run: |
+          names="TORY_DOMAIN DJANGO_SECRET_KEY POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD EMAIL_HOST EMAIL_PORT EMAIL_HOST_USER EMAIL_HOST_PASSWORD DEFAULT_FROM_EMAIL"
+          export TORY_DOMAIN="$DOMAIN"
+          for name in DJANGO_SECRET_KEY POSTGRES_PASSWORD; do
+            [ -n "${!name}" ] || { echo "::error::$name is not configured for the staging environment"; exit 1; }
+          done
+          env_file="$(mktemp)"
+          for name in $names; do
+            value="${!name}"
+            case "$value" in *"'"*|*$'\n'*) echo "::error::$name must not contain a single quote or newline"; exit 1;; esac
+            [ -n "$value" ] && printf "%s='%s'\n" "$name" "$value" >> "$env_file"
+          done
+          ssh staging 'mkdir -p tory'
+          scp -q deploy/docker-compose.prod.yml deploy/Caddyfile deploy/deploy.sh staging:tory/
+          ssh staging 'chmod 755 tory/deploy.sh && umask 077 && cat > tory/.env' < "$env_file"
+          rm -f "$env_file"
+      - name: Deploy image
+        id: deploy
+        env:
+          # Short-lived job token: the VM logs in, pulls, and logs out again.
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
+        run: printf '%s' "$GHCR_TOKEN" | ssh staging "tory/deploy.sh deploy '$IMAGE' '$GHCR_USER'"
+      - name: Smoke test the live HTTPS URL
+        run: |
+          curl --fail --silent --show-error --max-time 15 --retry 20 --retry-delay 6 --retry-all-errors \
+            "https://$DOMAIN/healthz"
+          echo
+          curl --fail --silent --show-error --max-time 15 "https://$DOMAIN/login/" | grep -q 'name="password"'
+          echo "Sign-in page served over HTTPS"
+      - name: Roll back a failed deployment
+        if: failure() && steps.deploy.outcome != 'skipped'
+        run: ssh staging "tory/deploy.sh rollback '$IMAGE'"
+      - name: Record deployment
+        if: always() && steps.deploy.outcome != 'skipped'
+        run: |
+          {
+            echo "### Staging deployment"
+            echo "- Commit: \`${{ needs.gate.outputs.sha }}\`"
+            echo "- Image: \`$IMAGE\`"
+            echo "- URL: https://$DOMAIN"
+            echo '```'
+            ssh staging 'tory/deploy.sh status' || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

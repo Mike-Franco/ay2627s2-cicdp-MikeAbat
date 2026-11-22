@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load tory_cards %}
+{% block title %}Inventories &middot; Tory{% endblock %}
+{% block breadcrumb %}Your inventories{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <h1>Your inventories</h1>
+  {% if manager_memberships %}
+  <div class="heading-actions">
+    {% for membership in manager_memberships %}
+    <a class="btn btn-primary" href="{% url 'inventory-create' membership.business_id %}">Add inventory{% if manager_memberships|length > 1 %} &middot; {{ membership.business.name }}{% endif %}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
+{% if inventories %}
+{% inventory_card_stats inventories as card_stats %}
+<div class="inventory-cards">
+  {% for inventory in inventories %}{% with stats=card_stats|get_item:inventory.pk %}
+  <article class="inventory-card" aria-labelledby="inventory-{{ inventory.pk }}">
+    <div><h3 id="inventory-{{ inventory.pk }}"><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a></h3><small class="text-muted">{{ inventory.business.name }}</small></div>
+    <div class="card-stats">
+      <span><strong>{{ stats.products }}</strong>product{{ stats.products|pluralize }}</span>
+      <span class="{% if stats.low_stock %}attention{% endif %}"><strong>{{ stats.low_stock }}</strong>at or below reorder point</span>
+    </div>
+    {% if inventory.can_manage %}{% include "inventory_access/inventory_actions.html" %}{% endif %}
+  </article>
+  {% endwith %}{% endfor %}
+</div>
+{% else %}
+<p>No inventories are assigned to your account.</p>
+{% endif %}
+{% if inactive_inventories %}
+<h2 class="mt-4">Inactive inventories</h2>
+<ul class="list-group">
+  {% for inventory in inactive_inventories %}
+  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span>{{ inventory.name }}<small class="text-muted"> &middot; {{ inventory.business.name }}</small></span>
+    {% include "inventory_access/inventory_actions.html" %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

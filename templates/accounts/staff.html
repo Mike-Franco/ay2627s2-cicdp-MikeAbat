@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load tory_cards %}
+{% block title %}Staff · Tory{% endblock %}
+{% block breadcrumb %}Staff{% endblock %}
+{% block content %}
+<div class="products-heading"><div><h1>Staff</h1><p>Staff accounts within your current authority.</p></div></div>
+{% if staff_accounts %}
+{% staff_inventory_names staff_accounts business_id as inventory_names %}
+<section class="panel" aria-labelledby="staff-title">
+  <div class="panel-heading"><h2 id="staff-title">Staff accounts</h2></div>
+  <div class="table-scroll" role="region" aria-label="Staff accounts" tabindex="0">
+    <table class="products-table staff-table">
+      <thead><tr><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Inventories</th><th scope="col">Action</th></tr></thead>
+      <tbody>
+      {% for staff in staff_accounts %}
+        <tr>
+          <th scope="row">{% if staff.get_full_name %}<span class="d-block">{{ staff.get_full_name }}</span>{% endif %}<span class="product-sku">{{ staff.email }}</span></th>
+          <td>{% if staff.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}</td>
+          <td>{{ inventory_names|get_item:staff.pk|join:", "|default:"—" }}</td>
+          <td>{% if staff.is_active %}<a class="btn btn-sm btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}<p>No Staff accounts in your current scope.</p>{% endif %}
+{% include "includes/pagination.html" with pagination_label="Staff pages" %}
+{% endblock %}

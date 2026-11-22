@@ -1,0 +1,53 @@
+# Tooling configuration only. Tory is a Django project, not an installable package.
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = [
+    "**/migrations/**",
+    "benchmark-results",
+]
+
+[tool.ruff.lint]
+# Defect-focused rules: pycodestyle errors (E4/E7/E9) and warnings, Pyflakes,
+# and bugbear. Line length (E501) and import order are not enforced until the
+# codebase is formatted in one coordinated change after parallel branches merge.
+select = ["E4", "E7", "E9", "F", "W", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Baseline of findings that existed when the lint gate was introduced
+# (TORY-36). Ignores are per file so that new files get the full ruleset.
+# Remove entries as the files are cleaned up; do not add new ones casually.
+"scripts/**" = ["B023", "B905", "E401", "E701", "E702", "E731", "F401"]
+"tests/test_tory27_backup_restore.py" = ["E701", "E702"]
+"tests/test_demand_forecast.py" = ["B023"]
+"tests/test_stock_out.py" = ["F841"]
+"tests/test_staff_invitations.py" = ["F401"]
+"accounts/invitation_email.py" = ["B904"]
+"accounts/reset_dispatch.py" = ["F401"]
+"receiving/services.py" = ["B904"]
+"receiving/csv_import.py" = ["F401"]
+# Routes are appended at the end of the module by convention (TORY-44 imports
+# the operations admin site there).
+"config/urls.py" = ["E402"]
+
+[tool.coverage.run]
+source = ["accounts", "catalogue", "config", "inventory_access", "receiving"]
+omit = [
+    "*/migrations/*",
+    "config/asgi.py",
+    "config/wsgi.py",
+]
+concurrency = ["thread"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"

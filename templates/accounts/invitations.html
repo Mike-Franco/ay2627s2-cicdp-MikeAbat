@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Staff invitations · Tory{% endblock %}
+{% block breadcrumb %}Staff invitations{% endblock %}
+{% block content %}
+<h1>Staff invitations</h1>
+{% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+{% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3"><label class="form-label" for="invite-email">Staff email</label><input class="form-control" id="invite-email" name="email" type="email" required maxlength="254"></div>
+  <fieldset><legend>Inventories</legend>
+  {% for inventory in inventories %}<label class="d-block"><input type="checkbox" name="inventories" value="{{ inventory.pk }}"> {{ inventory.name }}</label>{% endfor %}
+  </fieldset>
+  <button class="btn btn-primary mt-3" type="submit">Send invitation</button>
+</form>
+<h2 class="mt-5">Invitations</h2>
+{% for invitation in invitations %}
+<div class="card mb-3"><div class="card-body">
+  <strong>{{ invitation.target_email }}</strong> — {{ invitation.get_status_display }}<br>
+  {% for inventory in invitation.inventories.all %}{{ inventory.name }}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
+  Issued {{ invitation.issued_at|sgdate }}; expires {{ invitation.expires_at|sgdate }}
+  {% if invitation.status == 'pending' %}
+  <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-primary" type="submit">Replace / resend</button></form>
+  <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Revoke</button></form>
+  {% endif %}
+</div></div>
+{% empty %}<p>No invitations in your current scope.</p>{% endfor %}
+{% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
+{% endblock %}

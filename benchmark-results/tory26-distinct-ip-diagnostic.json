@@ -1,0 +1,151 @@
+{
+  "recorded_at_utc": "2026-11-09T13:29:41.994072+00:00",
+  "database": "tory26_benchmark_run1",
+  "method": "Five bound loopback source IPs, real HTTP POST /login/, normal Django runserver, isolated clone; diagnostic only",
+  "source_ips": [
+    "127.0.0.2",
+    "127.0.0.3",
+    "127.0.0.4",
+    "127.0.0.5",
+    "127.0.0.6"
+  ],
+  "startup_seconds_context": 8.975316199997906,
+  "samples": [
+    {
+      "client": 1,
+      "source_ip": "127.0.0.2",
+      "seconds": 6.1189280999824405,
+      "status": 302
+    },
+    {
+      "client": 2,
+      "source_ip": "127.0.0.3",
+      "seconds": 5.562801399966702,
+      "status": 302
+    },
+    {
+      "client": 3,
+      "source_ip": "127.0.0.4",
+      "seconds": 5.558054200024344,
+      "status": 302
+    },
+    {
+      "client": 4,
+      "source_ip": "127.0.0.5",
+      "seconds": 6.227579400001559,
+      "status": 302
+    },
+    {
+      "client": 5,
+      "source_ip": "127.0.0.6",
+      "seconds": 5.9626689000288025,
+      "status": 302
+    },
+    {
+      "client": 1,
+      "source_ip": "127.0.0.2",
+      "seconds": 5.762173599970993,
+      "status": 302
+    },
+    {
+      "client": 2,
+      "source_ip": "127.0.0.3",
+      "seconds": 5.4290087999543175,
+      "status": 302
+    },
+    {
+      "client": 3,
+      "source_ip": "127.0.0.4",
+      "seconds": 5.529117900005076,
+      "status": 302
+    },
+    {
+      "client": 4,
+      "source_ip": "127.0.0.5",
+      "seconds": 5.894217099994421,
+      "status": 302
+    },
+    {
+      "client": 5,
+      "source_ip": "127.0.0.6",
+      "seconds": 5.851845099998172,
+      "status": 302
+    },
+    {
+      "client": 1,
+      "source_ip": "127.0.0.2",
+      "seconds": 5.823281799966935,
+      "status": 302
+    },
+    {
+      "client": 2,
+      "source_ip": "127.0.0.3",
+      "seconds": 5.513955800037365,
+      "status": 302
+    },
+    {
+      "client": 3,
+      "source_ip": "127.0.0.4",
+      "seconds": 5.660258900024928,
+      "status": 302
+    },
+    {
+      "client": 4,
+      "source_ip": "127.0.0.5",
+      "seconds": 6.608010300027672,
+      "status": 302
+    },
+    {
+      "client": 5,
+      "source_ip": "127.0.0.6",
+      "seconds": 6.3110585999675095,
+      "status": 302
+    },
+    {
+      "client": 1,
+      "source_ip": "127.0.0.2",
+      "seconds": 6.2067796000046656,
+      "status": 302
+    },
+    {
+      "client": 2,
+      "source_ip": "127.0.0.3",
+      "seconds": 5.783210800029337,
+      "status": 302
+    },
+    {
+      "client": 3,
+      "source_ip": "127.0.0.4",
+      "seconds": 5.494510999997146,
+      "status": 302
+    },
+    {
+      "client": 4,
+      "source_ip": "127.0.0.5",
+      "seconds": 5.752541900030337,
+      "status": 302
+    },
+    {
+      "client": 5,
+      "source_ip": "127.0.0.6",
+      "seconds": 6.125139299954753,
+      "status": 302
+    }
+  ],
+  "stock_counts_before": {
+    "receipts": 2000,
+    "issues": 18000,
+    "imports": 0
+  },
+  "stock_counts_after": {
+    "receipts": 2000,
+    "issues": 18000,
+    "imports": 0
+  },
+  "summary": {
+    "count": 20,
+    "median_seconds": 5.803246299998136,
+    "max_seconds": 6.608010300027672,
+    "nearest_rank_p95_seconds": 6.3110585999675095
+  }
+}

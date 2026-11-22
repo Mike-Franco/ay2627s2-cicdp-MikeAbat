@@ -1,0 +1,96 @@
+name: Docker image
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose:
+    name: Build image, smoke test and run tests in container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Build and start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Check the health endpoint and sign-in page
+        run: |
+          curl --fail --silent --show-error http://localhost:8000/healthz
+          curl --fail --silent --show-error http://localhost:8000/login/ | grep -q 'name="password"'
+          curl --fail --silent --show-error --output /dev/null http://localhost:8000/static/tory/app.css
+      - name: Confirm the app runs as a non-root user
+        run: test "$(docker compose exec -T web id -u)" != "0"
+      - name: Confirm no secrets are stored in the image
+        run: |
+          env_vars="$(docker image inspect tory:local --format '{{range .Config.Env}}{{println .}}{{end}}')"
+          echo "$env_vars"
+          if echo "$env_vars" | grep -E '^(DJANGO_SECRET_KEY|POSTGRES_PASSWORD|EMAIL_HOST_PASSWORD)='; then
+            echo "::error::A secret is set in the image environment"; exit 1
+          fi
+          if docker run --rm --entrypoint sh tory:local -c 'test -e /app/.env || test -e /app/.git'; then
+            echo "::error::.env or .git was copied into the image"; exit 1
+          fi
+      - name: Run the test suite inside the container
+        run: docker compose run --rm -T -e DJANGO_ENV=test -e DJANGO_MIGRATE_ON_START=false web python manage.py test --noinput
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes
+
+  e2e:
+    name: Browser smoke test (Playwright)
+    needs: compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install playwright==1.64.1
+          python -m playwright install --with-deps chromium
+      - name: Build and start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Seed demo data
+        run: |
+          password="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')"
+          echo "::add-mask::$password"
+          echo "DEMO_MANAGER_PASSWORD=$password" >> "$GITHUB_ENV"
+          docker compose exec -T -e DEMO_MANAGER_PASSWORD="$password" \
+            -e DEMO_STAFF_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(24))')" \
+            web python manage.py seed_demo
+      - name: Run the browser smoke test
+        run: >-
+          python scripts/e2e_smoke.py --base-url http://localhost:8000
+          --email manager@tory-demo.test --password "$DEMO_MANAGER_PASSWORD"
+          --screenshots e2e-screenshots
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-screenshots-${{ github.sha }}
+          path: e2e-screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes

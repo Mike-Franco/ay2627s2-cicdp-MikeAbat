@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Adjust {{ product.name }} count · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Adjust{% endblock %}
+{% block content %}
+{% include 'includes/product_tabs.html' %}
+<h1>Adjust {{ product.name }} count</h1>
+<p>{{ inventory.name }} · Physical balance: {{ link.physical_quantity_units }} {{ product.base_unit_label }}</p>
+<p class="available-line">Available: <strong>{{ available_units }} {{ product.base_unit_label|default:"units" }}</strong>{% if quarantined_units %} <span class="text-muted">({{ quarantined_units }} quarantined, not issuable)</span>{% endif %}</p>
+<p>Count existing, non-expired, non-quarantined batches only. This does not create batches or dispose of quarantined stock.</p>
+<form method="post">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="mb-3"><label class="form-label" for="{{ form.reason.id_for_label }}">Reason</label>{{ form.reason }}{{ form.reason.errors }}<div class="form-text">Required; adjustment counts are not demand.</div></div>
+  {{ formset.management_form }}{{ formset.non_form_errors }}
+  {% if formset.forms %}
+    <div class="table-responsive"><table class="table">
+      <thead><tr><th>Existing batch</th><th>Current remaining</th><th>Expiry</th><th>Observed units</th><th>Identity/count verified</th></tr></thead>
+      <tbody>
+      {% for row in formset %}
+        <tr>
+          <td>{{ row.batch_id }}Batch {{ row.initial.batch.receipt_sequence }} · {{ row.initial.batch.id }}</td>
+          <td>{{ row.initial.batch.remaining_quantity_units }}</td>
+          <td>{{ row.initial.batch.expiry_date|sgdate|default:"Undated" }}</td>
+          <td><label class="visually-hidden" for="{{ row.counted_quantity_units.id_for_label }}">Observed units for batch {{ row.initial.batch.receipt_sequence }}</label>{{ row.counted_quantity_units }}{{ row.counted_quantity_units.errors }}</td>
+          <td>{{ row.confirmed }} <label for="{{ row.confirmed.id_for_label }}">I verified this batch identity and physically counted it.</label>{{ row.confirmed.errors }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <p>No eligible existing batches are available to adjust.</p>
+  {% endif %}
+  <button class="btn btn-primary" type="submit">Save adjustment</button>
+</form>
+<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+{% endblock %}

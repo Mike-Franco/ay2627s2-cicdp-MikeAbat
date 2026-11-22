@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Product catalogue · Tory{% endblock %}
+{% block breadcrumb %}Catalogue{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <h1>Product catalogue</h1>
+  {% if create_inventories %}
+  <div class="heading-actions">
+    {% for inventory in create_inventories %}
+    <a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product{% if create_inventories|length > 1 %} · {{ inventory.business.name }}{% endif %}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+<form method="get" action="{% url 'product-catalogue' %}" class="product-filters" role="search" aria-label="Search catalogue">
+  <div class="product-filter-field"><label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>{{ search_form.q }}{% if search_form.q.errors %}<div class="filter-errors" role="alert">{{ search_form.q.errors }}</div>{% endif %}</div>
+  <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Search</button>{% if search_form.q.value %}<a class="btn btn-outline-secondary" href="{% url 'product-catalogue' %}">Clear search</a>{% endif %}</div>
+</form>
+{% if product_links %}
+  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {{ link.inventory.name }}</span></li>{% endfor %}</ul>
+{% elif not search_form.errors and search_form.cleaned_data.q %}
+  <p>No authorised products match your search.</p>
+{% elif not search_form.errors %}
+  <p>No products are linked to your authorised inventories.</p>
+{% endif %}
+{% include "includes/pagination.html" with pagination_label="Catalogue pages" %}
+{% endblock %}

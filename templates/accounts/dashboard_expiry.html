@@ -1,0 +1,11 @@
+{% load tory_format %}
+<h3 class="h5 px-3 pt-3">{{ heading }}</h3>
+<ul class="list-group list-group-flush">
+  {% for batch in batches %}
+  <li class="list-group-item">
+    <a href="{% url 'product-stock' batch.inventory_id batch.product_id %}">{{ batch.product.name }}</a>
+    · {{ batch.inventory.name }} · {{ batch.eligible_units }} {{ batch.unit_label_snapshot }}
+    · {{ batch.expiry_date|sgdate }}
+  </li>
+  {% empty %}<li class="list-group-item">No eligible batches expire in this period.</li>{% endfor %}
+</ul>
