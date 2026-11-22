@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Selling price for {{ product.sku }} · Tory{% endblock %}
+{% block breadcrumb %}{{ product.sku }} · Selling price{% endblock %}
+{% block content %}
+{% include 'includes/product_tabs.html' %}
+<div class="products-heading"><div><h1>Selling price for {{ product.sku }}</h1><p>Applies to {{ inventory.name }} only. Other inventories keep their own price.</p></div></div>
+<form method="post" class="panel p-3">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.selling_price.id_for_label }}">{{ form.selling_price.label }}</label>{{ form.selling_price }}{{ form.selling_price.errors }}<div class="form-text">{{ form.selling_price.help_text }} Current: {{ link.selling_price|sgd }}.</div></div>
+  <button class="btn btn-primary" type="submit">Save price</button>
+  <a class="btn btn-outline-secondary" href="{% url 'product-stock' inventory.pk product.pk %}">Cancel</a>
+</form>
+{% endblock %}

@@ -38,10 +38,10 @@ from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
                             visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
-from .forms import BulkDemandVerifyForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
+from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
 from .templatetags.tory_format import sgdate
 from .lifecycle import ProductLifecycleRejected, set_product_active
-from .product_changes import save_product_change
+from .product_changes import save_product_change, save_selling_price
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
 
 
@@ -81,6 +81,8 @@ def inventory_insights(request, inventory_id):
     )
     quarantine_by_link = dict(batch_totals.values_list("inventory_product_id", "quarantined"))
     reorder_data = []
+    # Selling-price value of available (issuable) stock; unpriced products are listed, not guessed.
+    stock_value, priced, unpriced = Decimal(0), 0, []
     for link in links:
         quarantine = quarantine_by_link.get(link.pk, 0)
         forecast = forecast_data.get(link.pk)
@@ -93,6 +95,12 @@ def inventory_insights(request, inventory_id):
             "reorder_point": str(result.reorder_point) if result and result.reorder_point is not None else None,
             "alert": bool(result and result.alert),
         })
+        available = link.physical_quantity_units - quarantine
+        if link.selling_price is None:
+            unpriced.append(link.product)
+        else:
+            stock_value += available * link.selling_price
+            priced += 1
     # Four rolling 7-day windows starting tomorrow, so stock expiring in the
     # next few days is never dropped by a calendar-week boundary.
     window_start = today + timedelta(days=1)
@@ -114,6 +122,7 @@ def inventory_insights(request, inventory_id):
         "inventory": inventory, "demand_data": demand_data,
         "demand_data_json": demand_data, "reorder_data_json": reorder_data, "expiry_data_json": expiry_data,
         "reorder_data": reorder_data, "expiry_data": expiry_data, "has_products": bool(links),
+        "stock_value": stock_value, "priced_count": priced, "unpriced_products": unpriced,
     })
 
 
@@ -301,6 +310,28 @@ def product_stock(request, inventory_id, product_id):
         "inventory": inventory, "product": link.product, "link": link,
         "batches": batches, "can_adjust_stock": _is_inventory_manager(request.user, inventory),
     })
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def selling_price(request, inventory_id, product_id):
+    """Manager-only edit of one inventory's selling price for a product."""
+    try:
+        inventory = get_authorized_inventory(request.user, inventory_id)
+    except Inventory.DoesNotExist as error:
+        raise Http404 from error
+    if not _is_inventory_manager(request.user, inventory):
+        raise Http404
+    link = get_object_or_404(InventoryProduct.objects.select_related("product"), inventory=inventory,
+                             product_id=product_id, product__business_id=inventory.business_id)
+    form = SellingPriceForm(request.POST or None, initial={"selling_price": link.selling_price})
+    if request.method == "POST" and form.is_valid():
+        save_selling_price(user=request.user, inventory=inventory, product_id=product_id,
+                           price=form.cleaned_data["selling_price"])
+        return redirect("product-stock", inventory_id=inventory.pk, product_id=product_id)
+    return render(request, "catalogue/selling_price.html", {
+        "inventory": inventory, "product": link.product, "link": link, "form": form,
+    }, status=400 if request.method == "POST" else 200)
 
 
 @protected_view

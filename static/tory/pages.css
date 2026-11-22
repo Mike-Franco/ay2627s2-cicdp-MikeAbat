@@ -11,7 +11,7 @@
 .product-tabs a:hover,.product-tabs a[aria-current=page]{color:var(--accent)}
 .product-tabs a[aria-current=page]{border-color:var(--accent);font-weight:650}
 .stock-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
-.balance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:23px}
+.balance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:23px}
 .balance-card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:21px}
 .balance-card h2{font-size:12px;color:var(--muted);font-weight:600;margin:0 0 8px}
 .balance-card strong{display:block;font-size:28px;line-height:1.2;font-variant-numeric:tabular-nums}
@@ -81,13 +81,14 @@
 @media(max-width:700px){
   .products-table.product-cards{min-width:0}
   .products-table.product-cards thead{display:none}
-  .products-table.product-cards tbody tr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"product available" "sku available" "status status" "actions actions";gap:6px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .products-table.product-cards tbody tr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"product available" "sku available" "price price" "status status" "actions actions";gap:6px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
   .products-table.product-cards tbody tr:hover{background:none}
   .products-table.product-cards tbody th,.products-table.product-cards tbody td{padding:0;border:0}
   .products-table.product-cards .cell-product{grid-area:product}
   .products-table.product-cards .cell-sku{grid-area:sku;font-size:11px}
   .products-table.product-cards .cell-available{grid-area:available;align-self:center;font-size:24px}
   .products-table.product-cards .cell-status{grid-area:status}
+  .products-table.product-cards .cell-price{grid-area:price;text-align:left;font-size:12px}
   .products-table.product-cards .cell-actions{grid-area:actions;min-width:0}
   .products-table.product-cards .cell-physical,.products-table.product-cards .cell-quarantine,.actions-full{display:none}
   .actions-compact{display:flex;flex-wrap:wrap;gap:6px}
@@ -104,3 +105,5 @@
 .chart-frame canvas{max-width:100%}
 .chart-data{padding:0 1rem 1rem}
 .chart-data summary{cursor:pointer;color:var(--accent);font-size:12px;margin-bottom:.5rem}
+.mobile-price-label{display:none}
+@media(max-width:700px){.mobile-price-label{display:inline;color:var(--muted)}}
