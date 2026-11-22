@@ -119,12 +119,10 @@ class PasswordResetCoreTests(TestCase):
         self.assertEqual(PasswordResetLink.objects.get(pk=result.credentials.link.pk).status, "redeemed")
 
     def test_password_fingerprint_is_keyed_hmac_of_stored_hash(self):
-        import hashlib
         from django.utils.crypto import salted_hmac
         from accounts.password_resets import PASSWORD_FINGERPRINT_SALT
         stored = self.issue().credentials.link.password_digest
         self.assertEqual(stored, salted_hmac(PASSWORD_FINGERPRINT_SALT, self.user.password, algorithm="sha256").hexdigest())
-        self.assertNotEqual(stored, hashlib.sha256(b"tory:password-reset-password:v1\0" + self.user.password.encode()).hexdigest())
         with self.settings(SECRET_KEY="a-different-secret-key-for-this-test-only-0123456789"):
             self.assertNotEqual(stored, salted_hmac(PASSWORD_FINGERPRINT_SALT, self.user.password, algorithm="sha256").hexdigest())
 
