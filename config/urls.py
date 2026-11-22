@@ -11,13 +11,13 @@ from accounts import reset_views
 from accounts import deactivation_views
 from inventory_access import views as inventory_views
 from config.health import healthz
-from catalogue import categories, dashboard_views, views as catalogue_views
+from catalogue import categories, views as catalogue_views
 from inventory_access import team_lists
 from receiving import views as receiving_views
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
-    path("", dashboard_views.dashboard, name="home"),
+    path("", views.home, name="home"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("account/", account_views.account, name="account"),

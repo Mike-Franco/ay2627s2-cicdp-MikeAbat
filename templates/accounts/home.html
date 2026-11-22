@@ -3,90 +3,58 @@
 {% block title %}Dashboard · Tory{% endblock %}
 {% block content %}
 <div class="products-heading"><h1>Inventory dashboard</h1></div>
-{% if assigned %}
-<form method="get" class="product-filters" aria-label="Filter dashboard by inventory">
-  <div class="product-filter-field">
-    <label for="dashboard-inventory">Inventory</label>
-    <select id="dashboard-inventory" name="inventory" class="form-select">
-      <option value="">All assigned</option>
-      {% for inventory in assigned %}<option value="{{ inventory.pk }}"{% if chosen == inventory.pk|stringformat:"s" %} selected{% endif %}>{{ inventory.name }}</option>{% endfor %}
-    </select>
-  </div>
-  <div class="product-filter-actions"><button class="btn btn-primary">Apply</button></div>
-</form>
-{% include "includes/stock_kpis.html" %}
-{% for inventory, count in unverified_demand %}
+{% if inventory_totals %}
+<div class="stat-tiles mb-3">
+  {% for tile in stat_tiles %}
+  <a class="stat-tile {{ tile.tone }}" href="{{ tile.anchor }}"><span class="stat-label">{{ tile.label }}</span><strong class="stat-value">{{ tile.value }}</strong><span class="stat-unit">{{ tile.unit }}</span></a>
+  {% endfor %}
+</div>
+<div id="unverified">
+{% for inventory, count in unreviewed_demand %}
 <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="status">
-  <span><strong>{{ count }} unverified demand day{{ count|pluralize }}</strong> in {% include "includes/inventory_badge.html" with inventory=inventory %}.</span>
+  <span><strong>{{ count }} unverified demand day{{ count|pluralize }}</strong> in the last 7 days · {{ inventory.name }}. Forecasts and reorder points need every date verified.</span>
   <a class="btn btn-sm btn-primary" href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand</a>
 </div>
 {% endfor %}
-<section id="actions" class="panel mb-3" aria-labelledby="dashboard-actions">
-  <div class="panel-heading"><h2 id="dashboard-actions">Stock actions</h2>{% include "includes/dashboard_panel_link.html" with panel=actions label="stock actions" %}</div>
-  {% if actions.rows %}
-  <div class="table-scroll" role="region" aria-label="Stock actions" tabindex="0">
-    <table class="products-table responsive-list" aria-label="Stock actions by urgency">
-      <thead><tr><th scope="col">SKU</th><th scope="col">Item</th><th scope="col">Inventory</th><th scope="col">Category</th><th scope="col">Available</th><th scope="col">Reorder point</th><th scope="col">Days of supply</th><th scope="col">Suggested order</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
-      <tbody>
-      {% for row in actions.rows %}{% with link=row.link item=row.position %}
-        <tr>
-          <td><span class="list-mobile-label" aria-hidden="true">SKU</span>{{ link.product.sku }}</td>
-          <th scope="row"><a href="{% url 'product-stock' link.inventory_id link.product_id %}">{{ link.product.name }}</a></th>
-          <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% include "includes/inventory_badge.html" with inventory=link.inventory %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Category</span>{{ link.product.category|default:"Uncategorised" }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Available</span>{{ item.available }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Reorder point</span>{% if item.reorder.reorder_point is None %}—{% else %}{{ item.reorder.reorder_point|floatformat:2 }}{% endif %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="d-block">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|floatformat:2 }}{% endif %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Suggested order</span>{{ item.reorder.suggested_units|default_if_none:"—" }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Status</span><span class="status-pill attention">{{ row.label }}</span></td>
-          <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="d-flex flex-wrap gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></td>
-        </tr>
-      {% endwith %}{% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}<p class="p-3 mb-0">No products need attention in the selected inventories.</p>{% endif %}
+</div>
+<section class="panel mb-3" aria-labelledby="low-stock">
+  <div class="panel-heading"><h2 id="low-stock">At or below reorder point</h2></div>
+  <ul class="list-group list-group-flush">
+    {% for link, result in low_stock %}
+    <li class="list-group-item">
+      <a href="{% url 'product-stock' link.inventory_id link.product_id %}">{{ link.product.name }}</a>
+      · {{ link.inventory.name }} · {{ result.available_units }} available ·
+      <a href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a>
+    </li>
+    {% empty %}<li class="list-group-item">No products with a known reorder point need attention.</li>{% endfor %}
+  </ul>
   {% if reorder_unavailable %}<p class="p-3 mb-0">Reorder point unavailable for {{ reorder_unavailable }} inventory product{{ reorder_unavailable|pluralize }}.</p>{% endif %}
-  {% include "includes/pagination.html" with page=actions.page pagination_label="Stock action pages" %}
 </section>
-<section id="expiry" class="panel mb-3" aria-labelledby="dashboard-expiry">
-  <div class="panel-heading"><h2 id="dashboard-expiry">Expiring soon</h2><p>Next 30 Singapore days</p>{% include "includes/dashboard_panel_link.html" with panel=expiring label="expiring batches" %}</div>
-  {% if expiring.rows %}
-  <div class="table-scroll" role="region" aria-label="Expiring stock" tabindex="0">
-    <table class="products-table responsive-list" aria-label="Expiring batches">
-      <thead><tr><th scope="col">Product</th><th scope="col">Inventory</th><th scope="col">Expires</th><th scope="col">Eligible units</th></tr></thead>
-      <tbody>{% for batch in expiring.rows %}
-        <tr>
-          <th scope="row"><a href="{% url 'product-stock' batch.inventory_id batch.product_id %}">{{ batch.product.name }}</a></th>
-          <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% include "includes/inventory_badge.html" with inventory=batch.inventory %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Expires</span>{{ batch.expiry_date|sgdate }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Eligible units</span>{{ batch.eligible_units }}</td>
-        </tr>
-      {% endfor %}</tbody>
-    </table>
-  </div>
-  {% else %}<p class="p-3 mb-0">No eligible batches expire in the next 30 days.</p>{% endif %}
-  {% include "includes/pagination.html" with page=expiring.page pagination_label="Expiring stock pages" %}
+<section class="panel mb-3" aria-labelledby="expiring">
+  <div class="panel-heading"><h2 id="expiring">Expiring soon</h2><p>Singapore dates</p></div>
+  {% include "accounts/dashboard_expiry.html" with heading="Next 7 days" batches=expiring_week %}
+  {% include "accounts/dashboard_expiry.html" with heading="Days 8–30" batches=expiring_later %}
 </section>
-<section id="activity" class="panel mb-3" aria-labelledby="dashboard-activity">
-  <div class="panel-heading"><h2 id="dashboard-activity">Recent stock activity</h2>{% include "includes/dashboard_panel_link.html" with panel=activities label="recent stock activity" %}</div>
-  {% if activities.rows %}
-  <div class="table-scroll" role="region" aria-label="Recent activity" tabindex="0">
-    <table class="products-table responsive-list" aria-label="Recent stock activity">
-      <thead><tr><th scope="col">Product</th><th scope="col">Inventory</th><th scope="col">Movement</th><th scope="col">Quantity</th><th scope="col">Date</th></tr></thead>
-      <tbody>{% for event in activities.rows %}
-        <tr>
-          <th scope="row"><a href="{% url 'stock-history' event.inventory_id event.product_id %}">{{ event.product_name }}</a></th>
-          <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% include "includes/inventory_badge.html" with inventory=event.inventory %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Movement</span>{{ event.movement }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Quantity</span>{{ event.quantity }} {{ event.unit|default:"units" }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Date</span>{{ event.movement_at|sgdate }}</td>
-        </tr>
-      {% endfor %}</tbody>
-    </table>
-  </div>
-  {% else %}<p class="p-3 mb-0">No stock movements recorded in your inventories.</p>{% endif %}
-  {% include "includes/pagination.html" with page=activities.page pagination_label="Recent activity pages" %}
+<section class="panel mb-3" aria-labelledby="quarantine">
+  <div class="panel-heading"><h2 id="quarantine">Quarantined units by inventory</h2></div>
+  <ul class="list-group list-group-flush">
+    {% for inventory, units in inventory_totals %}
+    <li class="list-group-item"><a href="{% url 'inventory-products' inventory.pk %}">{{ inventory.name }}</a> · {{ units }} units</li>
+    {% endfor %}
+  </ul>
+</section>
+<section class="panel" aria-labelledby="activity">
+  <div class="panel-heading"><h2 id="activity">Recent stock activity</h2></div>
+  <ol class="list-group list-group-flush">
+    {% for event in recent_activity %}
+    <li class="list-group-item activity-item">
+      <span>{{ event.movement }} {{ event.quantity }} {{ event.unit|default:"units" }} ·
+      <a href="{% url 'product-stock' event.inventory_id event.product_id %}">{{ event.product_name }}</a>
+      <a class="small" href="{% url 'stock-history' event.inventory_id event.product_id %}">History</a></span>
+      <span class="text-muted small">{{ event.inventory_name }} · {{ event.movement_at|sgdate }}</span>
+    </li>
+    {% empty %}<li class="list-group-item">No stock movements recorded in your inventories.</li>{% endfor %}
+  </ol>
 </section>
 {% else %}
 <p>No active inventories are assigned to you.</p>

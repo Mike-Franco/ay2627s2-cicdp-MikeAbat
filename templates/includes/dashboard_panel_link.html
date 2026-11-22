@@ -1,7 +1,0 @@
-{% if panel.expanded %}
-  {% querystring panel=None page=None as summary_url %}
-  <a href="{{ summary_url|default:request.path }}#{{ panel.key }}">Back to dashboard summary</a>
-{% elif panel.rows %}
-  {% querystring panel=panel.key page=None as panel_url %}
-  <a href="{{ panel_url }}#{{ panel.key }}" aria-label="View all {{ label }}">View all</a>
-{% endif %}

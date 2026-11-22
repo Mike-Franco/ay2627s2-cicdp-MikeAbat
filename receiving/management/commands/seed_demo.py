@@ -28,6 +28,9 @@ except ModuleNotFoundError as error:
     save_product_change = None
 
 
+# TORY-54: how each demo inventory looks (icon key, colour key).
+INVENTORY_LOOKS = {"Pharmacy": ("pill", "teal"), "Grocery": ("shopping-cart", "orange")}
+
 # SKU, display name, base unit, opening stock, days to expiry, daily issues.
 INVENTORIES = {
     "Pharmacy": (
@@ -176,7 +179,8 @@ class Command(BaseCommand):
                 user, generated[role] = _create_login(User, email, f"DEMO_{role.upper()}_PASSWORD")
                 members[role] = BusinessMembership.objects.create(business=business, user=user, role=role)
             for name in INVENTORIES:
-                inventory = Inventory.objects.create(business=business, name=name)
+                icon, colour = INVENTORY_LOOKS.get(name, ("package", "slate"))
+                inventory = Inventory.objects.create(business=business, name=name, icon=icon, colour=colour)
                 for member in members.values():
                     InventoryAssignment.objects.create(inventory=inventory, membership=member)
                 _seed_inventory(inventory, members[roles.MANAGER].user, members[roles.STAFF].user, dates, now)
