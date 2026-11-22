@@ -1,44 +1,21 @@
 {% extends "base.html" %}
-{% load tory_format %}
 {% load static %}
-{% block title %}{{ inventory.name }} insights &middot; Tory{% endblock %}
+{% block title %}Inventory insights · {{ inventory.name }} · Tory{% endblock %}
 {% block breadcrumb %}Insights{% endblock %}
 {% block content %}
-<div class="products-heading"><div><p class="eyebrow">{{ inventory.name }}</p><h1>Inventory insights</h1></div></div>
-{% if has_products %}
-<section class="panel mb-4" aria-labelledby="value-heading">
-  <div class="panel-heading"><h2 id="value-heading">Stock value at selling price</h2><p>Available units × this inventory's selling price, in SGD</p></div>
-  <div class="p-3">
-    <p class="mb-1"><strong class="stat-value">{{ stock_value|sgd }}</strong> across {{ priced_count }} priced product{{ priced_count|pluralize }}.</p>
-    {% if unpriced_products %}<p class="help-text mb-0">Not included, no selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
-  </div>
-</section>
-{% endif %}
-<section class="panel mb-4" aria-labelledby="demand-heading">
-  <div class="panel-heading"><h2 id="demand-heading">Daily units issued</h2><p>Last 30 Singapore dates</p></div>
-  {% if has_products %}<div class="chart-frame"><canvas id="demand-chart" role="img" aria-label="Daily units issued over the last 30 Singapore dates"></canvas></div>
-  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Daily demand data"><table class="products-table"><thead><tr><th>Singapore date</th><th>Units issued</th><th>Verified seven-day average</th></tr></thead><tbody>
-  {% for row in demand_data %}<tr><th>{{ row.day|sgdate }}</th><td>{{ row.issued }}</td><td>{% if row.verified_average %}{{ row.verified_average }}{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
-  </tbody></table></div></details>{% else %}<p>No linked products or issue data are available yet.</p>{% endif %}
-</section>
-<section class="panel mb-4" aria-labelledby="reorder-heading">
-  <div class="panel-heading"><h2 id="reorder-heading">Available units and reorder point</h2></div>
-  {% if reorder_data %}<div class="chart-frame"><canvas id="reorder-chart" role="img" aria-label="Available units and verified reorder points by product"></canvas></div>
-  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Stock and reorder data"><table class="products-table"><thead><tr><th>SKU</th><th>Product</th><th>Available units</th><th>Reorder point</th><th>Status</th></tr></thead><tbody>
-  {% for row in reorder_data %}<tr><td>{{ row.sku }}</td><th>{{ row.name }}</th><td>{{ row.available }}</td><td>{% if row.reorder_point %}{{ row.reorder_point }}{% else %}Unavailable{% endif %}</td><td>{% if row.alert %}At or below reorder point{% elif row.reorder_point %}Above reorder point{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
-  </tbody></table></div></details>{% else %}<p>No products are linked to this inventory.</p>{% endif %}
-</section>
-<section class="panel mb-4" aria-labelledby="expiry-heading">
-  <div class="panel-heading"><h2 id="expiry-heading">Eligible units expiring each week</h2><p>Next four Singapore weeks</p></div>
-  {% if has_products %}<div class="chart-frame"><canvas id="expiry-chart" role="img" aria-label="Eligible units expiring in each of the next four Singapore weeks"></canvas></div>
-  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Expiry timeline data"><table class="products-table"><thead><tr><th>Singapore week</th><th>Eligible units</th></tr></thead><tbody>
-  {% for row in expiry_data %}<tr><th>{{ row.week }}</th><td>{{ row.units }}</td></tr>{% endfor %}
-  </tbody></table></div></details>{% else %}<p>No eligible stock is recorded as expiring in the next four weeks.</p>{% endif %}
-</section>
-{{ demand_data|json_script:"demand-data" }}
-{{ reorder_data|json_script:"reorder-data" }}
-{{ expiry_data|json_script:"expiry-data" }}
-{# base.html has no scripts block, so chart scripts render at the end of content. #}
+<div class="products-heading">
+  <div><p class="eyebrow">{% include "includes/inventory_badge.html" with inventory=inventory %}</p><h1>Inventory insights</h1></div>
+</div>
+{% include "includes/stock_kpis.html" %}
+<div class="insight-grid">
+  {% for card in cards %}{% include "includes/insight_chart.html" %}{% endfor %}
+</div>
+{{ stock_data_json|json_script:"stock-data" }}
+{{ traffic_data_json|json_script:"traffic-data" }}
+{{ supply_data_json|json_script:"supply-data" }}
+{{ value_data_json|json_script:"value-data" }}
+{{ demand_data_json|json_script:"demand-data" }}
+{{ expiry_data_json|json_script:"expiry-data" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script src="{% static 'tory/insights.js' %}" defer></script>
 {% endblock %}
