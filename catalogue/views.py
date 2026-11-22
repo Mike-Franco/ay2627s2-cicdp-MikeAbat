@@ -39,7 +39,8 @@ from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
                             visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
-from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
+from .table_lists import CATALOGUE_SORTS, CATALOGUE_STATUSES, TableControls, catalogue_rows, paginate
+from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ReorderSettingsForm
 from .templatetags.tory_format import sgdate
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change, save_selling_price
@@ -129,23 +130,39 @@ def inventory_insights(request, inventory_id):
 
 @protected_view
 def product_catalogue(request):
-    search_form = ProductSearchForm(request.GET, categories=Category.objects.filter(
-        business_id__in=authorized_inventories(request.user).values("business_id"),
-    ))
-    valid_search = search_form.is_valid()
-    links = _search_product_links(visible_product_links(request.user), search_form.cleaned_data["q"]) if valid_search else []
-    if valid_search and search_form.cleaned_data["category"]:
-        links = links.filter(product__category=search_form.cleaned_data["category"])
-    page = Paginator(links, 25).get_page(request.GET.get("page"))
-    return render(
-        request,
-        "catalogue/product_catalogue.html",
-        {"product_links": page.object_list, "page": page, "search_form": search_form,
-         "category_managers": manager_memberships(request.user).select_related("business"),
-         "create_inventories": managed_inventories(request.user).select_related("business")
-         .order_by("business_id", "name", "pk").distinct("business_id")},
-        status=200 if valid_search else 400,
+    inventories = list(authorized_inventories(request.user))
+    categories = list(Category.objects.filter(business_id__in={inventory.business_id for inventory in inventories}))
+    categories_by_id = {str(category.pk): category.pk for category in categories}
+    inventories_by_id = {str(inventory.pk): inventory.pk for inventory in inventories}
+    controls = TableControls.from_request(request, CATALOGUE_SORTS, default="sku")
+    links = _search_product_links(visible_product_links(request.user), controls.query)
+    category = request.GET.get("category", "")
+    inventory = request.GET.get("inventory", "")
+    status = request.GET.get("status", "")
+    valid = len(request.GET.get("q", "")) <= 200 and (not category or category in categories_by_id or category == "uncategorised") and (
+        not inventory or inventory in inventories_by_id
     )
+    if category:
+        links = links.filter(product__category_id=categories_by_id.get(category))
+    if inventory in inventories_by_id:
+        links = links.filter(inventory_id=inventories_by_id[inventory])
+    if status in {"active", "inactive"}:
+        links = links.filter(product__is_active=status == "active")
+    rows = catalogue_rows(links, at=timezone.now(), status=status, sort=controls.sort) if valid else []
+    page = paginate(request, rows)
+    toolbar = controls.toolbar(request, page, search_label="Search product name or SKU", filters=(
+        ("category", "Category", [("", "All categories"), ("uncategorised", "Uncategorised"),
+                                 *((str(item.pk), item.name) for item in categories)]),
+        ("status", "Status", CATALOGUE_STATUSES),
+        ("inventory", "Inventory", [("", "All inventories"),
+                                     *((str(item.pk), item.name) for item in inventories)]),
+    ))
+    return render(request, "catalogue/product_catalogue.html", {
+        "product_links": page.object_list, "page": page, "toolbar": toolbar, "valid_filters": valid,
+        "category_managers": manager_memberships(request.user).select_related("business"),
+        "create_inventories": managed_inventories(request.user).select_related("business")
+        .order_by("business_id", "name", "pk").distinct("business_id"),
+    }, status=200 if valid else 400)
 
 
 def _search_product_links(links, query):

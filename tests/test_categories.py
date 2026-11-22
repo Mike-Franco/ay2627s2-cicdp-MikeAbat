@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.urls import reverse
@@ -80,3 +81,9 @@ class CategoryTests(TestCase):
         event = ProductChangeAuditEvent.objects.get(product=self.product)
         self.assertEqual(event.before["category"], self.category.pk)
         self.assertIsNone(event.after["category"])
+
+    def test_category_cannot_cross_business_even_with_a_direct_update(self):
+        with self.assertRaises(ValidationError):
+            Product(business=self.business, sku="INVALID", name="Invalid", category_id=999999).full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Product.objects.filter(pk=self.product.pk).update(category=self.foreign)

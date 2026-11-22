@@ -46,7 +46,7 @@ def main():
         snap("1-dashboard")
 
         page.goto(f"{base}/inventories/")
-        page.locator(".inventory-card h3 a").first.click()
+        page.locator(".inventory-card :is(h2, h3) a").first.click()
         expect(page.get_by_role("heading", name="Products", exact=True)).to_be_visible()
         expect(page.locator("a.product-name")).not_to_have_count(0)
         snap("2-products")
