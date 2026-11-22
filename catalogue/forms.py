@@ -154,3 +154,11 @@ class BulkDemandVerifyForm(PlainLabelsMixin, forms.Form):
             elif day >= self.today:
                 self.add_error("day", "Choose a complete Singapore date before today.")
         return cleaned
+
+
+class SellingPriceForm(PlainLabelsMixin, forms.Form):
+    selling_price = forms.DecimalField(
+        label="Selling price (SGD)", required=False, min_value=0, max_digits=12, decimal_places=2,
+        help_text="Price per base unit in this inventory. Leave blank if the product is not sold here.",
+        widget=forms.NumberInput(attrs={"class": "form-control", "min": "0", "step": "0.01", "inputmode": "decimal"}),
+    )
