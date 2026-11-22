@@ -69,6 +69,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -148,6 +149,27 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = DJANGO_ENV in {"staging", "production"}
 # Platform health probes call the container directly over HTTP.
 SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
+
+# Clickjacking: no page may be framed, including by Tory itself.
+X_FRAME_OPTIONS = "DENY"
+
+# HSTS tells browsers to use HTTPS only for this host. Staging starts with one
+# hour so a TLS misconfiguration is recoverable; raise DJANGO_HSTS_SECONDS in
+# steps (for example 86400, then 31536000) once HTTPS has been stable. It stays
+# off in development and test, which run over plain HTTP.
+hsts_value = os.environ.get("DJANGO_HSTS_SECONDS", "3600" if DJANGO_ENV in {"staging", "production"} else "0")
+try:
+    SECURE_HSTS_SECONDS = int(hsts_value)
+except ValueError as error:
+    raise ImproperlyConfigured("DJANGO_HSTS_SECONDS must be a whole number of seconds") from error
+if SECURE_HSTS_SECONDS < 0:
+    raise ImproperlyConfigured("DJANGO_HSTS_SECONDS must not be negative")
+# Other hosts under the same parent domain are not Tory's to commit to HTTPS,
+# and preloading is irreversible in practice, so both stay off (and the
+# matching deployment checks are silenced deliberately).
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 
