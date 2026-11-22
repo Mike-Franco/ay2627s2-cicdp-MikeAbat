@@ -1,7 +1,10 @@
 from django.contrib.auth.models import AbstractUser, UserManager
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
+
+from config.palette import DEFAULT_TONE, TONE_CHOICES, TONE_KEYS
 
 
 class EmailUserManager(UserManager):
@@ -33,17 +36,54 @@ class EmailUserManager(UserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+# Loose on purpose (Singapore and international formats): an optional leading
+# +, then digits with spaces, brackets or dashes, holding 6 to 15 digits (E.164).
+PHONE_VALIDATOR = RegexValidator(
+    r"^(?=(?:\D*\d){6,15}\D*$)\+?[0-9(][0-9 ()\-]{5,23}$",
+    "Enter a phone number using digits, spaces, brackets or dashes, for example +65 6123 4567.",
+)
+
+
 class User(AbstractUser):
-    """The database constraint also rejects case collisions from direct ORM writes."""
+    """The database constraint also rejects case collisions from direct ORM writes.
+
+    Profile fields (TORY-55) live on the user row so every page that already
+    loads a user can show their name and avatar without another query.
+    """
 
     username = None
     email = models.EmailField(unique=True)
+    display_name = models.CharField(max_length=60, blank=True)
+    job_title = models.CharField(max_length=60, blank=True)
+    phone = models.CharField(max_length=24, blank=True, validators=[PHONE_VALIDATOR])
+    avatar_colour = models.CharField(max_length=12, choices=TONE_CHOICES, default=DEFAULT_TONE)
+    # Written only by config.media (re-encoded WebP, random name).
+    photo = models.FileField(upload_to="avatars/", max_length=120, blank=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = EmailUserManager()
 
     class Meta:
-        constraints = [models.UniqueConstraint(Lower("email"), name="unique_user_email_ci")]
+        constraints = [
+            models.UniqueConstraint(Lower("email"), name="unique_user_email_ci"),
+            models.CheckConstraint(condition=Q(avatar_colour__in=sorted(TONE_KEYS)), name="user_avatar_colour_preset"),
+        ]
+
+    @property
+    def display_label(self):
+        """The name to show for this user: display name, full name, then email."""
+        return self.display_name.strip() or self.get_full_name().strip() or self.email
+
+    @property
+    def initials(self):
+        """Up to two letters for the avatar circle, taken from the display label."""
+        label = self.display_name.strip() or self.get_full_name().strip()
+        if label:
+            words = [word for word in label.split() if word[:1].isalnum()]
+            letters = "".join(word[0] for word in (words[:1] + words[1:][-1:]))
+            if letters:
+                return letters.upper()
+        return (self.email[:1] or "?").upper()
 
 
 class LoginFailure(models.Model):

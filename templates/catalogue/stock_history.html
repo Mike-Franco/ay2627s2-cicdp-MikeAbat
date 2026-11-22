@@ -25,19 +25,19 @@
               {% if event.kind == "receipt" %}
                 <th scope="row">Receipt</th>
                 <td>{{ audit.occurred_at|sgdate }}</td>
-                <td>{{ audit.actor.email }}</td>
+                <td>{% include "includes/user_avatar.html" with user=audit.actor size="sm" with_name=True %}</td>
                 <td>+{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
                 <td>Batch {{ audit.batch.receipt_sequence }} · {{ audit.source|title }} receipt{% if audit.batch.import_record_id %}<br>Import {{ audit.batch.import_record_id }} · row {{ audit.batch.import_row_number }}{% endif %}</td>
               {% elif event.kind == "issue" %}
                 <th scope="row">Issue</th>
                 <td>{{ audit.occurred_at|sgdate }}</td>
-                <td>{{ audit.actor.email }}</td>
+                <td>{% include "includes/user_avatar.html" with user=audit.actor size="sm" with_name=True %}</td>
                 <td>−{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
                 <td>{% if audit.stock_out.import_record_id %}Import {{ audit.stock_out.import_record_id }} · row {{ audit.stock_out.import_row_number }}<br>{% endif %}{% for allocation in audit.stock_out.allocations.all %}Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_units }} units{% if not forloop.last %}<br>{% endif %}{% endfor %}</td>
               {% elif event.kind == "adjustment" %}
                 <th scope="row">Adjustment</th>
                 <td>{{ audit.occurred_at|sgdate }}</td>
-                <td>{{ audit.actor.email }}</td>
+                <td>{% include "includes/user_avatar.html" with user=audit.actor size="sm" with_name=True %}</td>
                 <td>Change: {% if audit.quantity_change_units > 0 %}+{% endif %}{{ audit.quantity_change_units }} units<br>Physical: {{ audit.quantity_before_units }} → {{ audit.quantity_after_units }}</td>
                 <td>Reason: {{ audit.reason }}{% for allocation in audit.adjustment.allocations.all %}<br>Batch {{ allocation.batch.receipt_sequence }}: {{ allocation.quantity_before_units }} → {{ allocation.counted_quantity_units }}{% endfor %}</td>
               {% elif event.kind == "quarantine" %}
@@ -49,13 +49,13 @@
               {% elif event.kind == "disposal" %}
                 <th scope="row">Disposal</th>
                 <td>{{ audit.occurred_at|sgdate }}</td>
-                <td>{{ audit.actor.email }}</td>
+                <td>{% include "includes/user_avatar.html" with user=audit.actor size="sm" with_name=True %}</td>
                 <td>−{{ audit.quantity_units }} units<br>Physical: {{ audit.physical_before_units }} → {{ audit.physical_after_units }}<br>Batch: {{ audit.batch_before_units }} → {{ audit.batch_after_units }}</td>
                 <td>Batch {{ audit.batch.receipt_sequence }} · Reason: {{ audit.reason_code }}{% if audit.reason_note %}<br>Note: {{ audit.reason_note }}{% endif %}</td>
               {% elif event.kind == "lifecycle" %}
                 <th scope="row">Product {% if audit.action == "deactivate" %}deactivated{% else %}reactivated{% endif %}</th>
                 <td>{{ audit.occurred_at|sgdate }}</td>
-                <td>{{ audit.actor.email }}</td>
+                <td>{% include "includes/user_avatar.html" with user=audit.actor size="sm" with_name=True %}</td>
                 <td>Status: {% if audit.previous_is_active %}Active{% else %}Inactive{% endif %} → {% if audit.new_is_active %}Active{% else %}Inactive{% endif %}</td>
                 <td>Initiated from {{ audit.inventory.name }} · No stock change</td>
               {% endif %}

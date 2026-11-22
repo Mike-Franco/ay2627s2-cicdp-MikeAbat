@@ -1,1 +1,10 @@
-<span class="user-avatar" aria-hidden="true">{% if user.first_name or user.last_name %}{{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}{% else %}{{ user.email|slice:":1"|upper }}{% endif %}</span>
+{% comment %}
+Avatar for one user (TORY-55): their photo if they have one, otherwise their
+initials on their chosen colour. Usage:
+  {% include "includes/user_avatar.html" with user=someone %}
+  {% include "includes/user_avatar.html" with user=someone size="sm" with_name=True %}
+size is sm (24px), md (34px, default) or lg (72px). The avatar itself is
+decorative; with_name=True adds the person's display name (display name, full
+name, then email) after it, which is what screen readers announce. Without
+with_name, always show the name next to the include.
+{% endcomment %}{% if with_name %}<span class="user-ref">{% endif %}{% if user.photo %}<img class="avatar avatar-{{ size|default:'md' }} avatar-photo" src="{{ user.photo.url }}" alt="" aria-hidden="true" loading="lazy" decoding="async">{% else %}<span class="avatar avatar-{{ size|default:'md' }} tone-{{ user.avatar_colour|default:'slate' }}" aria-hidden="true">{{ user.initials }}</span>{% endif %}{% if with_name %}<span class="user-ref-name">{{ user.display_label }}</span></span>{% endif %}
