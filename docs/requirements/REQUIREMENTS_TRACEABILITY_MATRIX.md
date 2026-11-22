@@ -94,6 +94,25 @@ This section links each requirement to the pull requests that implement it and t
 
 NFR-006, NFR-008 and NFR-009 need measurements or evidence from the hosted staging environment and stay **pending staging verification** until TORY-38 (#71) is deployed.
 
+## 23 November 2026 update (CR-002)
+
+TORY-52 to TORY-61 add the following evidence, approved in [CR-002](../decisions/CR-002-scope-additions-tory-52-61.md). Every PR below merged into `develop` with all CI checks green. The tables above are unchanged.
+
+| Requirement | Added tickets / PRs | Added automated test modules |
+|---|---|---|
+| FR-001 Identify/select product | TORY-56 #94, #95 (categories); TORY-57 #95 (catalogue table, search, filters, sort) | [`categories`](../../tests/test_categories.py), [`list_pagination`](../../tests/test_list_pagination.py) |
+| FR-002 View inventory/history | TORY-57 #95; TORY-58 #97, #100 (dashboard v2); TORY-54 #98 (inventory identity); TORY-61 #101 (activity log) | [`dashboard`](../../tests/test_dashboard.py), [`stock_metrics`](../../tests/test_stock_metrics.py), [`inventory_identity`](../../tests/test_inventory_identity.py), [`activity_log`](../../tests/test_activity_log.py) |
+| FR-007 Authentication/roles | TORY-55 #96 (own profile); TORY-57 #95 (Staff and invitation tables) | [`profile`](../../tests/test_profile.py), [`list_pagination`](../../tests/test_list_pagination.py) |
+| FR-010 Seven-day average | TORY-58 #97 (days of supply from the verified average); TORY-59 #99 (Insights v2) | [`stock_metrics`](../../tests/test_stock_metrics.py), [`inventory_insights`](../../tests/test_inventory_insights.py) |
+| FR-011 Reorder recommendation | TORY-58 #97 (urgency-ordered reorder table, unchanged calculation) | [`dashboard`](../../tests/test_dashboard.py) |
+| FR-012 Validation feedback | TORY-53 #92 (picture validation messages); TORY-55 #96; TORY-54 #98 | [`media_uploads`](../../tests/test_media_uploads.py), [`profile`](../../tests/test_profile.py), [`inventory_identity`](../../tests/test_inventory_identity.py) |
+| NFR-001 Server-side authorization | Manager-only and cross-business denial in #94, #95, #96, #98, #101, #102 | Denial cases in each module above, plus [`landing_help`](../../tests/test_landing_help.py) |
+| NFR-002 Credential/secret handling | TORY-53 #92 (upload re-encoding, `nosniff`, sandboxing media CSP) | [`media_uploads`](../../tests/test_media_uploads.py), [`security_headers`](../../tests/test_security_headers.py) |
+| NFR-003 Transaction integrity/audit | TORY-54 #98 (restyle audit); TORY-56 #95 (database-enforced category business); TORY-61 #101 (read-only audit view) | [`inventory_identity`](../../tests/test_inventory_identity.py), [`categories`](../../tests/test_categories.py), [`activity_log`](../../tests/test_activity_log.py) |
+| NFR-005 Understandable outcomes | TORY-52 #93 (navigation); TORY-58 #97 and TORY-59 #99 (explained KPIs and charts); TORY-60 #102 (landing and Help) | [`navigation`](../../tests/test_navigation.py), [`landing_help`](../../tests/test_landing_help.py); `scripts/e2e_smoke.py` |
+| NFR-008 Failure recovery | TORY-53 #92 (media volume in `deploy.sh` backup, restore and restore-test) | [`media_uploads`](../../tests/test_media_uploads.py) (deployment wiring); **pending staging verification** of the media restore test |
+| NFR-011 Testability/traceability | This update; [CR-002](../decisions/CR-002-scope-additions-tory-52-61.md) | Query-count bounds in `list_pagination`, `dashboard`, `inventory_insights` and `activity_log` |
+
 ## Evidence status
 
 TORY-26 adds a PostgreSQL `tests/test_stock_out.py` case with 20 separate final-unit, two-request races, the isolated synthetic HTTP runner (`scripts/tory26_http_benchmark.py`, `scripts/tory26_seed.py`) and a nearest-rank p95 analyzer (`scripts/tory26_analyze.py`, tested by `tests/test_tory26_analysis.py`). The [validation note](../decisions/TORY-26-integrated-validation.md) maps existing stock, CSV, expiry, demand, reorder and permission tests to G-08/NFR-003/NFR-006 and records local results and limits. The owner-approved route mapping uses Inventory products in place of product search and a single combined forecast/reorder request; neither an absent endpoint nor a duplicate response is measured. No minimum hardware floor is imposed by the TORY-26 approval.
