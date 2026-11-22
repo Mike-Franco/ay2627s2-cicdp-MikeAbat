@@ -1,5 +1,7 @@
+import re
+
 from django.db.models import Q
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
@@ -27,19 +29,61 @@ def _availability(link):
     return {"available_units": link.physical_quantity_units - quarantined, "quarantined_units": quarantined}
 
 
-@protected_view
-@require_http_methods(["GET", "POST"])
-def import_stock_csv_view(request, inventory_id):
+def _csv_manager_inventory(user, inventory_id):
     try:
-        inventory = get_authorized_inventory(request.user, inventory_id)
+        inventory = get_authorized_inventory(user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     if not BusinessMembership.objects.filter(
-        user=request.user, business=inventory.business, role=BusinessMembership.Role.MANAGER,
+        user=user, business=inventory.business, role=BusinessMembership.Role.MANAGER,
         is_active=True, inventory_assignments__inventory=inventory,
         inventory_assignments__is_active=True,
     ).exists():
         raise Http404
+    return inventory
+
+
+SAFE_EXAMPLE_SKU = re.compile(r"[A-Za-z0-9][A-Za-z0-9._ -]*\Z")
+
+
+def import_template_rows(inventory):
+    """Two example rows from the inventory's own active SKUs: one receipt, one issue.
+
+    A CSV receipt needs a product without expiry tracking and with a base unit;
+    the issue row prefers a product that has stock. Only SKUs starting with a
+    letter or digit are used, so a spreadsheet never treats a cell as a formula
+    and the file imports exactly as downloaded.
+    """
+    links = [link for link in InventoryProduct.objects.filter(
+        inventory=inventory, product__is_active=True,
+    ).select_related("product").order_by("product__sku", "pk") if SAFE_EXAMPLE_SKU.match(link.product.sku)]
+    receivable = [link for link in links
+                  if link.product.expiry_tracking_required is False and link.product.base_unit_label]
+    receive = receivable[0] if receivable else (links[0] if links else None)
+    others = [link for link in links if link is not receive]
+    issue = next((link for link in others if link.physical_quantity_units > 0), others[0] if others else receive)
+    return [
+        (receive.product.sku if receive else "SKU-1", "10", "Receive 10 units (no expiry date)"),
+        (issue.product.sku if issue else "SKU-2", "-1", "Issue 1 unit, oldest expiry first"),
+    ]
+
+
+@protected_view
+@require_GET
+def import_template_csv(request, inventory_id):
+    inventory = _csv_manager_inventory(request.user, inventory_id)
+    lines = ["sku,change"] + [f"{sku},{change}" for sku, change, _ in import_template_rows(inventory)]
+    # LF line endings, as the importer's strict parser expects.
+    response = HttpResponse("".join(f"{line}\n" for line in lines), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="tory-import-template-{inventory.pk}.csv"'
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@protected_view
+@require_http_methods(["GET", "POST"])
+def import_stock_csv_view(request, inventory_id):
+    inventory = _csv_manager_inventory(request.user, inventory_id)
     form = StockCsvImportForm(request.POST or None, request.FILES or None)
     imported = None
     if request.method == "POST" and form.is_valid():
@@ -53,6 +97,7 @@ def import_stock_csv_view(request, inventory_id):
             form.add_error("file", location + str(error))
     return render(request, "receiving/import_csv.html", {
         "inventory": inventory, "form": form, "imported": imported,
+        "template_rows": import_template_rows(inventory),
     }, status=400 if request.method == "POST" and (form.errors or not imported) else 200)
 
 

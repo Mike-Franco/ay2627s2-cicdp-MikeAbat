@@ -43,7 +43,7 @@
 {% if is_manager and observation_active %}<p><a href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand for all products in {{ inventory.name }}</a></p>
   <form method="post" class="panel p-3 mt-3">
     {% csrf_token %}
-    <div class="mb-3" style="max-width:16rem"><label class="form-label" for="{{ form.day.id_for_label }}">Singapore date</label>{{ form.day }}{{ form.day.errors }}</div>
+    <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.day.id_for_label }}">Singapore date</label>{{ form.day }}{{ form.day.errors }}</div>
     <div class="mb-3"><label class="form-label" for="{{ form.reason.id_for_label }}">Reason</label>{{ form.reason }}{{ form.reason.errors }}<div class="form-text">Required when marking a previously verified day incomplete.</div></div>
     {{ form.action.errors }}
     <button class="btn btn-primary" name="action" value="verify" type="submit">Verify complete day</button>

@@ -61,6 +61,18 @@ flowchart LR
 - **[Deployment view](docs/design/DEPLOYMENT.md):** Caddy, gunicorn/Django and PostgreSQL on one VM.
 - **[Component view](docs/design/COMPONENTS.md):** apps, services, templates and database triggers.
 
+## Continuous deployment
+
+Staging runs on a single VM with docker compose: PostgreSQL with `track_commit_timestamp=on`, the Tory image, and Caddy for automatic HTTPS ([ADR-005](docs/decisions/ADR-005-staging-vm-hosting.md)). Managed PostgreSQL services cannot set that parameter.
+
+| Workflow | Trigger | What it does |
+| --- | --- | --- |
+| [CD](.github/workflows/cd.yml) | Django PostgreSQL CI passes for a push to `main`, or run by hand | Waits for every other check on the commit, pushes `ghcr.io/<repo>:sha-<commit>` and `:latest`, deploys over SSH to the `staging` environment, then smoke-tests `/healthz` and `/login/` over HTTPS. A failure rolls back to the previous image and leaves the run red. |
+| [Release](.github/workflows/release.yml) | Push a `v*` tag on a deployed commit | Creates a GitHub Release with generated notes and tags that commit's image with the version. |
+| [Staging scheduled jobs monitor](.github/workflows/scheduled-ops.yml) | Hourly, or run by hand | Fails if the VM's five-minute `process_expiry_quarantine` and `finalize_commit_times` cron jobs have not succeeded in 15 minutes. |
+
+Set up the VM and the `staging` environment secrets (`VM_HOST`, `VM_USER`, `VM_SSH_KEY`, `VM_SSH_KNOWN_HOSTS`, `DJANGO_SECRET_KEY`, `POSTGRES_PASSWORD`) and the `TORY_DOMAIN` variable with the [staging VM runbook](docs/deployment/STAGING_VM.md). Until those are configured, the deploy job fails with a message naming the missing value.
+
 ## Tech stack
 
 | Layer | Choice |

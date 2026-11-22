@@ -4,13 +4,16 @@
 {% block title %}{{ inventory.name }} insights &middot; Tory{% endblock %}
 {% block breadcrumb %}Insights{% endblock %}
 {% block content %}
-<style>
-  .chart-frame { height: 18rem; min-width: 0; padding: 1rem; }
-  .chart-frame canvas { max-width: 100%; }
-  .chart-data { padding: 0 1rem 1rem; }
-  .chart-data summary { cursor: pointer; color: var(--accent); font-size: 12px; margin-bottom: .5rem; }
-</style>
 <div class="products-heading"><div><p class="eyebrow">{{ inventory.name }}</p><h1>Inventory insights</h1></div></div>
+{% if has_products %}
+<section class="panel mb-4" aria-labelledby="value-heading">
+  <div class="panel-heading"><h2 id="value-heading">Stock value at selling price</h2><p>Available units × this inventory's selling price, in SGD</p></div>
+  <div class="p-3">
+    <p class="mb-1"><strong class="stat-value">{{ stock_value|sgd }}</strong> across {{ priced_count }} priced product{{ priced_count|pluralize }}.</p>
+    {% if unpriced_products %}<p class="help-text mb-0">Not included, no selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+  </div>
+</section>
+{% endif %}
 <section class="panel mb-4" aria-labelledby="demand-heading">
   <div class="panel-heading"><h2 id="demand-heading">Daily units issued</h2><p>Last 30 Singapore dates</p></div>
   {% if has_products %}<div class="chart-frame"><canvas id="demand-chart" role="img" aria-label="Daily units issued over the last 30 Singapore dates"></canvas></div>

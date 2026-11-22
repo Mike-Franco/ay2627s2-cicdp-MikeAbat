@@ -75,3 +75,39 @@ def save_product_change(*, user, inventory, values, product_id=None, inventory_i
         before=before, after=_snapshot(product), occurred_at=timezone.now(),
     )
     return product
+
+
+def _price_snapshot(link):
+    return {"selling_price": None if link.selling_price is None else f"{link.selling_price:.2f}"}
+
+
+@transaction.atomic
+def save_selling_price(*, user, inventory, product_id, price):
+    """Set one inventory's selling price for a product (SGD, None clears it).
+
+    Prices are per inventory (BR-016/BR-018), so the audit event names the
+    inventory. Locks follow the stock writers' Product -> Inventory -> link
+    order, and only the selling_price column is written, so the stock-column
+    triggers never fire. An unchanged price records nothing.
+    """
+    assigned = lock_manager_assignment_ids(user.pk, inventory.business_id)
+    if inventory.pk not in assigned:
+        raise Http404
+    try:
+        product = Product.objects.select_for_update().get(pk=product_id, business_id=inventory.business_id)
+        locked_inventory = Inventory.objects.select_for_update().get(
+            pk=inventory.pk, business_id=inventory.business_id, is_active=True)
+        link = InventoryProduct.objects.select_for_update().get(inventory=locked_inventory, product=product)
+    except (Product.DoesNotExist, Inventory.DoesNotExist, InventoryProduct.DoesNotExist) as error:
+        raise Http404 from error
+    before = _price_snapshot(link)
+    link.selling_price = price
+    after = _price_snapshot(link)
+    if after == before:
+        return link
+    link.save(update_fields=["selling_price"])
+    ProductChangeAuditEvent.objects.create(
+        actor=user, business_id=inventory.business_id, inventory_id=inventory.pk, product=product,
+        action="edit", before=before, after=after, occurred_at=timezone.now(),
+    )
+    return link
