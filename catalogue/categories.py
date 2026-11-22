@@ -47,8 +47,6 @@ def category_edit(request, business_id, category_id=None):
     if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
-                # Serialize writes within a business, including competing renames.
-                type(business).objects.select_for_update().get(pk=business.pk)
                 if category_id is not None:
                     get_object_or_404(business.categories.select_for_update(), pk=category_id)
                 category.name = form.cleaned_data["name"]
@@ -73,7 +71,6 @@ def category_delete(request, business_id, category_id):
     business = _business(request, business_id)
     try:
         with transaction.atomic():
-            type(business).objects.select_for_update().get(pk=business.pk)
             category = get_object_or_404(business.categories.select_for_update(), pk=category_id)
             category.delete()
     except (ProtectedError, IntegrityError):

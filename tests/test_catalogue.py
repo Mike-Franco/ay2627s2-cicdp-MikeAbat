@@ -136,7 +136,8 @@ class CatalogueTests(TestCase):
     def test_catalogue_reads_are_limited_to_authorized_inventory_links(self):
         self.authenticate(self.manager_a)
         response = self.client.get(reverse("product-catalogue"))
-        self.assertContains(response, "Tea-01 — Tea")
+        self.assertContains(response, ">Tea</a>")
+        self.assertContains(response, ">SKU</span>Tea-01")
         self.assertNotContains(response, "Other business tea")
         response = self.client.get(reverse("inventory-products", args=[self.inventory_b.pk]))
         self.assertEqual(response.status_code, 404)
@@ -144,7 +145,9 @@ class CatalogueTests(TestCase):
 
     def test_staff_and_unassigned_user_product_reads_are_scoped(self):
         self.authenticate(self.staff_a)
-        self.assertContains(self.client.get(reverse("product-catalogue")), "Tea-01 — Tea")
+        response = self.client.get(reverse("product-catalogue"))
+        self.assertContains(response, ">Tea</a>")
+        self.assertContains(response, ">SKU</span>Tea-01")
         self.assertEqual(
             self.client.get(reverse("inventory-products", args=[self.inventory_b.pk])).status_code,
             404,

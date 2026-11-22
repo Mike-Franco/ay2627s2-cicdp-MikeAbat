@@ -19,6 +19,7 @@ class Category(models.Model):
         ordering = ("name", "pk")
         constraints = [
             models.UniqueConstraint(F("business"), Lower(Trim("name")), name="unique_business_category_name"),
+            models.UniqueConstraint(fields=("id", "business"), name="category_id_business_key"),
         ]
 
     def __str__(self):
@@ -80,7 +81,9 @@ class Product(models.Model):
 
     def clean(self):
         super().clean()
-        if self.category_id and self.category.business_id != self.business_id:
+        if self.category_id is not None and not Category.objects.filter(
+            pk=self.category_id, business_id=self.business_id,
+        ).exists():
             raise ValidationError({"category": "Choose a category from this business."})
         self.sku = self.sku.strip()
         if self.base_unit_label is not None:

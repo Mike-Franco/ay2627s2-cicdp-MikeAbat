@@ -10,21 +10,44 @@
   {% csrf_token %}
   <div class="mb-3"><label class="form-label" for="invite-email">Staff email</label><input class="form-control" id="invite-email" name="email" type="email" required maxlength="254"></div>
   <fieldset><legend>Inventories</legend>
-  {% for inventory in inventories %}<label class="d-block"><input type="checkbox" name="inventories" value="{{ inventory.pk }}"> {{ inventory.name }}</label>{% endfor %}
+  {% for inventory in inventories %}<label class="d-block"><input type="checkbox" name="inventories" value="{{ inventory.pk }}"> {% include "includes/inventory_badge.html" with inventory=inventory %}</label>{% endfor %}
   </fieldset>
   <button class="btn btn-primary mt-3" type="submit">Send invitation</button>
 </form>
-<h2 class="mt-5">Invitations</h2>
-{% for invitation in invitations %}
-<div class="card mb-3"><div class="card-body">
-  <strong>{{ invitation.target_email }}</strong> — {{ invitation.get_status_display }}<br>
-  {% for inventory in invitation.inventories.all %}{{ inventory.name }}{% if not forloop.last %}, {% endif %}{% endfor %}<br>
-  Issued {{ invitation.issued_at|sgdate }}; expires {{ invitation.expires_at|sgdate }}
-  {% if invitation.status == 'pending' %}
-  <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-primary" type="submit">Replace / resend</button></form>
-  <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}" class="mt-2">{% csrf_token %}<button class="btn btn-outline-danger" type="submit">Revoke</button></form>
-  {% endif %}
-</div></div>
-{% empty %}<p>No invitations in your current scope.</p>{% endfor %}
+<section class="panel mt-4" aria-labelledby="invitations-title">
+  <div class="panel-heading"><h2 id="invitations-title">Invitations</h2></div>
+  {% if toolbar %}{% include "includes/table_toolbar.html" %}{% endif %}
+  {% if invitations %}
+  <div class="table-scroll" role="region" aria-label="Invitations" tabindex="0">
+    <table class="products-table responsive-list" aria-label="Invitations">
+      <thead><tr>
+        {% include "includes/sortable_header.html" with key="email" label="Email" %}
+        {% include "includes/sortable_header.html" with key="status" label="Status" %}
+        {% include "includes/sortable_header.html" with key="sent" label="Sent" %}
+        {% include "includes/sortable_header.html" with key="expires" label="Expires" %}
+        <th scope="col">Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for invitation in invitations %}{% with status=invitation.display_status|default:invitation.status %}
+        <tr>
+          <th scope="row">{{ invitation.target_email }}</th>
+          <td><span class="list-mobile-label" aria-hidden="true">Status</span>{{ status|capfirst }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Sent</span>{{ invitation.issued_at|sgdate }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Expires</span>{{ invitation.expires_at|sgdate }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Actions</span>
+            {% if invitation.status == 'pending' %}
+            <div class="d-flex flex-wrap gap-2">
+              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" type="submit">Replace / resend</button></form>
+              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Revoke</button></form>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+      {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="p-3">No invitations match the current view.</p>{% endif %}
+</section>
 {% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
 {% endblock %}
