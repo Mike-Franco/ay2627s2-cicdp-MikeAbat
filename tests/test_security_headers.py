@@ -71,11 +71,11 @@ class CspReadyTemplateTests(SimpleTestCase):
         offenders = []
         for path in Path(settings.BASE_DIR, "templates").rglob("*.html"):
             text = path.read_text(encoding="utf-8")
-            if re.search(r'\sstyle="|<style\b', text):
+            if re.search(r'\sstyle="|<style\b', text, re.IGNORECASE):
                 offenders.append(f"{path.name}: inline style")
-            if re.search(r"\son[a-z]+=", text):
+            if re.search(r"\son[a-z]+=", text, re.IGNORECASE):
                 offenders.append(f"{path.name}: inline event handler")
-            for tag in re.findall(r"<script\b[^>]*>", text):
-                if "src=" not in tag:
+            for tag in re.findall(r"<script\b[^>]*>", text, re.IGNORECASE):
+                if "src=" not in tag.lower():
                     offenders.append(f"{path.name}: inline script {tag}")
         self.assertEqual(offenders, [])
