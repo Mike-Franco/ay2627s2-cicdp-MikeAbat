@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load tory_format %}
+{% block title %}Activity log · Tory{% endblock %}
+{% block breadcrumb %}Activity log{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <div><p class="eyebrow">{{ business.name }}</p><h1>Activity log</h1><p>Who did what across every inventory in this business. Read-only, from the audit records. Times are Asia/Singapore.</p></div>
+  <a class="btn btn-outline-primary" href="{% url 'activity-log-csv' business.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Download CSV</a>
+</div>
+<section class="panel" aria-labelledby="activity-title">
+  <h2 class="visually-hidden" id="activity-title">Activity</h2>
+  <form method="get" class="product-filters" role="search" aria-label="Filter activity">
+    {% for field in form %}
+    <div class="product-filter-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="filter-errors" role="alert">{{ field.errors }}</div>{% endif %}</div>
+    {% endfor %}
+    <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply</button>{% if is_filtered %}<a class="btn btn-outline-secondary" href="{% url 'activity-log' business.pk %}">Clear filters</a>{% endif %}</div>
+  </form>
+  {% if page %}<p class="list-result-count">{{ page.paginator.count }} event{{ page.paginator.count|pluralize }}</p>{% endif %}
+  {% if rows %}
+  <div class="table-scroll" role="region" aria-label="Activity" tabindex="0">
+    <table class="products-table responsive-list activity-table">
+      <thead><tr><th scope="col" aria-sort="descending">Time</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">Inventory</th><th scope="col">Product</th><th scope="col" class="numeric">Change</th><th scope="col">Details</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><span class="list-mobile-label" aria-hidden="true">Time</span><time datetime="{{ row.at_iso }}">{{ row.at|sgdate }}</time></td>
+          <th scope="row"><span class="list-mobile-label" aria-hidden="true">User</span>{% if row.actor %}{% include "includes/user_avatar.html" with user=row.actor size="sm" with_name=True %}{% else %}{{ row.actor_label }}{% endif %}{% if row.role %}<span class="unit">{{ row.role }}</span>{% endif %}</th>
+          <td><span class="list-mobile-label" aria-hidden="true">Action</span>{{ row.label }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% if row.inventory %}{% include "includes/inventory_badge.html" with inventory=row.inventory %}{% else %}—{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Product</span>{% if row.product %}<span class="product-sku">{{ row.product.sku }}</span> {{ row.product.name }}{% else %}—{% endif %}</td>
+          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Change</span>{% if row.change is not None %}{% if row.change > 0 %}+{% endif %}{{ row.change }}{% else %}—{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Details</span>{{ row.details }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not form.errors %}<p class="p-3">No activity matches these filters.</p>{% endif %}
+</section>
+{% if page %}{% include "includes/pagination.html" with pagination_label="Activity pages" %}{% endif %}
+{% endblock %}

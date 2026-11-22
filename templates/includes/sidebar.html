@@ -30,6 +30,7 @@
       </details>
     {% endif %}
     {% if workspace_inventories %}<p class="group-label manage-label">MANAGE</p><a class="sidebar-link {% if here == 'product-catalogue' %}active{% endif %}" href="{% url 'product-catalogue' %}" {% if here == 'product-catalogue' %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Catalogue</a>{% endif %}
+    {% if workspace_is_manager and workspace_default_inventory %}<a class="sidebar-link {% if here == 'activity-log' %}active{% endif %}" href="{% url 'activity-log' workspace_default_inventory.business_id %}" {% if here == 'activity-log' %}aria-current="page"{% endif %}><span aria-hidden="true">☰</span> Activity log</a>{% endif %}
     {% if workspace_is_manager and workspace_default_inventory %}<p class="group-label manage-label">TEAM</p><a class="sidebar-link {% if here == 'manager-staff' %}active{% endif %}" href="{% url 'manager-staff' workspace_default_inventory.business_id %}" {% if here == 'manager-staff' %}aria-current="page"{% endif %}>Staff</a><a class="sidebar-link {% if here == 'staff-invitations' %}active{% endif %}" href="{% url 'staff-invitations' workspace_default_inventory.business_id %}" {% if here == 'staff-invitations' %}aria-current="page"{% endif %}>Staff invitations</a>{% endif %}
     {% if workspace_inventory and product %}
       <p class="group-label manage-label">{{ product.sku }}</p>
