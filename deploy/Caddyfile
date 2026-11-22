@@ -3,5 +3,17 @@
 # X-Forwarded-Proto for gunicorn; untrusted incoming values are replaced.
 {$TORY_DOMAIN} {
 	encode zstd gzip
+
+	header {
+		# Only Tory's own files plus Bootstrap and Chart.js from jsDelivr (both
+		# loaded with SRI). No inline scripts or styles: templates are kept free
+		# of them, and a test enforces that. data: images are Bootstrap's form
+		# control icons. Django already sends X-Frame-Options, HSTS, nosniff and
+		# Referrer-Policy; frame-ancestors repeats the framing rule for CSP.
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+		-Server
+	}
+
 	reverse_proxy web:8000
 }
