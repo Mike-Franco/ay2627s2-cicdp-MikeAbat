@@ -12,6 +12,7 @@ from accounts import deactivation_views
 from inventory_access import views as inventory_views
 from config.health import healthz
 from catalogue import categories, views as catalogue_views
+from inventory_access import team_lists
 from receiving import views as receiving_views
 
 urlpatterns = [
@@ -20,9 +21,9 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("account/", account_views.account, name="account"),
-    path("businesses/<int:business_id>/staff-invitations/", invitation_views.manager_invitations, name="staff-invitations"),
+    path("businesses/<int:business_id>/staff-invitations/", team_lists.invitation_list, name="staff-invitations"),
     path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
-    path("businesses/<int:business_id>/staff/", deactivation_views.manager_staff, name="manager-staff"),
+    path("businesses/<int:business_id>/staff/", team_lists.staff_list, name="manager-staff"),
     path("businesses/<int:business_id>/staff/<int:target_id>/deactivate/confirm/", deactivation_views.confirm_staff_deactivation, name="confirm-staff-deactivation"),
     path("businesses/<int:business_id>/staff/<int:target_id>/deactivate/", deactivation_views.deactivate_staff_view, name="deactivate-staff"),
     path("staff/setup/", invitation_views.staff_invitation_setup, name="staff-invitation-setup"),

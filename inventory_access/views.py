@@ -6,6 +6,9 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.sessions import protected_view
+from catalogue.models import InventoryProduct
+from catalogue.table_lists import INVENTORY_SORT_CHOICES, INVENTORY_SORTS, TableControls, paginate, prepare_inventory_cards
+from django.utils import timezone
 
 from .authorization import (
     authorized_inventories,
@@ -21,12 +24,22 @@ from .models import BusinessMembership, Inventory
 @protected_view
 def inventory_list(request):
     managed = manageable_inventories(request.user)
-    inventories = authorized_inventories(request.user).select_related("business").annotate(
+    controls = TableControls.from_request(request, INVENTORY_SORTS, default="name")
+    active = authorized_inventories(request.user).select_related("business").annotate(
         can_manage=Exists(managed.filter(pk=OuterRef("pk"))),
     )
+    inactive = managed.filter(is_active=False).select_related("business")
+    if controls.query:
+        active = active.filter(name__icontains=controls.query)
+        inactive = inactive.filter(name__icontains=controls.query)
+    inventories = list(active) + list(inactive)
+    links = list(InventoryProduct.objects.filter(
+        inventory_id__in=[inventory.pk for inventory in inventories if inventory.is_active],
+    ).select_related("product"))
+    page = paginate(request, prepare_inventory_cards(inventories, links, at=timezone.now(), sort=controls.sort))
     return render(request, "inventory_access/inventory_list.html", {
-        "inventories": inventories,
-        "inactive_inventories": managed.filter(is_active=False).select_related("business"),
+        "inventories": page.object_list, "page": page,
+        "toolbar": controls.toolbar(request, page, search_label="Search inventories", sort_choices=INVENTORY_SORT_CHOICES),
         "manager_memberships": manager_memberships(request.user).select_related("business").order_by(
             "business__name", "business_id",
         ),

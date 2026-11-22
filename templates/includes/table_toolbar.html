@@ -1,0 +1,29 @@
+<form method="get" class="product-filters" role="search" aria-label="{{ toolbar.search_label }}">
+  {% for name, value in toolbar.hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  {% if not toolbar.sort_choices and request.GET.sort %}<input type="hidden" name="sort" value="{{ toolbar.sort }}">{% endif %}
+  <div class="product-filter-field">
+    <label for="table-search">{{ toolbar.search_label }}</label>
+    <input class="form-control" id="table-search" type="search" name="q" maxlength="200" value="{{ toolbar.query }}">
+  </div>
+  {% for filter in toolbar.filters %}
+  <div class="product-filter-field">
+    <label for="filter-{{ filter.key }}">{{ filter.label }}</label>
+    <select class="form-select" id="filter-{{ filter.key }}" name="{{ filter.key }}">
+      {% for value, label in filter.choices %}<option value="{{ value }}"{% if filter.value == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endfor %}
+  {% if toolbar.sort_choices %}
+  <div class="product-filter-field">
+    <label for="table-sort">Sort by</label>
+    <select class="form-select" name="sort" id="table-sort">
+      {% for value, label in toolbar.sort_choices %}<option value="{{ value }}"{% if toolbar.sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="product-filter-actions">
+    <button class="btn btn-primary" type="submit">Apply</button>
+    {% if toolbar.is_filtered %}<a class="btn btn-outline-secondary" href="{{ toolbar.clear_url }}">Clear filters</a>{% endif %}
+  </div>
+</form>
+<p class="list-result-count">{{ toolbar.count }} result{{ toolbar.count|pluralize }}</p>
