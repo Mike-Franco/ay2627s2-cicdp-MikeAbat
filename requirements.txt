@@ -1,6 +1,6 @@
 Django==5.2.18
 # Image uploads (TORY-53): validate and re-encode every uploaded picture.
 pillow==13.0.0
-gunicorn==26.2.0
+gunicorn==27.0.1
 psycopg[binary]==3.3.6
 whitenoise==6.12.0
