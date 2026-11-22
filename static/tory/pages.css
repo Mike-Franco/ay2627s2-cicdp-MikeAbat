@@ -110,3 +110,5 @@
 .sort-link:hover{color:var(--accent);text-decoration:underline}
 th[aria-sort=ascending] .sort-link::after{content:" ↑"}
 th[aria-sort=descending] .sort-link::after{content:" ↓"}
+/* CSV import example table. */
+.products-table.csv-example{min-width:0}
