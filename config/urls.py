@@ -57,6 +57,11 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
     urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
         "document_root": settings.BASE_DIR / "static", "show_indexes": False,
     })]
+if settings.DJANGO_ENV == "development":
+    # Uploaded pictures (TORY-53). Staging serves /media/ from Caddy instead.
+    urlpatterns += [re_path(r"^media/(?P<path>.*)$", serve_static, {
+        "document_root": settings.MEDIA_ROOT, "show_indexes": False,
+    })]
 
 urlpatterns += [
     path("inventories/<int:inventory_id>/products/stock.csv", catalogue_views.export_inventory_stock, name="export-inventory-stock"),

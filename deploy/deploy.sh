@@ -7,10 +7,10 @@
 #   deploy.sh manage <command> [args...]   run a Django management command
 #   deploy.sh scheduled                    run the TORY-19 jobs (cron, every 5 minutes)
 #   deploy.sh check-scheduled              fail if the jobs have not succeeded recently
-#   deploy.sh backup                       pg_dump to backups/ with 14-day retention (cron, daily)
+#   deploy.sh backup                       pg_dump + media archive to backups/, 14-day retention (cron, daily)
 #   deploy.sh check-backup                 fail if the newest backup is older than 26 hours
-#   deploy.sh restore-test [file]          restore into a scratch database and compare row counts
-#   deploy.sh restore <file>               replace the live database from a backup (takes a safety backup first)
+#   deploy.sh restore-test [file]          restore into a scratch database and a scratch media folder; compare counts
+#   deploy.sh restore <file>               replace the live database and media from a backup (takes a safety backup first)
 #   deploy.sh status                       show containers and the deployed image
 set -eu
 
@@ -45,15 +45,32 @@ start() {
     compose up --detach --remove-orphans --wait --wait-timeout 300
 }
 
+media_archive_for() {
+    # $1: a .dump path. Prints the path of the media archive taken with it.
+    echo "${1%.dump}.media.tar.gz"
+}
+
 take_backup() {
-    # $1: file name prefix. Writes atomically, owner-only, and prints the path.
+    # $1: file name prefix. Writes the database dump and the uploaded-pictures
+    # archive (TORY-53) with the same timestamp, atomically and owner-only, and
+    # prints the dump path. The database is dumped first, so every picture it
+    # refers to is in the archive taken after it (a picture uploaded in between
+    # is only an unused extra file). Neither file appears until both succeed.
     mkdir -p "$BACKUP_DIR"
     chmod 700 "$BACKUP_DIR"
     target="$BACKUP_DIR/$1-$(date -u +%Y%m%dT%H%M%SZ).dump"
+    media="$(media_archive_for "$target")"
     umask 077
     db_sh 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom' > "$target.partial"
+    compose exec -T web tar -C /app/media -czf - . > "$media.partial"
+    mv "$media.partial" "$media"
     mv "$target.partial" "$target"
     echo "$target"
+}
+
+media_file_count() {
+    # $1: a directory on this host. Prints the number of regular files in it.
+    find "$1" -type f | wc -l | tr -d ' '
 }
 
 latest_backup() {
@@ -135,9 +152,12 @@ case "${1:-}" in
         echo "== $(date -u +%Y-%m-%dT%H:%M:%SZ) backup"
         file="$(take_backup tory)"
         echo "Wrote $file ($(wc -c < "$file") bytes)"
-        find "$BACKUP_DIR" -maxdepth 1 -name 'tory-*.dump' -type f -mtime +$((RETENTION_DAYS - 1)) -print -delete \
-            | sed 's/^/Removed expired /'
-        find "$BACKUP_DIR" -maxdepth 1 -name 'pre-restore-*.dump' -type f -mtime +$((RETENTION_DAYS - 1)) -delete
+        media="$(media_archive_for "$file")"
+        echo "Wrote $media ($(wc -c < "$media") bytes)"
+        find "$BACKUP_DIR" -maxdepth 1 \( -name 'tory-*.dump' -o -name 'tory-*.media.tar.gz' \) -type f \
+            -mtime +$((RETENTION_DAYS - 1)) -print -delete | sed 's/^/Removed expired /'
+        find "$BACKUP_DIR" -maxdepth 1 \( -name 'pre-restore-*.dump' -o -name 'pre-restore-*.media.tar.gz' \) -type f \
+            -mtime +$((RETENTION_DAYS - 1)) -delete
         date -u +%s > .last-backup-ok
         tail -n 1000 backups.log > backups.log.tmp 2>/dev/null && mv backups.log.tmp backups.log || true
         ;;
@@ -169,6 +189,19 @@ case "${1:-}" in
         printf '%-32s %10s %10s\n' table backup live
         paste -d ' ' .restore-test.restored .restore-test.live | awk '{printf "%-32s %10s %10s\n", $1, $2, $4}'
         rm -f .restore-test.restored .restore-test.live .restore-test.live-db
+        # Uploaded pictures (TORY-53): extract the paired archive into a scratch
+        # folder on this host, then compare file counts with the live volume.
+        media="$(media_archive_for "$file")"
+        if [ -s "$media" ]; then
+            scratch_media="$(mktemp -d)"
+            tar -xzf "$media" -C "$scratch_media"
+            restored_media="$(media_file_count "$scratch_media")"
+            rm -rf "$scratch_media"
+            live_media="$(compose exec -T web find /app/media -type f | wc -l | tr -d ' ')"
+            printf '%-32s %10s %10s\n' "media_files" "$restored_media" "$live_media"
+        else
+            echo "No media archive next to $(basename "$file") (backups before TORY-53 have none); pictures not checked." >&2
+        fi
         echo "Restore test passed: $(basename "$file") restores cleanly. Live counts may be higher if data changed since the backup."
         ;;
     restore)
@@ -177,6 +210,16 @@ case "${1:-}" in
         echo "Safety backup of the current database: $safety"
         compose stop web
         db_sh 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --single-transaction --exit-on-error' < "$file"
+        media="$(media_archive_for "$file")"
+        if [ -s "$media" ]; then
+            # Replace the pictures to match the restored database. The safety
+            # backup above holds the current ones.
+            compose run --rm --no-deps -T --entrypoint sh web \
+                -c 'find /app/media -mindepth 1 -delete && tar -C /app/media -xzf -' < "$media"
+            echo "Restored pictures from $(basename "$media")"
+        else
+            echo "No media archive next to $(basename "$file"); pictures left unchanged." >&2
+        fi
         compose start web
         compose up --detach --wait --wait-timeout 300
         echo "Restored $(basename "$file"). To undo: $0 restore $safety"
