@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Help · Tory{% endblock %}
+{% block breadcrumb %}Help{% endblock %}
+{% block content %}
+<div class="products-heading"><div><h1>Help</h1><p>How each part of Tory works, and who can do what. Times and dates are Singapore time.</p></div></div>
+<div class="help-layout">
+<nav class="help-toc panel" aria-label="Help contents">
+  <h2 class="h6">Contents</h2>
+  <ol>{% for anchor, title in sections %}<li><a href="#{{ anchor }}">{{ title }}</a></li>{% endfor %}</ol>
+  <p class="help-legend"><span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span> show who can use each feature.</p>
+</nav>
+<div class="help-body">
+
+<section id="getting-started" class="panel help-section">
+  <h2>Getting started</h2>
+  <p>Recommended order for a new Manager:</p>
+  <ol>
+    <li>Add your inventories (stockrooms or shelves) under <strong>All inventories → Add inventory</strong>.</li>
+    <li>Create categories, then products, from the <strong>Catalogue</strong>; link each product to the inventories that stock it.</li>
+    <li>Set each product's lead time and safety stock (<strong>Reorder settings</strong>) and, if you want values, its selling price per inventory.</li>
+    <li>Invite your Staff under <strong>Team → Staff invitations</strong> and choose the inventories they work in.</li>
+    <li>Record opening stock with <strong>Receive stock</strong> or a CSV import, then verify demand each day.</li>
+  </ol>
+  <p>The <strong>Dashboard</strong> link and the Tory logo always bring you back to the dashboard.</p>
+</section>
+
+<section id="inventories" class="panel help-section">
+  <h2>Inventories <span class="role-badge role-manager">Manager</span></h2>
+  <p>Everyone sees only the inventories they are assigned to; pick one with the <em>Current inventory</em> switcher. Its pages (Products, Insights, and for Managers Import CSV and Verify demand) are grouped under its name in the sidebar.</p>
+  <p>Managers add inventories, edit the name, icon, colour and optional picture, and deactivate or reactivate them. Names are unique within the business, ignoring case. Every change is recorded in the activity log.</p>
+</section>
+
+<section id="products" class="panel help-section">
+  <h2>Products and categories <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff view</span></h2>
+  <ul>
+    <li>Each product has a name, a SKU, a base unit (for example <em>box</em>), whether it tracks expiry dates, an optional category, and lead time and safety stock for reordering.</li>
+    <li>A SKU is unique within the business and <strong>cannot be changed or reused</strong> once created.</li>
+    <li>Selling prices are set per inventory and are used only for retail stock value.</li>
+    <li>A product can be deactivated only when its physical stock is zero in <strong>every</strong> inventory (quarantined units count) and you are assigned to every inventory it is linked to. Inactive products can't be received or issued.</li>
+    <li>Categories are per business; a category in use by a product can't be deleted. The catalogue and product lists can be filtered by category.</li>
+  </ul>
+</section>
+
+<section id="receiving" class="panel help-section">
+  <h2>Receiving stock <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <p>Open a product and choose <strong>Receive stock</strong>. Enter a whole number of base units. Products that track expiry need an expiry date, which can't be in the past. Each receipt becomes a numbered batch and appears in the product's stock history.</p>
+</section>
+
+<section id="issuing" class="panel help-section">
+  <h2>Issuing stock (FEFO and FIFO) <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <p>Enter how many units left the shelf; Tory chooses the batches:</p>
+  <ol><li>Dated batches first, <strong>earliest expiry first</strong> (FEFO).</li><li>Then undated batches in the order they were received (FIFO).</li></ol>
+  <p>Quarantined units are never issued, and you can't issue more than is available. Issues are the demand that forecasts use.</p>
+</section>
+
+<section id="adjustments" class="panel help-section">
+  <h2>Count adjustments and disposal <span class="role-badge role-manager">Manager</span></h2>
+  <p><strong>Adjust count</strong>: enter the counted quantity for each batch you checked, confirm each batch, and give a reason. Tory records the difference. Adjustments are not demand, so they don't change forecasts.</p>
+  <p><strong>Dispose stock</strong>: remove quarantined units with a reason code (Expired, Damaged or Other; Other needs a note). Disposals are recorded and are not demand.</p>
+</section>
+
+<section id="expiry" class="panel help-section">
+  <h2>Expiry and quarantine</h2>
+  <p>At 00:00 Singapore time on a batch's expiry date its remaining units become <strong>quarantined</strong>: still physically counted, but no longer available to issue. A scheduled job records the quarantine (shown as <em>System</em> in history). A Manager then disposes of the units. The dashboard lists stock expiring in the next 30 days.</p>
+</section>
+
+<section id="verifying-demand" class="panel help-section">
+  <h2>Verifying demand <span class="role-badge role-manager">Manager</span></h2>
+  <p>Forecasts use only demand a Manager has confirmed. After a Singapore day ends, check that every issue for that day was recorded, then verify it, either per product on the forecast page or for a whole inventory with <strong>Verify demand</strong>. You can verify the last seven complete days.</p>
+  <p>If an issue is later recorded for a day you already verified, that day becomes <em>invalidated</em> and must be verified again. You can also mark a verified day incomplete, with a reason.</p>
+</section>
+
+<section id="forecasts" class="panel help-section">
+  <h2>Forecasts and reorder suggestions <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <p>A forecast is available only when <strong>all of the previous seven complete days are verified</strong>. Unverified days are never treated as zero.</p>
+  <ul class="help-formulas">
+    <li><strong>Average daily demand</strong> = units issued over those 7 days ÷ 7</li>
+    <li><strong>Reorder point</strong> = average daily demand × lead time (days) + safety stock</li>
+    <li><strong>Reorder alert</strong> when available units ≤ reorder point</li>
+    <li><strong>Suggested order</strong> = reorder point − available, rounded up (never below 0)</li>
+  </ul>
+  <p class="help-example"><strong>Worked example.</strong> 21 units were issued over the last 7 verified days, so the average is 3 a day. With a lead time of 4 days and safety stock of 5, the reorder point is 3 × 4 + 5 = 17. With 10 units available, 10 ≤ 17 raises an alert and the suggestion is 17 − 10 = 7 units.</p>
+  <p>Only Managers can change lead time and safety stock. They apply to the product in every inventory.</p>
+</section>
+
+<section id="metrics" class="panel help-section">
+  <h2>Insights and dashboard metrics <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <dl class="help-terms">
+    <dt>Out of stock</dt><dd>Active products in the inventory with 0 available units.</dd>
+    <dt>Low stock</dt><dd>Available units at or below the reorder point.</dd>
+    <dt>Days of supply</dt><dd>Available units ÷ verified average daily demand. Shown as "—" with a reason when there is no forecast or demand is zero.</dd>
+    <dt>Stock-to-sales (30 days)</dt><dd>Current on-hand units ÷ units issued over the last 30 complete Singapore days.</dd>
+    <dt>Turnover (30 days)</dt><dd>Units issued over the last 30 complete days ÷ average day-end on-hand units over those days, rebuilt from the movement history.</dd>
+    <dt>Retail stock value</dt><dd>Available units × the inventory's selling price, in SGD. Products without a price are left out and counted separately.</dd>
+    <dt>Unverified demand days</dt><dd>Product-days in the review window that still need verification.</dd>
+  </dl>
+  <p>The dashboard covers all your inventories (or one, using the filter) and lists what needs action first. Insights charts each explain what they show and how to read them, and each has a data table.</p>
+</section>
+
+<section id="csv" class="panel help-section">
+  <h2>CSV import and export</h2>
+  <p><span class="role-badge role-manager">Manager</span> <strong>Import CSV</strong> applies every row to the inventory you selected. The file has the header <code>sku,change</code>. A positive change receives undated stock (only for products that don't track expiry), and a negative change issues stock. Download the template from the import page. Importing the exact same file into the same inventory twice is rejected.</p>
+  <p><span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span> Download current stock per inventory and a product's full history. <span class="role-badge role-manager">Manager</span> Download the activity log. In every export, cells starting with = + - or @ are prefixed with an apostrophe so spreadsheets don't run them as formulas.</p>
+</section>
+
+<section id="staff" class="panel help-section">
+  <h2>Staff and roles <span class="role-badge role-manager">Manager</span></h2>
+  <ul>
+    <li><strong>Managers</strong> manage inventories, products, categories, prices, reorder settings, imports, counts, disposals, demand verification, Staff and the activity log, within the inventories they are assigned to.</li>
+    <li><strong>Staff</strong> receive and issue stock, and view products, history, forecasts, insights and the dashboard, in their assigned inventories only.</li>
+    <li>Invitations create a new Staff account through a single-use link that expires after 24 hours. You can revoke or resend it, and send up to 5 a day. Choose at least one of your inventories.</li>
+    <li>Deactivating a Staff account signs it out everywhere on its next request and keeps its history.</li>
+  </ul>
+</section>
+
+<section id="activity" class="panel help-section">
+  <h2>Activity log <span class="role-badge role-manager">Manager</span></h2>
+  <p>One read-only list of who did what across your business: receipts and issues (including CSV rows), count adjustments, disposals, quarantines, demand reviews, product and inventory changes, and invitations sent. Filter by user, action, inventory, product or dates, and download the filtered list as CSV.</p>
+</section>
+
+<section id="profile" class="panel help-section">
+  <h2>Profile and password <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <p>Click your name at the bottom of the sidebar. You can set a display name (shown instead of your email), job title, phone, avatar colour and an optional photo. Photos are resized and their location data is removed.</p>
+  <p>Passwords need at least 15 characters. Changing yours signs out your other sessions. Sessions end after 30 minutes of inactivity or 8 hours in total. A password reset link works once and expires after 30 minutes.</p>
+</section>
+
+</div>
+</div>
+{% endblock %}

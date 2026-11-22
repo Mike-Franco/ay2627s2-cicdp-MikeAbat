@@ -4,7 +4,7 @@ from django.conf import settings
 from django.urls import path, re_path
 from django.views.static import serve as serve_static
 
-from accounts import views
+from accounts import public_views, views
 from accounts import account_views
 from accounts import invitation_views
 from accounts import reset_views
@@ -17,7 +17,10 @@ from receiving import views as receiving_views
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
-    path("", dashboard_views.dashboard, name="home"),
+    # TORY-60: "/" is the public landing page; signed-in users are sent to the dashboard.
+    path("", public_views.landing, name="landing"),
+    path("dashboard/", dashboard_views.dashboard, name="home"),
+    path("help/", public_views.help_page, name="help"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("account/", account_views.account, name="account"),

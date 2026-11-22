@@ -41,6 +41,7 @@
         {% if workspace_is_manager %}<a class="sidebar-link" href="{% url 'adjust-stock' workspace_inventory.pk product.pk %}">Adjust count</a><a class="sidebar-link" href="{% url 'dispose-stock' workspace_inventory.pk product.pk %}">Dispose stock</a>{% endif %}
       {% endif %}
     {% endif %}
+    <a class="sidebar-link sidebar-help {% if here == 'help' %}active{% endif %}" href="{% url 'help' %}" {% if here == 'help' %}aria-current="page"{% endif %}><span aria-hidden="true">?</span> Help</a>
   </nav>
   <div class="sidebar-bottom">
     <div class="user-card"><a class="account-link" href="{% url 'account' %}" {% if here == 'account' %}aria-current="page"{% endif %} title="Your profile and password">{% include "includes/user_avatar.html" with user=request.user %}<span class="user-details"><strong>{{ request.user.display_label }}</strong><small>{{ workspace_role|default:'No assigned role' }}{% if request.user.job_title %} · {{ request.user.job_title }}{% endif %}</small></span></a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="sign-out" type="submit">Sign out</button></form></div>

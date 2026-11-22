@@ -69,7 +69,7 @@ class NavigationTests(TestCase):
     def test_dashboard_link_is_current_on_the_dashboard(self):
         self.login(self.staff)
         sidebar = self.sidebar(reverse("home"))
-        self.assertRegex(sidebar, r'class="sidebar-link active" href="/" aria-current="page">.*Dashboard</a>')
+        self.assertRegex(sidebar, rf'class="sidebar-link active" href="{reverse("home")}" aria-current="page">.*Dashboard</a>')
 
     def test_insights_only_appears_inside_the_selected_inventory_group(self):
         insights = reverse("inventory-insights", args=[self.inventory.pk])
