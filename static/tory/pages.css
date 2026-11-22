@@ -93,3 +93,10 @@
   .actions-compact{display:flex;flex-wrap:wrap;gap:6px}
   .mobile-label{display:block;font-size:10px;font-weight:600;color:var(--muted)}
 }
+
+/* Moved from inline styles so the Content-Security-Policy needs no 'unsafe-inline'. */
+.field-narrow{max-width:16rem}
+.chart-frame{height:18rem;min-width:0;padding:1rem}
+.chart-frame canvas{max-width:100%}
+.chart-data{padding:0 1rem 1rem}
+.chart-data summary{cursor:pointer;color:var(--accent);font-size:12px;margin-bottom:.5rem}

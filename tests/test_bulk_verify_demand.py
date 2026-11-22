@@ -141,6 +141,61 @@ class BulkVerifyDemandTests(TestCase):
             self.assertTrue(result.forecast.available)
             self.assertIsNotNone(result.reorder_point)
 
+    def test_week_action_is_manager_only(self):
+        for user in (self.staff, self.outsider):
+            self.login(user)
+            self.assertEqual(self.client.post(self.url, {"scope": "week"}).status_code, 404)
+        with self.assertRaises(ReceiptRejected):
+            self.bulk(reviewable_days(self.now), user=self.staff)
+        self.assertFalse(DemandCoverageEvent.objects.exists())
+
+    def test_week_action_is_idempotent_and_fills_only_gaps(self):
+        self.bulk([self.yesterday])
+        self.login(self.manager)
+        first = self.client.post(self.url, {"scope": "week"})
+        self.assertContains(first, "Verified 18 product-days, skipped 3")
+        second = self.client.post(self.url, {"scope": "week"})
+        self.assertContains(second, "Verified 0 product-days, skipped 21")
+        self.assertContains(second, "Skipped 21: This day has already been reviewed")
+        self.assertEqual(DemandCoverageEvent.objects.count(), 21)
+
+    def test_week_action_respects_guards_and_writes_audit(self):
+        self.products[1].is_active = False
+        self.products[1].save()
+        receive_manual(user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.products[0].pk,
+                       request_token=uuid4(), quantity_units=5, expiry_date=None)
+        issued_on = self.today - timedelta(days=3)
+        with patch("receiving.services.timezone", SimpleNamespace(
+            now=lambda: datetime.combine(issued_on, time(12), SINGAPORE), localdate=timezone.localdate,
+        )):
+            issue_stock(user_id=self.staff.pk, inventory_id=self.inventory.pk,
+                        product_id=self.products[0].pk, quantity_units=2)
+        with patch("receiving.demand._resolve_pending",
+                   side_effect=lambda link: link.product_id == self.products[2].pk):
+            result = self.bulk(reviewable_days(self.now))
+        self.assertEqual(len(result.verified), 7)
+        self.assertEqual(dict(result.skipped_reasons), {
+            "Product is inactive.": 7, "Demand attribution is unresolved for this product.": 7,
+        })
+        events = DemandCoverageEvent.objects.filter(coverage_day__inventory_product__product=self.products[0])
+        self.assertEqual(events.count(), 7)
+        self.assertTrue(all(event.actor_id == self.manager.pk and event.action == "verified" for event in events))
+        self.assertEqual({event.coverage_day.day: event.verified_total_units for event in events if event.verified_total_units},
+                         {issued_on: 2})
+
+    def test_week_window_uses_singapore_dates_and_activation(self):
+        # 00:30 on 21 Nov in Singapore is still 20 Nov in UTC.
+        at = datetime(2026, 11, 20, 16, 30, tzinfo=UTC)
+        ObservationActivation.objects.update(first_observed_date=datetime(2026, 11, 14).date())
+        self.assertEqual([day.isoformat() for day in reviewable_days(at)],
+                         [f"2026-11-{day}" for day in range(14, 21)])
+        ObservationActivation.objects.update(first_observed_date=datetime(2026, 11, 18).date())
+        self.assertEqual([day.isoformat() for day in reviewable_days(at)],
+                         ["2026-11-18", "2026-11-19", "2026-11-20"])
+        result = self.bulk(reviewable_days(at), at=at)
+        self.assertEqual(len(result.verified), 9)
+        self.assertNotIn(at.astimezone(SINGAPORE).date(), {day for _, day in result.verified})
+
     def test_singapore_date_boundaries(self):
         # 00:30 in Singapore on 21 Nov is still 20 Nov in UTC.
         at = datetime(2026, 11, 20, 16, 30, tzinfo=UTC)
@@ -184,24 +239,27 @@ class BulkVerifyDemandTests(TestCase):
 
 
 class BulkVerifySeedDemoTests(TestCase):
-    def test_seed_demo_then_one_bulk_verify_gives_numeric_reorder_points(self):
-        env = {"DEMO_MANAGER_EMAIL": "bulk-seed-manager@example.test",
-               "DEMO_STAFF_EMAIL": "bulk-seed-staff@example.test",
-               "DEMO_MANAGER_PASSWORD": "bulk-seed-password-1!", "DEMO_STAFF_PASSWORD": "bulk-seed-password-2!"}
-        with patch.dict(os.environ, env):
+    ENV = {"DEMO_MANAGER_EMAIL": "bulk-seed-manager@example.test",
+           "DEMO_STAFF_EMAIL": "bulk-seed-staff@example.test",
+           "DEMO_MANAGER_PASSWORD": "bulk-seed-password-1!", "DEMO_STAFF_PASSWORD": "bulk-seed-password-2!"}
+
+    def test_fresh_seed_is_fully_verified_and_idempotent(self):
+        with patch.dict(os.environ, self.ENV):
             call_command("seed_demo", stdout=StringIO())
-        manager = get_user_model().objects.get(email=env["DEMO_MANAGER_EMAIL"])
+        manager = get_user_model().objects.get(email=self.ENV["DEMO_MANAGER_EMAIL"])
         links = list(InventoryProduct.objects.filter(inventory__business__name="Tory Demo"))
-
-        def numeric():
-            return sum(recommendation(user_id=manager.pk, inventory_id=link.inventory_id,
-                                      product_id=link.product_id).reorder_point is not None for link in links)
-
-        before = numeric()
+        self.assertEqual(len(links), 15)
+        for link in links:
+            result = recommendation(user_id=manager.pk, inventory_id=link.inventory_id, product_id=link.product_id)
+            self.assertIsNotNone(result.reorder_point, link.product.sku)
         now = timezone.now()
+        self.assertEqual(inventory_dashboard(manager, at=now)["unreviewed_demand"], [])
+        events = DemandCoverageEvent.objects.count()
+        with patch.dict(os.environ, self.ENV):
+            call_command("seed_demo", stdout=StringIO())
+        self.assertEqual(DemandCoverageEvent.objects.count(), events)
         for inventory_id in {link.inventory_id for link in links}:
-            verify_demand_days_for_inventory(user_id=manager.pk, inventory_id=inventory_id,
-                                             days=reviewable_days(now), at=now)
-        after = numeric()
-        self.assertLess(before, len(links) / 2)
-        self.assertGreater(after, len(links) / 2)
+            result = verify_demand_days_for_inventory(user_id=manager.pk, inventory_id=inventory_id,
+                                                      days=reviewable_days(now), at=now)
+            self.assertEqual(result.verified, ())
+        self.assertEqual(DemandCoverageEvent.objects.count(), events)

@@ -49,7 +49,7 @@ class SeedDemoTests(TestCase):
         )
         self.assertEqual(ReceiptAuditEvent.objects.count(), ReceivingBatch.objects.count())
         self.assertEqual(DemandAuditEvent.objects.filter(actor=staff).count(), 28)
-        self.assertEqual(DemandCoverageEvent.objects.filter(actor=manager, action="verified").count(), 28)
+        self.assertEqual(DemandCoverageEvent.objects.filter(actor=manager, action="verified").count(), 15 * 7)
 
         self.client.force_login(manager)
         session = self.client.session

@@ -170,3 +170,8 @@ class InventoryInsightsTests(TestCase):
             InventoryProduct(inventory=self.inventory, product=product) for product in products
         ])
         self.assertEqual(query_count(), initial)
+
+    def test_data_tables_are_collapsed_under_show_data(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, '<details class="chart-data"><summary>Show data</summary>', count=3)
+        self.assertNotContains(response, "<details open")

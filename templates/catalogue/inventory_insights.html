@@ -4,31 +4,27 @@
 {% block title %}{{ inventory.name }} insights &middot; Tory{% endblock %}
 {% block breadcrumb %}Insights{% endblock %}
 {% block content %}
-<style>
-  .chart-frame { height: 18rem; min-width: 0; padding: 1rem; }
-  .chart-frame canvas { max-width: 100%; }
-</style>
 <div class="products-heading"><div><p class="eyebrow">{{ inventory.name }}</p><h1>Inventory insights</h1></div></div>
 <section class="panel mb-4" aria-labelledby="demand-heading">
   <div class="panel-heading"><h2 id="demand-heading">Daily units issued</h2><p>Last 30 Singapore dates</p></div>
   {% if has_products %}<div class="chart-frame"><canvas id="demand-chart" role="img" aria-label="Daily units issued over the last 30 Singapore dates"></canvas></div>
-  <div class="table-scroll" role="region" aria-label="Daily demand data"><table class="products-table"><thead><tr><th>Singapore date</th><th>Units issued</th><th>Verified seven-day average</th></tr></thead><tbody>
+  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Daily demand data"><table class="products-table"><thead><tr><th>Singapore date</th><th>Units issued</th><th>Verified seven-day average</th></tr></thead><tbody>
   {% for row in demand_data %}<tr><th>{{ row.day|sgdate }}</th><td>{{ row.issued }}</td><td>{% if row.verified_average %}{{ row.verified_average }}{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p>No linked products or issue data are available yet.</p>{% endif %}
+  </tbody></table></div></details>{% else %}<p>No linked products or issue data are available yet.</p>{% endif %}
 </section>
 <section class="panel mb-4" aria-labelledby="reorder-heading">
   <div class="panel-heading"><h2 id="reorder-heading">Available units and reorder point</h2></div>
   {% if reorder_data %}<div class="chart-frame"><canvas id="reorder-chart" role="img" aria-label="Available units and verified reorder points by product"></canvas></div>
-  <div class="table-scroll" role="region" aria-label="Stock and reorder data"><table class="products-table"><thead><tr><th>SKU</th><th>Product</th><th>Available units</th><th>Reorder point</th><th>Status</th></tr></thead><tbody>
+  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Stock and reorder data"><table class="products-table"><thead><tr><th>SKU</th><th>Product</th><th>Available units</th><th>Reorder point</th><th>Status</th></tr></thead><tbody>
   {% for row in reorder_data %}<tr><td>{{ row.sku }}</td><th>{{ row.name }}</th><td>{{ row.available }}</td><td>{% if row.reorder_point %}{{ row.reorder_point }}{% else %}Unavailable{% endif %}</td><td>{% if row.alert %}At or below reorder point{% elif row.reorder_point %}Above reorder point{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p>No products are linked to this inventory.</p>{% endif %}
+  </tbody></table></div></details>{% else %}<p>No products are linked to this inventory.</p>{% endif %}
 </section>
 <section class="panel mb-4" aria-labelledby="expiry-heading">
   <div class="panel-heading"><h2 id="expiry-heading">Eligible units expiring each week</h2><p>Next four Singapore weeks</p></div>
   {% if has_products %}<div class="chart-frame"><canvas id="expiry-chart" role="img" aria-label="Eligible units expiring in each of the next four Singapore weeks"></canvas></div>
-  <div class="table-scroll" role="region" aria-label="Expiry timeline data"><table class="products-table"><thead><tr><th>Singapore week</th><th>Eligible units</th></tr></thead><tbody>
+  <details class="chart-data"><summary>Show data</summary><div class="table-scroll" role="region" aria-label="Expiry timeline data"><table class="products-table"><thead><tr><th>Singapore week</th><th>Eligible units</th></tr></thead><tbody>
   {% for row in expiry_data %}<tr><th>{{ row.week }}</th><td>{{ row.units }}</td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p>No eligible stock is recorded as expiring in the next four weeks.</p>{% endif %}
+  </tbody></table></div></details>{% else %}<p>No eligible stock is recorded as expiring in the next four weeks.</p>{% endif %}
 </section>
 {{ demand_data|json_script:"demand-data" }}
 {{ reorder_data|json_script:"reorder-data" }}

@@ -88,6 +88,11 @@ jobs:
         run: python manage.py check
       - name: Check for missing migrations
         run: python manage.py makemigrations --check --dry-run
+      - name: Run deployment checks with staging settings
+        env:
+          DJANGO_ENV: staging
+          DJANGO_ALLOWED_HOSTS: staging.example.test
+        run: DJANGO_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(60))')" python manage.py check --deploy --fail-level WARNING
       - name: Run PostgreSQL-backed Django tests under coverage
         run: coverage run manage.py test --verbosity 2
       - name: Enforce coverage threshold (90%)

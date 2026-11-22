@@ -2,6 +2,13 @@
 
 This record describes the implemented Django application after PR #55. It links implementation to FR-002 through FR-012 and NFR-003, NFR-010 and NFR-011. The SRS and dated owner decisions remain the authority for approved requirements. [SRS](../requirements/SOFTWARE_REQUIREMENTS_SPECIFICATION.md), [traceability matrix](../requirements/REQUIREMENTS_TRACEABILITY_MATRIX.md).
 
+## Diagrams
+
+- [CI/CD pipeline](CICD_PIPELINE.md): pull request gates (lint, tests and coverage, security, Docker build, docs), merge to `develop`, release to `main`, image build, GHCR, SSH deploy to the staging VM and the HTTPS smoke test.
+- [Deployment view](DEPLOYMENT.md): Caddy (HTTPS), the gunicorn/Django container, PostgreSQL with `track_commit_timestamp=on` and its volume, host cron, GitHub Actions and GHCR.
+- [Component view](COMPONENTS.md): the four Django apps, middleware, service modules, templates and the PostgreSQL trigger groups.
+- [Entity-relationship diagram](ERD.md) and the application structure and stock-out diagrams below.
+
 ## Application structure
 
 ```mermaid
@@ -104,4 +111,4 @@ The seven-day calculation, observation eligibility and reorder formula are Tory 
 - Existing stock and forecast tests exercise allocation ordering, concurrent issues, audit rollback, expiry behavior, CSV atomicity and attribution, and numeric or unavailable demand results. [Stock-out](../../tests/test_stock_out.py), [expiry](../../tests/test_expiry_quarantine.py), [CSV import](../../tests/test_csv_import.py), [demand forecast](../../tests/test_demand_forecast.py), [reorder](../../tests/test_reorder.py).
 - Django PostgreSQL CI applies migrations to disposable PostgreSQL, checks Django and runs the suite. Documentation CI checks Markdown. The TORY-23 decision records both hosted workflow passes for revision `b2e4222`. [Django workflow](../../.github/workflows/django-ci.yml), [docs workflow](../../.github/workflows/docs-ci.yml), [recorded Django run](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/runs/42554980980), [recorded docs run](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/actions/runs/42554980773).
 - TORY-26's three ordinary-route p95 failures remain recorded. Hosted performance, expiry scheduling evidence, off-site recovery, and TORY-27 acceptance remain open. Full SRS approval and hosted deployment remain open. [TORY-26 measurements](../decisions/TORY-26-integrated-validation.md), [TORY-27 draft policy](../decisions/TORY-27-offsite-backup-policy.md).
-- Visual review of the Mermaid diagrams in the repository renderer is pending.
+- Documentation CI renders every Mermaid diagram with the pinned Mermaid CLI ([render check](../../scripts/check_mermaid.sh)); a syntax or render error fails the job.
