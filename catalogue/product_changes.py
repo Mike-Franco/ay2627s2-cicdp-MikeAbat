@@ -7,7 +7,7 @@ from inventory_access.models import Inventory
 
 from .authorization import lock_manager_assignment_ids
 from .forms import DUPLICATE_SKU, PRODUCT_FIELDS
-from .models import InventoryProduct, Product, ProductChangeAuditEvent
+from .models import Category, InventoryProduct, Product, ProductChangeAuditEvent
 
 
 def _save_product(product):
@@ -27,7 +27,8 @@ def _save_product(product):
 
 
 def _snapshot(product):
-    return {field: getattr(product, field) for field in PRODUCT_FIELDS}
+    return {field: getattr(product, "category_id" if field == "category" else field)
+            for field in PRODUCT_FIELDS}
 
 
 @transaction.atomic
@@ -60,7 +61,16 @@ def save_product_change(*, user, inventory, values, product_id=None, inventory_i
         raise Http404
     for field in PRODUCT_FIELDS:
         if before is None or field != "sku":
+            if field == "category" and field not in values:
+                continue
             setattr(product, field, values[field])
+    if product.category_id:
+        category = Category.objects.select_for_update().filter(
+            pk=product.category_id, business_id=product.business_id,
+        ).first()
+        if category is None:
+            raise ValidationError({"category": "Choose an existing category from this business."})
+        product.category = category
     after = _snapshot(product)
     if after == before:
         return product

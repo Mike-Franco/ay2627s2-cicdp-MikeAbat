@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Categories · Tory{% endblock %}
+{% block breadcrumb %}Categories{% endblock %}
+{% block content %}
+<div class="products-heading">
+  <div><p class="eyebrow">{{ business.name }}</p><h1>Categories</h1></div>
+  <a class="btn btn-primary" href="{% url 'category-create' business.pk %}">Add category</a>
+</div>
+{% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
+<p><a href="{% url 'product-catalogue' %}">Back to catalogue</a></p>
+<ul class="list-group">
+{% for category in categories %}
+  <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+    <strong>{{ category.name }}</strong>{% if category.colour %}<span>{{ category.colour }}</span>{% endif %}
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'category-edit' business.pk category.pk %}">Edit</a>
+    {% if category.in_use %}<span class="text-muted">In use</span>{% else %}
+    <form method="post" action="{% url 'category-delete' business.pk category.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Delete</button></form>
+    {% endif %}
+  </li>
+{% empty %}<li class="list-group-item">No categories yet.</li>{% endfor %}
+</ul>
+{% endblock %}

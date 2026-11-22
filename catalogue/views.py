@@ -13,8 +13,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from accounts.sessions import protected_view
-from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
-from inventory_access.authorization import get_authorized_inventory
+from catalogue.models import Category, InventoryProduct, Product, ProductLifecycleAuditEvent
+from inventory_access.authorization import authorized_inventories, get_authorized_inventory, manager_memberships
 from inventory_access.models import BusinessMembership, Inventory
 from receiving.demand import (
     _totals,
@@ -129,14 +129,19 @@ def inventory_insights(request, inventory_id):
 
 @protected_view
 def product_catalogue(request):
-    search_form = ProductSearchForm(request.GET)
+    search_form = ProductSearchForm(request.GET, categories=Category.objects.filter(
+        business_id__in=authorized_inventories(request.user).values("business_id"),
+    ))
     valid_search = search_form.is_valid()
     links = _search_product_links(visible_product_links(request.user), search_form.cleaned_data["q"]) if valid_search else []
+    if valid_search and search_form.cleaned_data["category"]:
+        links = links.filter(product__category=search_form.cleaned_data["category"])
     page = Paginator(links, 25).get_page(request.GET.get("page"))
     return render(
         request,
         "catalogue/product_catalogue.html",
         {"product_links": page.object_list, "page": page, "search_form": search_form,
+         "category_managers": manager_memberships(request.user).select_related("business"),
          "create_inventories": managed_inventories(request.user).select_related("business")
          .order_by("business_id", "name", "pk").distinct("business_id")},
         status=200 if valid_search else 400,
@@ -144,6 +149,7 @@ def product_catalogue(request):
 
 
 def _search_product_links(links, query):
+    links = links.select_related("product__category")
     if query:
         return links.filter(Q(product__name__icontains=query) | Q(product__sku__icontains=query))
     return links
@@ -203,13 +209,17 @@ def inventory_products(request, inventory_id):
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     total_product_count = links.count()
-    filter_form = InventoryProductFilterForm(request.GET)
+    filter_form = InventoryProductFilterForm(
+        request.GET, categories=Category.objects.filter(business_id=inventory.business_id),
+    )
     product_links = []
     page = None
     valid_filters = filter_form.is_valid()
     can_adjust_stock = _is_inventory_manager(request.user, inventory)
     if valid_filters:
         links = _search_product_links(links, filter_form.cleaned_data["q"])
+        if filter_form.cleaned_data["category"]:
+            links = links.filter(product__category=filter_form.cleaned_data["category"])
         selected_status = filter_form.cleaned_data["reorder"]
         now = timezone.now()
         links = links.annotate(display_quarantine_units=Sum(Case(
@@ -249,7 +259,7 @@ def inventory_products(request, inventory_id):
         "catalogue/inventory_products.html",
         {"inventory": inventory, "product_links": product_links, "page": page,
          "filter_form": filter_form, "total_product_count": total_product_count,
-         "has_filters": bool(request.GET.get("q") or request.GET.get("reorder")),
+         "has_filters": bool(request.GET.get("q") or request.GET.get("reorder") or request.GET.get("category")),
          "sort": filter_form.cleaned_data.get("sort", "") if valid_filters else "",
          "can_adjust_stock": can_adjust_stock},
         status=200 if valid_filters else 400,

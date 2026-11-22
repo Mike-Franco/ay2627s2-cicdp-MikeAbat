@@ -11,7 +11,7 @@ from accounts import reset_views
 from accounts import deactivation_views
 from inventory_access import views as inventory_views
 from config.health import healthz
-from catalogue import views as catalogue_views
+from catalogue import categories, views as catalogue_views
 from receiving import views as receiving_views
 
 urlpatterns = [
@@ -31,6 +31,10 @@ urlpatterns = [
     path("inventories/", inventory_views.inventory_list, name="inventory-list"),
     path("inventories/<int:inventory_id>/", inventory_views.inventory_detail, name="inventory-detail"),
     path("catalogue/", catalogue_views.product_catalogue, name="product-catalogue"),
+    path("businesses/<int:business_id>/categories/", categories.category_list, name="category-list"),
+    path("businesses/<int:business_id>/categories/new/", categories.category_edit, name="category-create"),
+    path("businesses/<int:business_id>/categories/<int:category_id>/edit/", categories.category_edit, name="category-edit"),
+    path("businesses/<int:business_id>/categories/<int:category_id>/delete/", categories.category_delete, name="category-delete"),
     path("inventories/<int:inventory_id>/products/", catalogue_views.inventory_products, name="inventory-products"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/", catalogue_views.product_stock, name="product-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/lifecycle/", catalogue_views.product_lifecycle, name="product-lifecycle"),
