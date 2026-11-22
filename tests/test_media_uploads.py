@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from io import BytesIO
 from pathlib import Path
+from unittest import skipUnless
 
 from django import forms
 from django.conf import settings
@@ -168,6 +169,7 @@ class StorageTests(TestCase):
 ROOT = Path(settings.BASE_DIR)
 
 
+@skipUnless((ROOT / "deploy").is_dir(), "deploy/ is excluded from the container image; checked from the checkout")
 class MediaDeploymentConfigTests(SimpleTestCase):
     """Guards for the staging wiring; behaviour was checked against Caddy 2.11.9."""
 
