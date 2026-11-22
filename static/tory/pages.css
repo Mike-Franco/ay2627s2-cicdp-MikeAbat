@@ -96,7 +96,7 @@
 
 /* Account page and sidebar account link. */
 .field-wide{max-width:28rem}
-.account-link{color:var(--muted)}
+.account-link{display:block;font-size:10px;color:var(--muted);text-decoration:none}
 .account-link:hover,.account-link[aria-current]{color:var(--accent)}
 /* Moved from inline styles so the Content-Security-Policy needs no 'unsafe-inline'. */
 .field-narrow{max-width:16rem}
