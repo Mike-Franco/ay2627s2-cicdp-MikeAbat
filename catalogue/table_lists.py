@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.core.paginator import Paginator
 from django.db.models import Q
 
-from accounts.dashboard import reorder_alerts
+from .metrics import stock_positions as measure_stock
 
 
 PAGE_SIZE = 25
@@ -56,14 +56,13 @@ def search_rows(rows, query, *fields):
     return rows
 
 
-def stock_positions(links, *, at):
-    quarantined, low_links, checked = reorder_alerts(links, at=at)
-    low_ids = {link.pk for link, _ in low_links}
-    for link in links:
-        link.available_units = link.physical_quantity_units - quarantined.get(link.pk, 0)
-        link.out_of_stock = link.product.is_active and link.available_units == 0
-        link.low_stock = link.pk in low_ids and not link.out_of_stock
-    return checked
+def _annotate_stock(links, *, at):
+    positions = measure_stock(links, at=at)
+    for position in positions:
+        position.link.available_units = position.available
+        position.link.out_of_stock = position.out
+        position.link.low_stock = position.low
+    return positions
 
 
 @dataclass
@@ -108,7 +107,7 @@ CATALOGUE_STATUSES = (
 
 def catalogue_rows(links, *, at, status, sort):
     links = list(links)
-    stock_positions(links, at=at)
+    _annotate_stock(links, at=at)
     by_product = defaultdict(list)
     for link in links:
         by_product[link.product_id].append(link)
@@ -143,15 +142,15 @@ INVENTORY_SORT_CHOICES = (
 
 
 def prepare_inventory_cards(inventories, links, *, at, sort):
-    stock_positions(links, at=at)
+    positions = measure_stock(links, at=at)
     stats = defaultdict(InventoryStats)
-    for link in links:
-        row = stats[link.inventory_id]
+    for position in positions:
+        row = stats[position.link.inventory_id]
         row.products += 1
-        row.low += link.low_stock
-        row.out += link.out_of_stock
-        if link.selling_price is not None:
-            row.value += link.available_units * link.selling_price
+        row.low += position.low
+        row.out += position.out
+        if position.value is not None:
+            row.value += position.value
     for inventory in inventories:
         inventory.stock = stats[inventory.pk]
     inventories.sort(key=lambda inventory: inventory.pk)

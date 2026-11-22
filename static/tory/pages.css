@@ -195,3 +195,33 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
   .responsive-list tbody td { display: grid; grid-template-columns: minmax(7rem, .8fr) minmax(0, 1fr); gap: .5rem; }
   .list-mobile-label { display: inline; font-weight: 600; color: var(--bs-secondary-color); }
 }
+
+.stock-kpis .stat-tile { position: relative; padding-right: 2rem; }
+.metric-tip {
+  position: absolute;
+  top: .7rem;
+  right: .7rem;
+  width: 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: help;
+}
+.metric-tip-text {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: 1.5rem;
+  right: 0;
+  width: 11rem;
+  padding: .5rem;
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 .2rem .8rem rgba(0, 0, 0, .2);
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  text-align: left;
+  font-size: .8rem;
+}
+.metric-tip:hover .metric-tip-text, .metric-tip:focus .metric-tip-text { display: block; }
