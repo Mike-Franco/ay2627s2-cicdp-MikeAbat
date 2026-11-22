@@ -94,3 +94,11 @@ urlpatterns += [
     path("inventories/<int:inventory_id>/demand/verify/", catalogue_views.bulk_verify_demand,
          name="bulk-verify-demand"),
 ]
+
+from inventory_access import activity_log  # noqa: E402
+
+urlpatterns += [
+    path("businesses/<int:business_id>/activity/", activity_log.activity_log, name="activity-log"),
+    path("businesses/<int:business_id>/activity.csv", activity_log.activity_log, {"export": True},
+         name="activity-log-csv"),
+]
