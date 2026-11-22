@@ -6,11 +6,11 @@ from django.db.models.functions import Lower, Trim
 
 from inventory_access.models import Inventory
 
-from .models import Product
+from .models import Category, Product
 
 
 PRODUCT_FIELDS = ("name", "sku", "base_unit_label", "expiry_tracking_required",
-                  "lead_time_days", "safety_stock_units")
+                  "lead_time_days", "safety_stock_units", "category")
 DUPLICATE_SKU = "A product with this SKU already exists in this business."
 
 
@@ -45,6 +45,8 @@ class ProductForm(PlainLabelsMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["category"].queryset = Category.objects.filter(business_id=self.instance.business_id)
+        self.fields["category"].empty_label = "Uncategorised"
         if self.instance.pk:
             self.fields["sku"].disabled = True
             self.fields["sku"].help_text = "SKU is permanent after creation."
@@ -74,7 +76,22 @@ class ProductCreateForm(ProductForm):
         self.fields["inventories"].queryset = inventories
 
 
+class CategoryFilterField(forms.ModelChoiceField):
+    def __init__(self):
+        super().__init__(
+            Category.objects.none(), required=False, empty_label="All categories",
+            widget=forms.Select(attrs={"class": "form-select"}),
+        )
+
+
 class ProductSearchForm(PlainLabelsMixin, forms.Form):
+    category = CategoryFilterField()
+
+    def __init__(self, *args, categories=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if categories is not None:
+            self.fields["category"].queryset = categories
+
     q = forms.CharField(
         label="Search products", required=False, max_length=200,
         widget=forms.TextInput(attrs={

@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from catalogue.models import InventoryProduct, Product
+from catalogue.models import Category, InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.commit_times import lock_activation, tracking_enabled
 from receiving.demand import verify_demand_day
@@ -49,6 +49,17 @@ INVENTORIES = {
         ("GR-06", "Olive Oil", "bottle", 29, 75, 0),
         ("GR-07", "Reusable Grocery Bag", "each", 20, None, 0),
     ),
+}
+
+
+DEMO_CATEGORIES = {
+    "Medicine": ("PH-01", "PH-02"),
+    "First aid": ("PH-03", "PH-04", "PH-06", "PH-08"),
+    "Personal care": ("PH-05", "PH-07"),
+    "Dairy alternatives": ("GR-01",),
+    "Pantry": ("GR-02", "GR-03", "GR-04", "GR-06"),
+    "Beverages": ("GR-05",),
+    "Household": ("GR-07",),
 }
 
 
@@ -95,11 +106,18 @@ def _ensure_observation(first_day):
 def _seed_inventory(inventory, manager, staff, dates, now):
     today = now.astimezone(SINGAPORE).date()
     received_at = datetime.combine(dates[0], time(8), SINGAPORE)
+    skus = {row[0] for row in INVENTORIES[inventory.name]}
+    categories = {}
+    for label, category_skus in DEMO_CATEGORIES.items():
+        matching = skus.intersection(category_skus)
+        if matching:
+            category, _ = Category.objects.get_or_create(business=inventory.business, name=label)
+            categories.update(dict.fromkeys(matching, category))
     for sku, name, unit, quantity, expiry_offset, daily_issue in INVENTORIES[inventory.name]:
         product = _create_product(manager, inventory, {
             "sku": sku, "name": name, "base_unit_label": unit,
             "expiry_tracking_required": expiry_offset is not None,
-            "lead_time_days": 3, "safety_stock_units": 5,
+            "lead_time_days": 3, "safety_stock_units": 5, "category": categories[sku],
         })
         scope = {"inventory_id": inventory.pk, "product_id": product.pk}
         expiry = today + timedelta(days=expiry_offset) if expiry_offset is not None else None

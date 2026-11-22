@@ -11,6 +11,7 @@
   <div class="panel-heading"><h2 id="linked-products-title">Linked products</h2><p>{% if has_filters and not filter_form.errors %}{{ page.paginator.count }} of {% endif %}{{ total_product_count }} product{{ total_product_count|pluralize }} in {{ inventory.name }}</p><a href="{% url 'export-inventory-stock' inventory.pk %}">Download current stock CSV</a></div>
   <form method="get" action="{% url 'inventory-products' inventory.pk %}" class="product-filters" role="search" aria-label="Filter inventory products">
     <div class="product-filter-field"><label for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>{{ filter_form.q }}{% if filter_form.q.errors %}<div class="filter-errors" role="alert">{{ filter_form.q.errors }}</div>{% endif %}</div>
+    <div class="product-filter-field">{{ filter_form.category.label_tag }}{{ filter_form.category }}{{ filter_form.category.errors }}</div>
     <div class="product-filter-field"><label for="{{ filter_form.reorder.id_for_label }}">{{ filter_form.reorder.label }}</label>{{ filter_form.reorder }}{% if filter_form.reorder.errors %}<div class="filter-errors" role="alert">{{ filter_form.reorder.errors }}</div>{% endif %}</div>
     <div class="product-filter-field"><label for="{{ filter_form.sort.id_for_label }}">{{ filter_form.sort.label }}</label>{{ filter_form.sort }}{% if filter_form.sort.errors %}<div class="filter-errors" role="alert">{{ filter_form.sort.errors }}</div>{% endif %}</div>
     <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button>{% if has_filters %}<a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Clear filters</a>{% endif %}</div>
@@ -25,7 +26,7 @@
         <th scope="col"{% if sort == 'status' %} aria-sort="ascending"{% elif sort == '-status' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'status' %}{% querystring sort='-status' page=None %}{% else %}{% querystring sort='status' page=None %}{% endif %}">Reorder status</a></th>
         <th scope="col">Actions</th></tr></thead>
       <tbody>{% for link in product_links %}<tr>
-        <th scope="row" class="cell-product"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
+        <th scope="row" class="cell-product"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a><span class="unit">{{ link.product.category|default:"Uncategorised" }}</span>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
         <td class="product-sku cell-sku">{{ link.product.sku }}</td>
         <td class="numeric cell-physical">{{ link.display_physical_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
         <td class="numeric cell-quarantine">{{ link.display_quarantine_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
