@@ -11,6 +11,7 @@
 <div class="balance-grid">
   <section class="balance-card"><h2>Physical</h2><strong>{{ link.display_physical_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} recorded on hand</small></section>
   <section class="balance-card"><h2>Quarantined</h2><strong>{{ link.display_quarantine_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} held from issue</small></section>
+  <section class="balance-card"><h2>Selling price</h2><strong>{{ link.selling_price|sgd }}</strong><small>per {{ product.base_unit_label|default:'base unit' }} in {{ inventory.name }}{% if can_adjust_stock %} · <a href="{% url 'selling-price' inventory.pk product.pk %}">Edit</a>{% endif %}</small></section>
   <section class="balance-card emphasized"><h2>Available</h2><strong>{{ link.display_available_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} available to issue</small></section>
 </div>
 <section class="panel"><div class="panel-heading"><h2>Batch balances</h2><p>Remaining quantities and Singapore expiry dates.</p></div>

@@ -1,6 +1,7 @@
 """Shared display formatting for templates."""
 
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from django import template
@@ -31,3 +32,15 @@ def sgdate(value):
     if isinstance(value, date):
         return dateformat.format(value, "j M Y")
     return value
+
+
+@register.filter
+def sgd(value):
+    """Format a price as "S$1,234.50"; empty values render as an em dash."""
+    if value in (None, ""):
+        return "—"
+    try:
+        amount = Decimal(value)
+    except (InvalidOperation, TypeError, ValueError):
+        return value
+    return f"S${amount:,.2f}"
