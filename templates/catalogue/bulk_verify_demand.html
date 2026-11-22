@@ -37,7 +37,7 @@
   <form method="post" class="p-3">
     {% csrf_token %}
     <input type="hidden" name="scope" value="day">
-    <div class="mb-3" style="max-width:16rem"><label class="form-label" for="{{ form.day.id_for_label }}">{{ form.day.label }}</label>{{ form.day }}{{ form.day.errors }}<div class="form-text">Defaults to yesterday.</div></div>
+    <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.day.id_for_label }}">{{ form.day.label }}</label>{{ form.day }}{{ form.day.errors }}<div class="form-text">Defaults to yesterday.</div></div>
     <button class="btn btn-outline-primary" type="submit">Verify this date for all products</button>
     <a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
   </form>
