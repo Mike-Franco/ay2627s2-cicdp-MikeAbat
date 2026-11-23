@@ -37,7 +37,7 @@ docker compose up --build
 docker compose exec web python manage.py seed_demo
 ```
 
-Open <http://localhost:8000/login/> and sign in with the demo Manager or Staff email. `seed_demo` prints any generated password. Set `DEMO_MANAGER_PASSWORD` and `DEMO_STAFF_PASSWORD` first to choose your own. A fresh demo has two weeks of sample demand for Forecast accuracy. Two dates on Reusable Grocery Bag await Manager verification, so the Grocery dashboard has a review task while Oat Milk has a numeric forecast and suggested order. Re-running the command fills blank product settings and keeps the existing stock and demand records.
+Open <http://localhost:8000/login/> and sign in with the demo Manager or Staff email. `seed_demo` prints any generated password. Set `DEMO_MANAGER_PASSWORD` and `DEMO_STAFF_PASSWORD` first to choose your own. A fresh demo has two weeks of varied sample demand, so Forecast accuracy shows a realistic error. Two dates on Reusable Grocery Bag await Manager verification, so the Grocery dashboard has a review task while Oat Milk has a numeric forecast and suggested order. Re-running the command fills blank product settings and keeps the existing stock and demand records.
 
 Run the full test suite in the container:
 

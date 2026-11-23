@@ -1,6 +1,7 @@
 """Populate a non-production database with a reproducible demo snapshot."""
 
 import os
+import random
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from secrets import token_urlsafe
@@ -44,12 +45,18 @@ DEMO_WEEK_DAYS = 7
 # Leave two dates for the Manager to verify without blocking the Oat Milk forecast.
 DEMO_UNVERIFIED_SKU = "GR-07"
 DEMO_UNVERIFIED_DAYS = 2
+# Day-to-day demand varies by about +/-25%, with weekends 20% busier, so
+# Insights shows a realistic forecast error (roughly 10-20%) rather than 0%.
+# A fixed seed keeps every reseed and test run identical.
+DEMO_DEMAND_SEED = 92
+DEMO_DEMAND_SPREAD = 0.25
+DEMO_WEEKEND_LIFT = 1.2
 
-# SKU, display name, base unit, opening stock, days to expiry, daily issues.
+# SKU, display name, base unit, on-hand stock after the seeded history, days to expiry, typical daily issues.
 INVENTORIES = {
     "Pharmacy": (
-        ("PH-01", "Saline Nasal Spray", "bottle", 16, 3, 2),
-        ("PH-02", "Oral Rehydration Salts", "sachet", 48, 5, 1),
+        ("PH-01", "Saline Nasal Spray", "bottle", 2, 3, 6),
+        ("PH-02", "Oral Rehydration Salts", "sachet", 41, 5, 4),
         ("PH-03", "Sterile Dressings", "pack", 36, 60, 0),
         ("PH-04", "Digital Thermometer", "each", 25, None, 0),
         ("PH-05", "Hand Sanitizer", "bottle", 42, 90, 0),
@@ -58,8 +65,8 @@ INVENTORIES = {
         ("PH-08", "Medical Tape", "roll", 24, None, 0),
     ),
     "Grocery": (
-        ("GR-01", "Oat Milk", "carton", 18, 6, 2),
-        ("GR-02", "Jasmine Rice", "bag", 50, 180, 1),
+        ("GR-01", "Oat Milk", "carton", 4, 6, 6),
+        ("GR-02", "Jasmine Rice", "bag", 43, 180, 4),
         ("GR-03", "Rolled Oats", "bag", 32, 70, 0),
         ("GR-04", "Canned Chickpeas", "can", 44, 120, 0),
         ("GR-05", "Black Tea", "box", 26, 100, 0),
@@ -217,6 +224,18 @@ def _ensure_observation(first_day):
     )
 
 
+def demo_demand(sku, typical, dates):
+    """Deterministic daily issue quantities for one SKU: at least one unit on each date."""
+    if not typical:
+        return [0] * len(dates)
+    rng = random.Random(f"{DEMO_DEMAND_SEED}:{sku}")
+    return [
+        max(1, round(typical * rng.uniform(1 - DEMO_DEMAND_SPREAD, 1 + DEMO_DEMAND_SPREAD)
+                     * (DEMO_WEEKEND_LIFT if day.weekday() >= 5 else 1)))
+        for day in dates
+    ]
+
+
 def _seed_inventory(inventory, manager, staff, dates, now):
     today = now.astimezone(SINGAPORE).date()
     received_at = datetime.combine(dates[0], time(8), SINGAPORE)
@@ -237,8 +256,9 @@ def _seed_inventory(inventory, manager, staff, dates, now):
         _set_price(manager, inventory, product.pk, sku)
         scope = {"inventory_id": inventory.pk, "product_id": product.pk}
         expiry = today + timedelta(days=expiry_offset) if expiry_offset is not None else None
-        # Keep the previous demo's on-hand quantities with the extra week of issues.
-        opening_quantity = quantity + daily_issue * DEMO_WEEK_DAYS
+        issues = demo_demand(sku, daily_issue, dates)
+        # Receive enough to cover the seeded issues and leave the listed on-hand stock.
+        opening_quantity = quantity + sum(issues)
         receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=opening_quantity,
                        expiry_date=expiry, demo_received_at=received_at)
         if sku == "PH-03":
@@ -246,9 +266,9 @@ def _seed_inventory(inventory, manager, staff, dates, now):
             recent_receipt = datetime.combine(dates[-DEMO_WEEK_DAYS], time(8), SINGAPORE)
             receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=6,
                            expiry_date=today - timedelta(days=1), demo_received_at=recent_receipt)
-        for day in dates:
-            if daily_issue:
-                issue_stock(user_id=staff.pk, **scope, quantity_units=daily_issue,
+        for day, issued in zip(dates, issues, strict=True):
+            if issued:
+                issue_stock(user_id=staff.pk, **scope, quantity_units=issued,
                             demo_issued_at=datetime.combine(day, time(12), SINGAPORE))
             if sku != DEMO_UNVERIFIED_SKU or day not in unverified_dates:
                 verify_demand_day(user_id=manager.pk, **scope, day=day, at=now)

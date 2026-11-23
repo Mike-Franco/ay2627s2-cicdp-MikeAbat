@@ -10,7 +10,7 @@ All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refe
 - **TORY-65 (#113)** adds a Staff access checklist and type-the-name deactivation confirmation to inventory editing.
 - **TORY-66 (#114)** adds product tabs, supplier details, a stock summary, and a seven-day outlook. Suggested order now rounds up `average daily demand × (14 + lead time in days) + safety stock − available units`, with a minimum of zero.
 - **TORY-67 (#115)** gives Staff a read-only Activity log for stock movements in their assigned inventories. CSV export remains Manager-only.
-- Fresh demo seeds include ordering settings and two weeks of demand history, with two Grocery dates awaiting verification. A reseed fills missing ordering settings on existing demo products.
+- Fresh demo seeds include ordering settings and two weeks of varied demand history (deterministic, busier weekends), so Forecast accuracy shows a realistic error instead of 0%, with two Grocery dates awaiting verification. A reseed fills missing ordering settings on existing demo products.
 
 ## v1.1.1 — 23 November 2026
 

@@ -16,6 +16,7 @@ from catalogue.models import InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.models import (DemandAuditEvent, DemandCoverageEvent, ObservationActivation, ReceiptAuditEvent,
                               ReceivingBatch, StockOut)
+from receiving.management.commands.seed_demo import INVENTORIES, demo_demand
 from receiving.services import ReceiptRejected, issue_stock, receive_manual
 
 
@@ -60,17 +61,23 @@ class SeedDemoTests(TestCase):
         for inventory in business.inventories.all():
             links = InventoryProduct.objects.filter(inventory=inventory).select_related("product")
             accuracy = forecast_accuracy(accuracy_points(links, at=timezone.now()))
-            self.assertEqual(accuracy["value"], 0)
+            # Varied demand gives a believable error, not a flat 0%.
+            self.assertEqual(accuracy["method"], "MAPE")
+            self.assertGreaterEqual(accuracy["value"], 10, inventory.name)
+            self.assertLessEqual(accuracy["value"], 20, inventory.name)
 
         self.client.force_login(manager)
         session = self.client.session
         session[CREATED_KEY] = session[ACTIVE_KEY] = timezone.now().timestamp()
         session.save()
+        typical = {row[0]: row[5] for rows in INVENTORIES.values() for row in rows}
+        seeded_dates = [today - timedelta(days=offset) for offset in range(14, 0, -1)]
         for sku in ("PH-01", "GR-01"):
             link = InventoryProduct.objects.get(product__sku=sku)
             response = self.client.get(reverse("demand-forecast", args=(link.inventory_id, link.product_id)))
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.context["forecast"].displayed_average, "2.00")
+            last_week = demo_demand(sku, typical[sku], seeded_dates)[-7:]
+            self.assertEqual(response.context["forecast"].displayed_average, f"{sum(last_week) / 7:.2f}")
             self.assertTrue(response.context["reorder"].alert)
             self.assertGreater(response.context["reorder"].suggested_units, 0)
             overview = self.client.get(reverse("product-stock", args=(link.inventory_id, link.product_id)))
