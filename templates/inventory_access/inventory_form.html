@@ -33,5 +33,12 @@
   <button class="btn btn-primary" type="submit">{% if inventory %}Save changes{% else %}Add inventory{% endif %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'inventory-list' %}">Cancel</a>
 </form>
+{% if inventory %}
+<section class="panel p-3 mt-3 danger-zone" aria-labelledby="deactivate-title">
+  <h2 class="h6" id="deactivate-title">Deactivate inventory</h2>
+  <p class="text-muted">Hide this inventory and stop stock movements in it. Its stock and history are kept, and you can reactivate it later.</p>
+  <a class="btn btn-sm btn-outline-danger" href="{% url 'inventory-status' inventory.pk %}">Deactivate {{ inventory.name }}…</a>
+</section>
+{% endif %}
 <script src="{% static 'tory/inventory_form.js' %}" defer></script>
 {% endblock %}

@@ -241,7 +241,7 @@ def kpis(positions, *, turnover_30d, unverified):
          "description": "Active inventory products with zero available units."},
         {"label": "Low stock", "value": sum(position.low for position in positions),
          "description": "Active inventory products with stock at or below their verified reorder point."},
-        {"label": "Median days of supply", "value": median(supplies) if supplies else None, "format": "decimal",
+        {"label": "Median days of supply", "value": median(supplies) if supplies else None, "format": "days",
          "description": "Median of available units divided by verified seven-day average daily demand."},
         {"label": "Retail stock value", "value": sum(values, Decimal(0)), "format": "currency",
          "note": f"{unpriced} without a selling price",

@@ -35,8 +35,8 @@
           <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% include "includes/inventory_badge.html" with inventory=link.inventory %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Category</span>{{ link.product.category|default:"Uncategorised" }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Available</span>{{ item.available }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Reorder point</span>{% if item.reorder.reorder_point is None %}—{% else %}{{ item.reorder.reorder_point|floatformat:2 }}{% endif %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="d-block">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|floatformat:2 }}{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Reorder point</span>{% if item.reorder.reorder_point is None %}—{% else %}{{ item.reorder.reorder_point|units }}{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="d-block">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|days }}{% endif %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Suggested order</span>{{ item.reorder.suggested_units|default_if_none:"—" }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Status</span><span class="status-pill attention">{{ row.label }}</span></td>
           <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="d-flex flex-wrap gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></td>
@@ -72,7 +72,7 @@
   <div class="panel-heading"><h2 id="dashboard-activity">Recent stock activity</h2>{% include "includes/dashboard_panel_link.html" with panel=activities label="recent stock activity" %}</div>
   {% if activities.rows %}
   <div class="table-scroll" role="region" aria-label="Recent activity" tabindex="0">
-    <table class="products-table responsive-list" aria-label="Recent stock activity">
+    <table class="products-table responsive-list{% if not activities.expanded %} mobile-preview{% endif %}" aria-label="Recent stock activity">
       <thead><tr><th scope="col">Product</th><th scope="col">Inventory</th><th scope="col">Movement</th><th scope="col">Quantity</th><th scope="col">Date</th></tr></thead>
       <tbody>{% for event in activities.rows %}
         <tr>
@@ -85,6 +85,7 @@
       {% endfor %}</tbody>
     </table>
   </div>
+  {% if not activities.expanded and activities.rows|length > 5 %}{% querystring panel="activity" page=None as all_activity_url %}<p class="mobile-only p-3 mb-0"><a class="btn btn-sm btn-outline-primary" href="{{ all_activity_url }}#activity">View all recent activity</a></p>{% endif %}
   {% else %}<p class="p-3 mb-0">No stock movements recorded in your inventories.</p>{% endif %}
   {% include "includes/pagination.html" with page=activities.page pagination_label="Recent activity pages" %}
 </section>

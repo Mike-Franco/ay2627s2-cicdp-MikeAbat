@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Deactivate inventory · Tory{% endblock %}
+{% block breadcrumb %}Deactivate inventory{% endblock %}
+{% block content %}
+<div class="products-heading"><div><p class="eyebrow">{{ inventory.business.name }}</p><h1>Deactivate {{ inventory.name }}?</h1></div></div>
+<section class="panel p-3">
+  <p>{% include "includes/inventory_badge.html" with inventory=inventory %} will be hidden from the inventory switcher, dashboard and Insights, and no one can receive, issue or import stock in it.</p>
+  <p>Its products, stock, history and audit records are kept, and a Manager can reactivate it from <strong>All inventories</strong> at any time. The change is recorded in the activity log.</p>
+  <form method="post" action="{% url 'inventory-status' inventory.pk %}" class="d-flex flex-wrap gap-2">
+    {% csrf_token %}
+    <button class="btn btn-danger" type="submit" name="is_active" value="false">Deactivate inventory</button>
+    <a class="btn btn-outline-secondary" href="{% url 'inventory-rename' inventory.pk %}">Cancel</a>
+  </form>
+</section>
+{% endblock %}
