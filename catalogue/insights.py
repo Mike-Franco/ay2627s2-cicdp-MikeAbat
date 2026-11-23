@@ -348,5 +348,5 @@ def inventory_insights(request, inventory_id):
         "ranking_help": _help("ranking"), "expiring_help": _help("expiring"),
         "stock_data_json": reorder, "traffic_data_json": traffic, "value_data_json": value,
         "demand_data_json": history, "forecast_data_json": forecast,
-        "stock_value": stock_value, "unpriced_products": unpriced,
+        "stock_value": stock_value, "priced_count": len(priced), "unpriced_products": unpriced,
     })

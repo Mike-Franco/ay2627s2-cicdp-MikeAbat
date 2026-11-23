@@ -9,7 +9,8 @@
   {% else %}
   <p class="insight-empty">{{ card.empty }}</p>
   {% endif %}
-  {% if card.key == "value" and unpriced_products %}<p class="chart-price-note">No selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+  {% if card.key == "value" and priced_count %}<p class="chart-price-note"><strong>{{ stock_value|sgd }}</strong> across {{ priced_count }} priced product{{ priced_count|pluralize }}.</p>{% endif %}
+  {% if card.key == "value" and unpriced_products %}<p class="chart-price-note">Products with no selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
   <details class="chart-data"{% if card.page.touched %} open{% endif %}><summary>Show data</summary>
     <div class="table-scroll" role="region" aria-label="{{ card.title }} data" tabindex="0">
       <table class="products-table" aria-label="{{ card.title }} data">
