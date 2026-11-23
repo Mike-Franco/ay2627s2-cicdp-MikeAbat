@@ -2,7 +2,37 @@
 
 All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refer to [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/pulls?q=is%3Apr+is%3Amerged).
 
-## v1.0.0 — release candidate (unreleased)
+## v1.1.0 — 23 November 2026
+
+Owner-feedback release: TORY-52 to TORY-61 (approved in [CR-002](docs/decisions/CR-002-scope-additions-tory-52-61.md)) and a demo polish pass. It includes three new migrations: `accounts` 0004, `catalogue` 0011–0012, and `inventory_access` 0004.
+
+### Added
+- Safe image uploads: JPEG, PNG and WebP files are re-encoded to WebP, stored in a media volume that Caddy serves with `nosniff` and a sandboxing CSP, and included in backups and restore tests (TORY-53, #92).
+- Product categories, managed by Managers, with filters (TORY-56, #94, #95).
+- User profile: display name, job title, phone, avatar colour and photo. People are shown by name and avatar instead of email (TORY-55, #96).
+- Inventory icon, colour and optional picture, using a self-hosted Lucide icon subset under the ISC licence (TORY-54, #98).
+- Manager activity log across all inventories, with filters and CSV export (TORY-61, #101).
+- A public landing page at `/` and an in-app Help page for each feature. The dashboard has moved to `/dashboard/` (TORY-60, #102).
+
+### Changed
+- Navigation: a Dashboard link for every role, the logo links to the dashboard, each inventory's pages are grouped in the sidebar, and pages show breadcrumbs (TORY-52, #93).
+- The catalogue, Staff, invitation and inventory lists now have search, filters, sorting and pagination (TORY-57, #95).
+- Dashboard v2: inventory filter, explained KPI cards, a reorder table ordered by urgency, and panels for expiring stock and recent activity (TORY-58, #97, restored by #100).
+- Insights v2: each chart explains what it shows and comes with a data table. The charts cover stock against reorder point, intake against outtake, days of supply and retail value (TORY-59, #99).
+- Demo polish (#104):
+  - The demo seed sets SGD selling prices and names its users: Mia Tan, Store Manager, and Ravi Kumar, Stock Assistant.
+  - Reorder points show in whole units and days of supply to one decimal place.
+  - Deactivating an inventory now goes through the Edit page and a confirmation step.
+  - Activity log rows fit on one line.
+  - On phones, the dashboard shows 5 recent-activity rows.
+
+### Fixed
+- A TORY-54 merge accidentally reverted the TORY-58 dashboard on `develop`. #100 restored it exactly before any release.
+
+### Earlier tickets (first released in v1.0.0)
+- TORY-45 pagination (#64), TORY-46 login throttle locking (#70), TORY-47 audit time indexes (#69), TORY-48 inventory management (#67), TORY-49 Insights (#68), TORY-50 bulk demand verification (#72, #74), TORY-51 UX polish (#73).
+
+## v1.0.0 — 22 November 2026
 
 First release of the Tory application for the ST0529 CA1 submission.
 
