@@ -14,6 +14,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from catalogue.forms import PRODUCT_FIELDS
 from catalogue.models import Category, InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.commit_times import lock_activation, tracking_enabled
@@ -134,12 +135,42 @@ def _apply_profile(user, role):
     return bool(changed)
 
 
+def _demo_category(business, sku):
+    label = next((name for name, skus in DEMO_CATEGORIES.items() if sku in skus), None)
+    if label is None:
+        return None
+    # Reuse a category the Manager already made with the same name (any case).
+    category = Category.objects.filter(business=business, name__iexact=label).order_by("pk").first()
+    return category or Category.objects.create(business=business, name=label)
+
+
+def _backfill_categories(business, manager):
+    """Give uncategorised demo products their demo category, through the audited product edit."""
+    filled = 0
+    products = Product.objects.filter(business=business, category__isnull=True, sku__in=DEMO_PRICES).order_by("pk")
+    for product in products:
+        link = product.inventory_links.filter(inventory__is_active=True).select_related("inventory").order_by("pk").first()
+        category = _demo_category(business, product.sku)
+        if link is None or category is None:
+            continue
+        values = {field: getattr(product, field) for field in PRODUCT_FIELDS if field != "category"}
+        values["category"] = category
+        if save_product_change is not None:
+            save_product_change(user=manager, inventory=link.inventory, values=values, product_id=product.pk)
+        else:
+            Product.objects.filter(pk=product.pk).update(category=category)
+        filled += 1
+    return filled
+
+
 def _backfill(business):
-    """Add demo prices and names to an existing demo without touching stock or history.
+    """Add demo prices, names and categories to an existing demo without touching stock or history.
 
     Only blank values are filled: products without a selling price get the demo
-    price through the audited price service, and users without a display name
-    or job title get the demo profile. Returns (users, prices) filled.
+    price through the audited price service, products without a category get
+    their demo category through the audited product edit, and users without a
+    display name or job title get the demo profile. Returns (users, prices,
+    categories) filled.
     """
     users = sum(_apply_profile(membership.user, membership.role)
                 for membership in business.memberships.select_related("user"))
@@ -152,7 +183,7 @@ def _backfill(business):
     for link in links:
         _set_price(manager, link.inventory, link.product_id, link.product.sku)
         prices += 1
-    return users, prices
+    return users, prices, _backfill_categories(business, manager)
 
 
 def _ensure_observation(first_day):
@@ -234,10 +265,11 @@ class Command(BaseCommand):
                 memberships = dict(businesses[0].memberships.values_list("role", "user__email"))
                 if len(businesses) != 1 or memberships != logins:
                     raise CommandError("The demo business name is already in use with different accounts.")
-                users, prices = _backfill(businesses[0])
+                users, prices, categories = _backfill(businesses[0])
                 self.stdout.write("Tory Demo is already seeded.")
-                if users or prices:
-                    self.stdout.write(f"Backfilled {users} demo profile(s) and {prices} selling price(s).")
+                if users or prices or categories:
+                    self.stdout.write(f"Backfilled {users} demo profile(s), {prices} selling price(s) "
+                                      f"and {categories} product categor{'y' if categories == 1 else 'ies'}.")
                 return
             if User.objects.filter(email__in=logins.values()).exists():
                 raise CommandError("A demo email is already in use. Configure distinct demo emails.")

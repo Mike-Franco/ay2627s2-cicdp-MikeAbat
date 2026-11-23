@@ -14,12 +14,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
-from catalogue.models import InventoryProduct, Product
+from catalogue.models import Category, InventoryProduct, Product, ProductChangeAuditEvent
 from catalogue.templatetags.tory_format import days, one_decimal, units, whole_units
 from inventory_access.models import (
     Business, BusinessMembership, Inventory, InventoryAssignment, InventoryChangeAuditEvent,
 )
-from receiving.management.commands.seed_demo import DEMO_PRICES, DEMO_PROFILES
+from receiving.management.commands.seed_demo import DEMO_CATEGORIES, DEMO_PRICES, DEMO_PROFILES
 from receiving.models import DemandAuditEvent, ReceivingBatch
 from receiving.services import receive_manual
 
@@ -81,7 +81,7 @@ class SeedDemoPolishTests(TestCase):
         output = self.seed()
 
         self.assertIn("already seeded", output)
-        self.assertIn("Backfilled 2 demo profile(s) and 15 selling price(s).", output)
+        self.assertIn("Backfilled 2 demo profile(s), 15 selling price(s) and 0 product categories.", output)
         self.assertNotIn("password", output)
         self.assertFalse(InventoryProduct.objects.filter(selling_price__isnull=True).exists())
         manager.refresh_from_db()
@@ -92,6 +92,39 @@ class SeedDemoPolishTests(TestCase):
         self.assertEqual(
             (ReceivingBatch.objects.count(), DemandAuditEvent.objects.count(), Product.objects.count()), counts,
         )
+        self.assertNotIn("Backfilled", self.seed())
+
+    def test_rerun_backfills_categories_only_for_uncategorised_products(self):
+        self.seed()
+        business = Business.objects.get(name="Tory Demo")
+        products = Product.objects.filter(business=business)
+        # Simulate a v1.0.0 demo (no categories), except one product a Manager
+        # already filed under their own category, reusing a demo name in another case.
+        custom = Category.objects.create(business=business, name="Shelf stable")
+        products.exclude(sku="GR-02").update(category=None)
+        products.filter(sku="GR-02").update(category=custom)
+        Category.objects.filter(business=business).exclude(pk=custom.pk).delete()
+        Category.objects.create(business=business, name="pantry")
+        audits = ProductChangeAuditEvent.objects.count()
+        counts = (ReceivingBatch.objects.count(), DemandAuditEvent.objects.count())
+
+        output = self.seed()
+
+        self.assertIn("and 14 product categories.", output)
+        self.assertEqual(products.filter(category__isnull=True).count(), 0)
+        self.assertEqual(products.get(sku="GR-02").category, custom)
+        self.assertEqual(products.get(sku="GR-03").category.name, "pantry")
+        self.assertEqual(Category.objects.filter(business=business, name__iexact="pantry").count(), 1)
+        self.assertSetEqual(
+            {name.casefold() for name in Category.objects.filter(business=business).values_list("name", flat=True)},
+            {name.casefold() for name in DEMO_CATEGORIES} | {"shelf stable"},
+        )
+        for name, skus in DEMO_CATEGORIES.items():
+            for sku in skus:
+                if sku != "GR-02":
+                    self.assertEqual(products.get(sku=sku).category.name.casefold(), name.casefold())
+        self.assertEqual(ProductChangeAuditEvent.objects.count(), audits + 14)
+        self.assertEqual((ReceivingBatch.objects.count(), DemandAuditEvent.objects.count()), counts)
         self.assertNotIn("Backfilled", self.seed())
 
 

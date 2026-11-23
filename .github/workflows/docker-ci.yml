@@ -78,7 +78,7 @@ jobs:
       - name: Run the browser smoke test
         run: >-
           python scripts/e2e_smoke.py --base-url http://localhost:8000
-          --email manager@tory-demo.test --password "$DEMO_MANAGER_PASSWORD"
+          --email manager@tory-demo.test --password="$DEMO_MANAGER_PASSWORD"
           --screenshots e2e-screenshots
       - name: Upload screenshots
         if: always()
