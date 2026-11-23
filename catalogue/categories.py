@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, OuterRef
 from django.db.models.deletion import ProtectedError
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
@@ -12,6 +13,7 @@ from inventory_access.authorization import manager_memberships
 
 from .forms import PlainLabelsMixin
 from .models import Category, Product
+from .pagination import paginate
 
 
 class CategoryForm(PlainLabelsMixin, forms.ModelForm):
@@ -34,9 +36,11 @@ def _business(request, business_id):
 @require_GET
 def category_list(request, business_id):
     business = _business(request, business_id)
-    categories = business.categories.annotate(in_use=Exists(Product.objects.filter(category_id=OuterRef("pk"))))
+    categories = business.categories.annotate(
+        in_use=Exists(Product.objects.filter(category_id=OuterRef("pk")))).order_by(Lower("name"), "pk")
+    page = paginate(request, categories)
     return render(request, "catalogue/category_list.html", {
-        "business": business, "categories": categories,
+        "business": business, "categories": page.object_list, "page": page,
         "breadcrumbs": [("Dashboard", reverse("home")), ("Catalogue", reverse("product-catalogue")), ("Categories", None)],
     })
 

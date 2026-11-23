@@ -4,4 +4,5 @@
     {% if actions %}<div class="ph-actions">{{ actions }}</div>{% endif %}
   </div>
   {% if crumbs %}<nav class="crumbs" aria-label="Breadcrumb">{% for item in crumbs %}{% if not forloop.first %}<span class="sep" aria-hidden="true">/</span>{% endif %}{% if item.current %}<span aria-current="page">{% if item.inventory %}{% include "includes/inventory_badge.html" with inventory=item.inventory %}{% else %}{{ item.label }}{% endif %}</span>{% elif item.url %}<a href="{{ item.url }}">{% if item.inventory %}{% include "includes/inventory_badge.html" with inventory=item.inventory %}{% else %}{{ item.label }}{% endif %}</a>{% else %}<span>{{ item.label }}</span>{% endif %}{% endfor %}</nav>{% endif %}
+  {% if subtitle %}<p class="ph-sub">{{ subtitle }}</p>{% endif %}
 </div></header>

@@ -48,8 +48,8 @@ def default_breadcrumbs(context, current):
 
 
 class PageHeaderNode(template.Node):
-    def __init__(self, title, actions, current):
-        self.title, self.actions, self.current = title, actions, current
+    def __init__(self, title, actions, current, subtitle=None):
+        self.title, self.actions, self.current, self.subtitle = title, actions, current, subtitle
 
     def render(self, context):
         title = self.title.render(context).strip()
@@ -63,21 +63,22 @@ class PageHeaderNode(template.Node):
             crumbs[-1]["current"] = True
         return render_to_string("includes/page_header.html", {
             "title": mark_safe(title), "actions": mark_safe(actions), "crumbs": crumbs,
+            "subtitle": self.subtitle.resolve(context) if self.subtitle is not None else "",
         })
 
 
 @register.tag
 def page_header(parser, token):
     bits = token.split_contents()
-    current = None
+    options = {}
     for bit in bits[1:]:
         name, _, value = bit.partition("=")
-        if name != "crumb" or not value:
-            raise template.TemplateSyntaxError("page_header only takes crumb=<label>")
-        current = parser.compile_filter(value)
+        if name not in ("crumb", "subtitle") or not value:
+            raise template.TemplateSyntaxError("page_header only takes crumb=<label> and subtitle=<text>")
+        options[name] = parser.compile_filter(value)
     title = parser.parse(("header_actions", "endpage_header"))
     actions = None
     if parser.next_token().contents == "header_actions":
         actions = parser.parse(("endpage_header",))
         parser.delete_first_token()
-    return PageHeaderNode(title, actions, current)
+    return PageHeaderNode(title, actions, options.get("crumb"), options.get("subtitle"))

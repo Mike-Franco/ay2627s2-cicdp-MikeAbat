@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Staff invitations · Tory{% endblock %}
-{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}Staff invitations{% endpage_header %}{% endblock %}
 {% block content %}
 {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
+<div class="split split-aside">
 <section class="panel" aria-labelledby="invite-title">
   <header class="card-h"><div class="card-title"><h2 id="invite-title">Invite someone</h2></div></header>
   <form method="post" class="form-card" data-select-all-scope>
@@ -60,4 +60,5 @@
   {% else %}<p class="insight-empty">No invitations match the current view.</p>{% endif %}
   {% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
 </section>
+</div>
 {% endblock %}

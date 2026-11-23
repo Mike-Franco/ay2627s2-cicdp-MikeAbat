@@ -89,6 +89,26 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   window.addEventListener('scroll', closeFixedMenus, { passive: true });
 
+  // File drop zones (TORY-69): show the chosen or dropped file name. The input covers the zone,
+  // so clicking and dropping both work natively; this only updates the label.
+  document.querySelectorAll('[data-file-drop]').forEach(function (zone) {
+    var input = zone.querySelector('input[type="file"]');
+    var label = zone.querySelector('[data-file-name]');
+    if (!input || !label) return;
+    var empty = label.textContent;
+    function show() {
+      var file = input.files && input.files[0];
+      label.textContent = file ? file.name + ' · ' + Math.max(1, Math.round(file.size / 1024)) + ' KB' : empty;
+      zone.classList.toggle('has-file', Boolean(file));
+    }
+    input.addEventListener('change', show);
+    input.addEventListener('dragenter', function () { zone.classList.add('is-over'); });
+    ['dragleave', 'drop'].forEach(function (name) {
+      input.addEventListener(name, function () { zone.classList.remove('is-over'); });
+    });
+    show();
+  });
+
   // "Select all" for checklists (TORY-68). The button stays hidden without JavaScript.
   document.querySelectorAll('[data-select-all-scope]').forEach(function (scope) {
     var button = scope.querySelector('[data-select-all]');

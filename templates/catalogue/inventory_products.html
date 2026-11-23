@@ -18,12 +18,12 @@
     <table class="products-table product-cards">
       <thead><tr>
         <th scope="col"{% if sort == 'name' %} aria-sort="ascending"{% elif sort == '-name' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'name' %}{% querystring sort='-name' page=None %}{% else %}{% querystring sort='name' page=None %}{% endif %}">Product</a></th>
-        <th scope="col">SKU</th><th scope="col" class="numeric">Physical</th><th scope="col" class="numeric">Quarantined</th><th scope="col" class="numeric">Selling price</th>
-        <th scope="col" class="numeric"{% if sort == 'available' %} aria-sort="ascending"{% elif sort == '-available' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'available' %}{% querystring sort='-available' page=None %}{% else %}{% querystring sort='available' page=None %}{% endif %}">Available</a></th>
+        <th scope="col">SKU</th><th scope="col" class="numeric"><span class="th-help">Physical{% include "includes/row_help.html" with tip_id="tip-col" tip_key="physical" tip_label="What Physical means" tip_title="Physical" tip_text="Recorded stock on hand, including quarantined units." %}</span></th><th scope="col" class="numeric"><span class="th-help">Quarantined{% include "includes/row_help.html" with tip_id="tip-col" tip_key="quarantined" tip_label="What Quarantined means" tip_title="Quarantined" tip_text="Expired or held stock. It stays on hand but cannot be issued." %}</span></th><th scope="col" class="numeric">Selling price</th>
+        <th scope="col" class="numeric"{% if sort == 'available' %} aria-sort="ascending"{% elif sort == '-available' %} aria-sort="descending"{% endif %}><span class="th-help"><a class="sort-link" href="{% if sort == 'available' %}{% querystring sort='-available' page=None %}{% else %}{% querystring sort='available' page=None %}{% endif %}">Available</a>{% include "includes/row_help.html" with tip_id="tip-col" tip_key="available" tip_label="What Available means" tip_title="Available" tip_text="Physical minus quarantined: the amount Tory lets users issue now." %}</span></th>
         <th scope="col"{% if sort == 'status' %} aria-sort="ascending"{% elif sort == '-status' %} aria-sort="descending"{% endif %}><a class="sort-link" href="{% if sort == 'status' %}{% querystring sort='-status' page=None %}{% else %}{% querystring sort='status' page=None %}{% endif %}">Reorder status</a></th>
         <th scope="col">Actions</th></tr></thead>
       <tbody>{% for link in product_links %}<tr>
-        <th scope="row" class="cell-product"><div class="product-cell"><span class="product-symbol" aria-hidden="true">▣</span><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a><span class="unit">{{ link.product.category|default:"Uncategorised" }}</span>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
+        <th scope="row" class="cell-product"><div class="product-cell"><span><a class="product-name" href="{% url 'product-stock' inventory.pk link.product_id %}">{{ link.product.name }}</a><span class="unit">{{ link.product.category|default:"Uncategorised" }}</span>{% if not link.product.is_active %}<span class="unit">Inactive</span>{% endif %}</span></div></th>
         <td class="product-sku cell-sku">{{ link.product.sku }}</td>
         <td class="numeric cell-physical">{{ link.display_physical_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
         <td class="numeric cell-quarantine">{{ link.display_quarantine_units }}<span class="unit">{{ link.product.base_unit_label|default:'base unit not set' }}</span></td>
@@ -37,5 +37,4 @@
   {% elif not filter_form.errors %}<p class="p-4 mb-0">{% if total_product_count %}No products match your filters. <a href="{% url 'inventory-products' inventory.pk %}">Clear filters</a> to see all linked products.{% else %}No products are linked to this inventory.{% endif %}</p>{% endif %}
 </section>
 {% include "includes/pagination.html" with pagination_label="Inventory products pages" %}
-<p class="inventory-explanation">Physical is recorded stock. Quarantined stock remains on hand but cannot be issued. Available is the amount Tory currently allows users to issue.</p>
 {% endblock %}

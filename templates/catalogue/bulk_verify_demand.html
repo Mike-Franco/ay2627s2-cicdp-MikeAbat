@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Verify demand · {{ inventory.name }} · Tory{% endblock %}
-{% block layout %} layout-narrow{% endblock %}
-{% block page_header %}{% page_header crumb="Verify demand" %}Verify demand for all products{% endpage_header %}{% endblock %}
+{% block page_header %}{% page_header crumb="Verify demand" subtitle="Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates." %}Verify demand for all products{% endpage_header %}{% endblock %}
 {% block content %}
-<p class="page-intro">Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates.</p>
 {% if result %}
 <section class="panel mb-3" aria-labelledby="bulk-result" role="status">
   <div class="panel-heading">
@@ -12,32 +10,36 @@
     <p>{% for day in result.days %}{{ day|sgdate }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
   </div>
   {% if result.skipped_reasons %}
-  <ul class="list-group list-group-flush">
-    {% for reason, count in result.skipped_reasons %}
-    <li class="list-group-item">Skipped {{ count }}: {{ reason }}</li>
-    {% endfor %}
+  <ul class="rules">
+    {% for reason, count in result.skipped_reasons %}<li>Skipped {{ count }}: {{ reason }}</li>{% endfor %}
   </ul>
   {% endif %}
 </section>
 {% endif %}
 {{ form.non_field_errors }}
-<section class="panel mb-3" aria-labelledby="bulk-week">
-  <div class="panel-heading"><h2 id="bulk-week">Last 7 days</h2>
-  <p>{% if window %}{{ window.0|sgdate }} to {{ window|last|sgdate }}.{% else %}Demand observation has not started yet.{% endif %} Already-reviewed and inactive products are skipped.</p></div>
-  <form method="post" class="p-3">
-    {% csrf_token %}
-    <input type="hidden" name="scope" value="week">
-    <button class="btn btn-primary" type="submit"{% if not window %} disabled{% endif %}>Verify all unverified days in the last 7 complete Asia/Singapore dates</button>
-  </form>
-</section>
-<section class="panel" aria-labelledby="bulk-day">
-  <div class="panel-heading"><h2 id="bulk-day">One date</h2><p>Verify a single complete Asia/Singapore date for every product.</p></div>
-  <form method="post" class="p-3">
-    {% csrf_token %}
-    <input type="hidden" name="scope" value="day">
-    <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.day.id_for_label }}">{{ form.day.label }}</label>{{ form.day }}{{ form.day.errors }}<div class="form-text">Defaults to yesterday.</div></div>
-    <button class="btn btn-outline-primary" type="submit">Verify this date for all products</button>
-    <a class="btn btn-outline-secondary" href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
-  </form>
-</section>
+<div class="split">
+  <section class="panel" aria-labelledby="bulk-week">
+    <header class="card-h"><div class="card-title"><h2 id="bulk-week">Last 7 days</h2></div>{% if window %}<span class="muted">{{ unverified_days }} unverified</span>{% endif %}</header>
+    {% if week %}
+    <ol class="days7" aria-label="Verification status of the last 7 complete Singapore dates">
+      {% for item in week %}<li><span class="d">{{ item.day|sgweekday }}</span>{% if item.unverified %}<span class="status-pill neutral" title="{{ item.unverified }} product{{ item.unverified|pluralize }} not reviewed">Unverified</span>{% else %}<span class="status-pill success">Verified</span>{% endif %}</li>{% endfor %}
+    </ol>
+    {% else %}<p class="insight-empty">Demand observation has not started yet.</p>{% endif %}
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <input type="hidden" name="scope" value="week">
+      <p class="help-text mb-0">Already-reviewed dates and inactive products are skipped.</p>
+      <div>{% if unverified_days %}<button class="btn btn-primary" type="submit">Verify {{ unverified_days }} unverified day{{ unverified_days|pluralize }}</button>{% else %}<button class="btn btn-primary" type="submit" disabled>{% if window %}All 7 days verified{% else %}Nothing to verify yet{% endif %}</button>{% endif %}</div>
+    </form>
+  </section>
+  <section class="panel" aria-labelledby="bulk-day">
+    <header class="card-h"><div class="card-title"><h2 id="bulk-day">One date</h2></div></header>
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <input type="hidden" name="scope" value="day">
+      <div><label class="form-label" for="{{ form.day.id_for_label }}">{{ form.day.label }}</label>{{ form.day }}{{ form.day.errors }}<div class="form-text">Defaults to yesterday. Verifies the date for every product.</div></div>
+      <div><button class="btn btn-outline-primary" type="submit">Verify this date</button></div>
+    </form>
+  </section>
+</div>
 {% endblock %}
