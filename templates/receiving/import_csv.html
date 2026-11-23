@@ -3,7 +3,7 @@
 {% block page_header %}{% page_header crumb="Import CSV" %}Import stock CSV{% endpage_header %}{% endblock %}
 {% block content %}
 <p>Selected inventory: <strong>{{ inventory.name }}</strong></p>
-<p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>. Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>
+<p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>, or <code>sku,change,supplier_name</code> to also set each product's supplier (blank cells leave it unchanged). Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>
 <section class="panel mb-3" aria-labelledby="csv-format">
   <div class="panel-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
     <div><h2 id="csv-format">File format</h2><p>A positive change receives stock (products without expiry tracking only); a negative change issues stock, oldest expiry first.</p></div>

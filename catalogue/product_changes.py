@@ -61,7 +61,9 @@ def save_product_change(*, user, inventory, values, product_id=None, inventory_i
         raise Http404
     for field in PRODUCT_FIELDS:
         if before is None or field != "sku":
-            if field == "category" and field not in values:
+            # Optional fields keep their current value when a caller (the demo seed, an
+            # older form) does not send them. supplier_name was added in TORY-66.
+            if field in ("category", "supplier_name") and field not in values:
                 continue
             setattr(product, field, values[field])
     if product.category_id:

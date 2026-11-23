@@ -213,7 +213,8 @@ class ReorderTests(TestCase):
         self.assertEqual(result.forecast.displayed_average, "0.43")
         self.assertEqual(result.reorder_point, 3)
         self.assertTrue(result.alert)
-        self.assertEqual(result.suggested_units, 3)
+        # TORY-66: 3/7 a day × (14-day cover + 7-day lead time) + 0 safety − 0 available = 9.
+        self.assertEqual(result.suggested_units, 9)
         save_shared_settings(user_id=self.manager.pk, inventory_id=self.first.pk,
                              product_id=self.product.pk, lead_time_days=7, safety_stock_units=8)
         receive_manual(user_id=self.manager.pk, inventory_id=self.first.pk,
@@ -222,13 +223,13 @@ class ReorderTests(TestCase):
         result = recommendation(user_id=self.manager.pk, inventory_id=self.first.pk, product_id=self.product.pk)
         self.assertEqual((result.reorder_point, result.available_units), (11, 11))
         self.assertTrue(result.alert)
-        self.assertEqual(result.suggested_units, 0)
+        self.assertEqual(result.suggested_units, 6)  # 3/7 × 21 + 8 − 11
         receive_manual(user_id=self.manager.pk, inventory_id=self.first.pk,
                        product_id=self.product.pk, request_token=uuid.uuid4(),
                        quantity_units=1, expiry_date=None)
         result = recommendation(user_id=self.manager.pk, inventory_id=self.first.pk, product_id=self.product.pk)
         self.assertFalse(result.alert)
-        self.assertEqual(result.suggested_units, 0)
+        self.assertEqual(result.suggested_units, 5)  # still short of 14 days' cover after the lead time
         self.login(self.staff)
         response = self.client.get(reverse("demand-forecast", args=[self.first.pk, self.product.pk]))
         self.assertContains(response, "No reorder alert")

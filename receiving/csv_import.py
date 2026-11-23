@@ -60,7 +60,16 @@ def _check_quote_syntax(record, number):
         raise CsvImportRejected("Malformed CSV quoting.", row=number, category="row_shape")
 
 
+HEADERS = {"sku,change": 2, "sku,change,supplier_name": 3}  # TORY-66: supplier_name is optional
+SUPPLIER_MAX = 120
+
+
 def parse_csv(raw):
+    return parse_csv_rows(raw)[0]
+
+
+def parse_csv_rows(raw):
+    """Return ([(row number, sku, change)], {row number: supplier name}) for a strictly valid file."""
     if not isinstance(raw, bytes):
         raise CsvImportRejected("Upload a CSV file.")
     if len(raw) > MAX_BYTES:
@@ -75,11 +84,14 @@ def parse_csv(raw):
         raise CsvImportRejected("File must be strict UTF-8.", category="encoding") from error
     if "\r" in text.replace("\r\n", ""):
         raise CsvImportRejected("Use LF or CRLF line endings.", category="line_endings")
-    if text.split("\n", 1)[0].removesuffix("\r") != "sku,change":
-        raise CsvImportRejected("Header must be exactly sku,change.", category="header")
+    width = HEADERS.get(text.split("\n", 1)[0].removesuffix("\r"))
+    if width is None:
+        raise CsvImportRejected("Header must be exactly sku,change (or sku,change,supplier_name).",
+                                category="header")
     for number, record in enumerate(text.split("\n")[1:], start=2):
         _check_quote_syntax(record.removesuffix("\r"), number)
     rows = []
+    suppliers = {}
     try:
         csv.field_size_limit(MAX_BYTES)
         reader = csv.reader(io.StringIO(text, newline=""), strict=True)
@@ -87,11 +99,18 @@ def parse_csv(raw):
         for number, fields in enumerate(reader, start=2):
             if number > MAX_ROWS + 1:
                 raise CsvImportRejected("File exceeds 1,000 data rows.", category="row_limit")
-            if len(fields) != 2:
-                raise CsvImportRejected("Expected exactly two fields.", row=number, category="row_shape")
-            sku, change = fields
-            if "\n" in sku or "\r" in sku or "\n" in change or "\r" in change:
+            if len(fields) != width:
+                raise CsvImportRejected("Expected exactly two fields." if width == 2 else "Expected exactly three fields.",
+                                        row=number, category="row_shape")
+            sku, change, *extra = fields
+            if any("\n" in field or "\r" in field for field in fields):
                 raise CsvImportRejected("Embedded record newline is not allowed.", row=number, category="row_shape")
+            supplier = extra[0].strip() if extra else ""
+            if len(supplier) > SUPPLIER_MAX:
+                raise CsvImportRejected("Supplier name is longer than 120 characters.", row=number,
+                                        field="supplier_name")
+            if supplier:
+                suppliers[number] = supplier
             sku = sku.strip(" ")
             if not sku:
                 raise CsvImportRejected("SKU is required.", row=number, field="sku")
@@ -109,11 +128,11 @@ def parse_csv(raw):
                                 category="row_shape") from error
     if not rows:
         raise CsvImportRejected("File has no data rows.", category="header_only")
-    return rows
+    return rows, suppliers
 
 
 def import_stock_csv(*, user_id, inventory_id, raw_bytes):
-    rows = parse_csv(raw_bytes)
+    rows, suppliers = parse_csv_rows(raw_bytes)
     digest = hashlib.sha256(raw_bytes).hexdigest()
     with transaction.atomic():
         # Shared activation lock lets imports in different inventories proceed
@@ -215,6 +234,33 @@ def import_stock_csv(*, user_id, inventory_id, raw_bytes):
                                 import_record=import_record, import_row_number=number)
                 except ReceiptRejected as error:
                     raise CsvImportRejected(str(error), row=number, field="change") from error
+        _apply_suppliers(user, inventory, rows, suppliers, products)
         import_record.committed_at = timezone.now()
         import_record.save(update_fields=["committed_at"])
         return import_record
+
+
+def _apply_suppliers(user, inventory, rows, suppliers, products):
+    """Optional supplier_name column (TORY-66): the last non-blank value per product wins.
+
+    Products are already locked by the import. Each real change is audited as a
+    product edit, the same as a change made on the product form.
+    """
+    from catalogue.models import ProductChangeAuditEvent
+    from catalogue.product_changes import _snapshot
+
+    latest = {}
+    for number, sku, _ in rows:
+        if number in suppliers:
+            latest[products[sku.casefold()].pk] = suppliers[number]
+    for product_id, supplier in sorted(latest.items()):
+        product = Product.objects.get(pk=product_id)
+        if product.supplier_name == supplier:
+            continue
+        before = _snapshot(product)
+        Product.objects.filter(pk=product_id).update(supplier_name=supplier)
+        product.supplier_name = supplier
+        ProductChangeAuditEvent.objects.create(
+            actor=user, business_id=inventory.business_id, inventory=inventory, product=product, action="edit",
+            before=before, after=_snapshot(product), occurred_at=timezone.now(),
+        )

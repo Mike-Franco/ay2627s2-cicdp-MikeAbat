@@ -14,6 +14,8 @@ from .models import InventoryProduct, Product
 
 
 MAX_UNITS = 2_147_483_647
+# TORY-66: a suggested order covers this many days of demand after the lead time.
+ORDER_COVER_DAYS = 14
 
 
 @dataclass(frozen=True)
@@ -55,7 +57,21 @@ def recommendation_from_evidence(product, physical, forecast, quarantined):
     point = forecast.average * product.lead_time_days + product.safety_stock_units
     return ReorderResult(forecast, available, quarantined,
                          product.lead_time_days, product.safety_stock_units, missing,
-                         point, available <= point, max(0, ceil(point - available)))
+                         point, available <= point,
+                         suggested_order(forecast.average, product.lead_time_days, product.safety_stock_units,
+                                         available))
+
+
+def suggested_order(average_daily, lead_time_days, safety_stock_units, available):
+    """Units to order now: ceil(avg_daily × (14 + lead_time_days) + safety_stock − available), minimum 0.
+
+    None when any input is missing (no verified forecast, no lead time or no
+    safety stock); callers show "—" with the same reason as the reorder point.
+    """
+    if average_daily is None or lead_time_days is None or safety_stock_units is None:
+        return None
+    target = average_daily * (ORDER_COVER_DAYS + lead_time_days) + safety_stock_units
+    return max(0, ceil(target - available))
 
 
 def can_edit_shared_settings(user, product):

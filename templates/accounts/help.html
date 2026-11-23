@@ -77,9 +77,9 @@
     <li><strong>Average daily demand</strong> = units issued over those 7 days ÷ 7</li>
     <li><strong>Reorder point</strong> = average daily demand × lead time (days) + safety stock</li>
     <li><strong>Reorder alert</strong> when available units ≤ reorder point</li>
-    <li><strong>Suggested order</strong> = reorder point − available, rounded up (never below 0)</li>
+    <li><strong>Suggested order</strong> = average daily demand × (14 + lead time) + safety stock − available, rounded up (never below 0). It covers 14 days of demand after the order arrives.</li>
   </ul>
-  <p class="help-example"><strong>Worked example.</strong> 21 units were issued over the last 7 verified days, so the average is 3 a day. With a lead time of 4 days and safety stock of 5, the reorder point is 3 × 4 + 5 = 17. With 10 units available, 10 ≤ 17 raises an alert and the suggestion is 17 − 10 = 7 units.</p>
+  <p class="help-example"><strong>Worked example.</strong> 21 units were issued over the last 7 verified days, so the average is 3 a day. With a lead time of 4 days and safety stock of 5, the reorder point is 3 × 4 + 5 = 17. With 10 units available, 10 ≤ 17 raises an alert, and the suggested order is 3 × (14 + 4) + 5 − 10 = 49 units.</p>
   <p>Only Managers can change lead time and safety stock. They apply to the product in every inventory.</p>
 </section>
 

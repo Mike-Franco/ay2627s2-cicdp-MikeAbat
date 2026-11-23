@@ -92,3 +92,13 @@ def day_list(values):
     if len(labels) < 2:
         return "".join(labels)
     return ", ".join(labels[:-1]) + " and " + labels[-1]
+
+
+@register.filter
+def sgweekday(value):
+    """Format a date as "Thu 26 Nov" (weekday and day, for near-future dates such as a run-out day)."""
+    if not value:
+        return ""
+    if isinstance(value, datetime):
+        value = timezone.localtime(value, SINGAPORE).date()
+    return dateformat.format(value, "D j M")

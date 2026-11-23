@@ -78,6 +78,8 @@ class Product(models.Model):
     lead_time_days = models.PositiveIntegerField(
         null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(365)]
     )
+    # TORY-66: who the product is ordered from; shown with the lead time.
+    supplier_name = models.CharField(max_length=120, blank=True, default="")
 
     def clean(self):
         super().clean()
