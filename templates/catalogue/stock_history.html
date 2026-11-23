@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Stock history for {{ product.sku }} · Tory{% endblock %}
-{% block page_header %}{% page_header crumb="History" %}{{ product.name }}{% header_actions %}<a class="btn" href="{% url 'export-stock-history' inventory.pk product.pk %}">Download stock history CSV</a>{% endpage_header %}{% endblock %}
+{% block page_header %}{% page_header crumb="History" %}{% include "includes/product_title.html" %}{% header_actions %}{% include "includes/product_actions.html" %}{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' with active_tab='history' %}
-<p>{{ product.name }} · {{ inventory.name }}</p>
-<p class="text-muted">Times are shown in Asia/Singapore.</p>
+<section class="panel" aria-labelledby="history-title">
+<header class="card-h"><div class="card-title"><h2 id="history-title">Stock history · {{ inventory.name }}</h2></div><span class="muted">Times are Asia/Singapore</span></header>
 {% if events %}
-  <div class="table-responsive">
-    <table class="table table-striped align-middle">
+  <div class="table-scroll" role="region" aria-label="Stock history" tabindex="0">
+    <table class="products-table history-table">
       <thead><tr>
         <th scope="col">Action</th>
         <th scope="col">Time</th>
@@ -64,8 +64,8 @@
     </table>
   </div>
 {% else %}
-  <p>No stock history has been recorded for this product in this inventory.</p>
+  <p class="insight-empty">No stock history has been recorded for this product in this inventory.</p>
 {% endif %}
 {% include "includes/pagination.html" with pagination_label="Stock history pages" %}
-<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+</section>
 {% endblock %}

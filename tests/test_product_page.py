@@ -151,8 +151,10 @@ class ProductPageTests(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, ">Receive<")
         self.assertContains(response, ">Issue<")
-        for label in (">Adjust<", "Edit product", "Deactivate product", "More actions"):
+        for label in (">Adjust<", "Edit product", "Deactivate product", "Selling price", "Edit reorder settings"):
             self.assertNotContains(response, label)
+        # TORY-68: every tab has the same ⋯ menu; Staff only get the history download in it.
+        self.assertContains(response, "Download history CSV")
         self.assertContains(response, "Open in Activity log")  # TORY-67: Staff can read their movements
 
     def test_tabs_batches_and_recent_history(self):

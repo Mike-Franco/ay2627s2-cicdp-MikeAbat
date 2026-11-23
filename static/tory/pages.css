@@ -5,7 +5,7 @@
 .product-heading .eyebrow{color:var(--muted);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px}
 .product-heading h1{margin-bottom:5px}
 .product-heading p:last-child{color:var(--muted);font-size:12px;margin-bottom:0}
-.product-tabs{display:flex;gap:20px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:16px;white-space:nowrap}
+.product-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);margin-bottom:16px;white-space:nowrap}
 .product-tabs a{padding:8px 0 10px;color:var(--muted);font-size:13px;font-weight:500;text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
 .product-tabs a:hover{color:var(--text);text-decoration:none}
 .product-tabs a[aria-current=page]{color:var(--text);border-color:var(--accent)}
@@ -18,7 +18,7 @@
 .balance-card.emphasized{border-color:var(--line2)}
 .content>h1{margin-bottom:6px}
 .content>h1+p{color:var(--muted);font-size:13px}
-.content>form{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:20px;max-width:850px;margin:0 0 16px}
+.content>form{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:20px;margin:0 0 16px}
 .content>form .form-control,.content>form select,.content>form textarea{max-width:100%}
 .content>form label{display:block;font-weight:500;margin-bottom:4px}
 .content>form input[type=checkbox]+label{display:inline;font-weight:400}
@@ -26,7 +26,7 @@
 .content>.table-responsive{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);margin:20px 0;max-width:100%;overflow-x:auto}
 .content>.table-responsive .table{margin-bottom:0}
 .content>.table-responsive .table th,.content>.table-responsive .table td{padding:12px 15px;vertical-align:top}
-.content>ul.list-group{max-width:900px;margin-top:20px}
+.content>ul.list-group{margin-top:20px}
 .content>ul.list-group .list-group-item{padding:14px 18px}
 .content .alert{border-radius:var(--radius-card)}
 .product-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(210px,1fr) auto;gap:10px;align-items:end;padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -37,8 +37,10 @@
 .filter-errors{color:var(--bs-danger-text-emphasis);font-size:12px;margin-top:6px}
 .filter-errors ul{padding-left:18px;margin-bottom:0}
 .content .form-text,.content .invalid-feedback{font-size:12px}
-.content>dl{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px;margin:0 0 16px;max-width:850px}
+.content>dl{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px;margin:0 0 16px}
 @media(max-width:600px){.balance-grid{grid-template-columns:1fr}.content>form{padding:16px}.product-tabs{gap:18px}}
+/* TORY-68: tabs fit on desktop; on phones they scroll sideways without a visible scrollbar. */
+@media(max-width:700px){.product-tabs{overflow-x:auto;scrollbar-width:none}.product-tabs::-webkit-scrollbar{display:none}}
 @media(max-width:1100px){.product-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.product-filter-actions{grid-column:1/-1}}
 @media(max-width:600px){.product-filters{grid-template-columns:1fr}}
 
@@ -64,13 +66,28 @@ a.stat-tile:hover{border-color:var(--accent);text-decoration:none}
 .inventory-card .card-stats{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--muted)}
 .inventory-card .card-stats strong{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
 .inventory-card .card-stats .attention strong{color:var(--attention)}
-.actions-compact{display:none}
 .more-menu{position:relative;display:inline-block}
 .more-menu summary{list-style:none}
 .more-menu summary::-webkit-details-marker{display:none}
-.more-items{position:absolute;right:0;z-index:5;min-width:150px;margin-top:4px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow)}
-.more-items a{display:block;padding:7px 9px;border-radius:5px;text-decoration:none;font-size:12px}
-.more-items a:hover{background:var(--subtle)}
+.more-items{position:absolute;right:0;z-index:60;min-width:170px;margin-top:4px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);text-align:left;white-space:nowrap}
+.more-items.is-fixed{position:fixed;right:auto;margin-top:0}
+.more-items a{display:block;padding:7px 9px;border-radius:5px;color:var(--text);text-decoration:none;font-size:12.5px}
+.more-items a:hover,.more-items a:focus{background:var(--subtle);outline:none}
+.more-items a:focus-visible{box-shadow:0 0 0 2px var(--accent) inset}
+.more-items a.danger{color:var(--red)}
+.more-items a.danger:hover,.more-items a.danger:focus{background:var(--red-bg)}
+/* TORY-68: row actions are Receive + Issue + a menu button, 6px apart, never wrapping. */
+.row-actions{display:flex;flex-wrap:nowrap;align-items:center;gap:6px}
+.row-actions form{margin:0}
+.more-menu summary.btn-sm{min-width:30px;padding:0 8px;font-size:14px;line-height:1}
+.btn-text{display:inline-flex;align-items:center;min-height:28px;padding:0 6px;border:0;border-radius:var(--radius);background:none;font:inherit;font-size:12px;font-weight:500;color:var(--accent-ink);cursor:pointer;text-decoration:none}
+.btn-text:hover{background:var(--hover);text-decoration:none}
+.btn-text.danger{color:var(--red)}
+.btn-text.danger:hover{background:var(--red-bg);color:var(--red)}
+.status-cell{display:inline-flex;align-items:center;gap:6px}
+.tip.is-fixed{position:fixed}
+.notice{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 14px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel);font-size:13px}
+.notice-flush{margin:0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:var(--hover)}
 .mobile-label{display:none}
 .staff-table{min-width:640px}
 @media(max-width:700px){
@@ -85,8 +102,10 @@ a.stat-tile:hover{border-color:var(--accent);text-decoration:none}
   .products-table.product-cards .cell-status{grid-area:status}
   .products-table.product-cards .cell-price{grid-area:price;text-align:left;font-size:12px}
   .products-table.product-cards .cell-actions{grid-area:actions;min-width:0}
-  .products-table.product-cards .cell-physical,.products-table.product-cards .cell-quarantine,.actions-full{display:none}
-  .actions-compact{display:flex;flex-wrap:wrap;gap:6px}
+  .products-table.product-cards .cell-physical,.products-table.product-cards .cell-quarantine{display:none}
+  .products-table.product-cards .cell-actions{width:auto}
+  .row-actions .btn-sm,.row-actions .more-menu summary.btn-sm{min-height:44px;min-width:44px}
+  .btn-text{min-height:44px}
   .mobile-label{display:block;font-size:10px;font-weight:600;color:var(--muted)}
 }
 
@@ -103,9 +122,9 @@ a.stat-tile:hover{border-color:var(--accent);text-decoration:none}
 
 /* Sortable product table headers. */
 .sort-link{color:inherit;text-decoration:none}
-.sort-link:hover{color:var(--accent);text-decoration:underline}
-th[aria-sort=ascending] .sort-link::after{content:" ↑"}
-th[aria-sort=descending] .sort-link::after{content:" ↓"}
+.sort-link::after{content:" ↕";color:var(--muted)}
+th[aria-sort=ascending] .sort-link::after{content:" ↑";color:var(--text)}
+th[aria-sort=descending] .sort-link::after{content:" ↓";color:var(--text)}
 /* CSV import example table. */
 .products-table.csv-example{min-width:0}
 
@@ -147,9 +166,9 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 .swatch input:checked+label::after{content:"✓";font-size:14px;color:#fff}
 @media(max-width:520px){.profile-facts{grid-template-columns:1fr}.profile-facts dd{margin-bottom:6px}}
 
-.list-result-count { margin: 0; padding: 6px 12px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); }
 .table-sort-link { display: inline-flex; align-items: center; gap: .3rem; }
-.table-sort-link span { font-size: .9em; }
+.table-sort-link span { font-size: .9em; color: var(--muted); }
+th[aria-sort] .table-sort-link span { color: var(--text); }
 .list-mobile-label { display: none; }
 .user-avatar {
   display: inline-grid;
@@ -411,3 +430,34 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 /* TORY-67: activity log day separators. */
 .activity-table tr.daysep th{height:30px;padding:4px 12px;background:var(--hover);color:var(--muted);font-size:12px;font-weight:500;text-align:left}
 .activity-table tbody tr.daysep:hover>*{background:var(--hover)}
+
+/* TORY-68: Forecast tab - strip, settings card with the calculation, 7-day row, verification card. */
+.fc-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start}
+@media(min-width:1100px){.fc-layout.has-side{grid-template-columns:minmax(0,1fr) minmax(300px,380px)}}
+.fc-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.fc-layout .panel{margin:0}
+.kv.kv-flush{border-top:0}
+.calc{border-top:1px solid var(--line)}
+.calc>summary{padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent-ink)}
+.calc-body{padding:0 14px 14px;font-size:13px;line-height:1.6;max-width:75ch}
+.calc-body p{margin:0 0 8px}
+.calc-body p:last-child{margin-bottom:0}
+.days7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin:0;padding:12px 14px;list-style:none}
+.days7 li{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border:1px solid var(--line);border-radius:var(--radius);min-width:0}
+.days7 .d{font-size:12px;font-weight:600;white-space:nowrap}
+.days7 .status-pill{font-size:10.5px;padding:0 6px}
+@media(max-width:700px){.days7{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.verify-card form{display:flex;flex-direction:column;gap:12px;padding:14px}
+.verify-card .form-control{width:100%}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+
+/* TORY-68: invitation form card and checklist rows (same look as the inventory people list). */
+.form-card{display:flex;flex-direction:column;gap:16px;padding:16px}
+.form-card .field{margin:0;padding:0;border:0;min-width:0}
+.form-card legend{font-size:13px;margin-bottom:4px}
+label.prow{cursor:pointer;margin:0;font-weight:500}
+label.prow:hover{background:var(--hover)}
+
+/* TORY-68: section headings without Bootstrap size classes. */
+.section-title{font-size:13px;font-weight:600;margin:0 0 4px}
+.inventory-card-title{font-size:16px;font-weight:600;margin:0}

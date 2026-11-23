@@ -6,6 +6,7 @@ from django.db.models import Exists, OuterRef
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
@@ -89,7 +90,9 @@ def manager_invitations(request, business_id):
     page = paginate(request, invitations)
     return render(request, "accounts/invitations.html", {
         "inventories": inventories, "invitations": page.object_list, "page": page,
-        "business_id": business_id, "error": error,
+        "business_id": business_id, "error": error, "now": timezone.now(),
+        "breadcrumbs": [("Dashboard", reverse("home")),
+                        ("Team", reverse("manager-staff", args=[business_id])), ("Invitations", None)],
     })
 
 

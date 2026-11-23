@@ -40,7 +40,7 @@
           <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="d-block">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|days }}{% endif %}</td>
           <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Suggested order</span>{{ item.reorder.suggested_units|default_if_none:"—" }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Status</span><span class="status-pill attention">{{ row.label }}</span></td>
-          <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="d-flex flex-wrap gap-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm btn-outline-secondary" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></td>
+          <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="row-actions"><a class="btn btn-sm btn-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm" href="{% url 'issue-stock' link.inventory_id link.product_id %}">Issue</a><details class="more-menu" data-menu><summary class="btn btn-sm" aria-label="More actions for {{ link.product.name }}" aria-haspopup="menu">⋯</summary><div class="more-items" role="menu"><a role="menuitem" href="{% url 'stock-history' link.inventory_id link.product_id %}">History</a><a role="menuitem" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></details></div></td>
         </tr>
       {% endwith %}{% endfor %}
       </tbody>

@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Staff invitations · Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}Staff invitations{% endpage_header %}{% endblock %}
 {% block content %}
 {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
-<form method="post">
-  {% csrf_token %}
-  <div class="mb-3"><label class="form-label" for="invite-email">Staff email</label><input class="form-control" id="invite-email" name="email" type="email" required maxlength="254"></div>
-  <fieldset><legend>Inventories</legend>
-  {% for inventory in inventories %}<label class="d-block"><input type="checkbox" name="inventories" value="{{ inventory.pk }}"> {% include "includes/inventory_badge.html" with inventory=inventory %}</label>{% endfor %}
-  </fieldset>
-  <button class="btn btn-primary mt-3" type="submit">Send invitation</button>
-</form>
-<section class="panel mt-4" aria-labelledby="invitations-title">
-  <div class="panel-heading"><h2 id="invitations-title">Invitations</h2></div>
+<section class="panel" aria-labelledby="invite-title">
+  <header class="card-h"><div class="card-title"><h2 id="invite-title">Invite someone</h2></div></header>
+  <form method="post" class="form-card" data-select-all-scope>
+    {% csrf_token %}
+    <div class="field"><label class="form-label" for="invite-email">Email</label><input class="form-control" id="invite-email" name="email" type="email" required maxlength="254" autocomplete="off"></div>
+    <fieldset class="field">
+      <legend class="form-label">Inventories they can use</legend>
+      <div class="people">
+        <div class="ptool"><span>{{ inventories|length }} inventor{{ inventories|length|pluralize:"y,ies" }}</span><button type="button" class="btn-link-plain" data-select-all hidden>Select all</button></div>
+        {% for inventory in inventories %}
+        <label class="prow" for="invite-inventory-{{ inventory.pk }}"><input type="checkbox" name="inventories" value="{{ inventory.pk }}" id="invite-inventory-{{ inventory.pk }}"><span class="pname">{% include "includes/inventory_badge.html" with inventory=inventory %}</span></label>
+        {% endfor %}
+      </div>
+      <p class="form-text mb-0">Staff only see the inventories you tick. Managers see every inventory.</p>
+    </fieldset>
+    <div><button class="btn btn-primary" type="submit">Send invitation</button></div>
+  </form>
+</section>
+<section class="panel" aria-labelledby="invitations-title">
+  <header class="card-h"><div class="card-title"><h2 id="invitations-title">Invitations</h2></div></header>
   {% if toolbar %}{% include "includes/table_toolbar.html" %}{% endif %}
   {% if invitations %}
   <div class="table-scroll" role="region" aria-label="Invitations" tabindex="0">
@@ -30,23 +41,23 @@
       {% for invitation in invitations %}{% with status=invitation.display_status|default:invitation.status %}
         <tr>
           <th scope="row">{{ invitation.target_email }}</th>
-          <td><span class="list-mobile-label" aria-hidden="true">Status</span>{{ status|capfirst }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Sent</span>{{ invitation.issued_at|sgdate }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Expires</span>{{ invitation.expires_at|sgdate }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Status</span>{% if status == 'pending' %}<span class="status-pill info">Pending</span>{% elif status == 'redeemed' %}<span class="status-pill success">Accepted</span>{% elif status == 'revoked' %}<span class="status-pill danger">Revoked</span>{% elif status == 'expired' %}<span class="status-pill neutral">Expired</span>{% elif status == 'superseded' %}<span class="status-pill neutral">Replaced</span>{% else %}<span class="status-pill neutral">{{ status|capfirst }}</span>{% endif %}</td>
+          <td class="nowrap"><span class="list-mobile-label" aria-hidden="true">Sent</span>{{ invitation.issued_at|sgdate }}</td>
+          <td class="nowrap"><span class="list-mobile-label" aria-hidden="true">Expires</span><time datetime="{{ invitation.expires_at.isoformat }}" title="{{ invitation.expires_at|sgdate }}">{% if status == 'pending' or status == 'expired' %}{{ invitation.expires_at|expires_relative:now }}{% else %}{{ invitation.expires_at|sgdate }}{% endif %}</time></td>
           <td><span class="list-mobile-label" aria-hidden="true">Actions</span>
             {% if invitation.status == 'pending' %}
-            <div class="d-flex flex-wrap gap-2">
-              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" type="submit">Replace / resend</button></form>
-              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit">Revoke</button></form>
+            <div class="row-actions">
+              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'replace' %}">{% csrf_token %}<button class="btn btn-sm" type="submit" aria-label="Resend invitation to {{ invitation.target_email }}">Resend</button></form>
+              <form method="post" action="{% url 'staff-invitation-change' business_id invitation.pk 'revoke' %}">{% csrf_token %}<button class="btn-text danger" type="submit" aria-label="Revoke invitation to {{ invitation.target_email }}">Revoke</button></form>
             </div>
-            {% else %}—{% endif %}
+            {% else %}<span class="muted">—</span>{% endif %}
           </td>
         </tr>
       {% endwith %}{% endfor %}
       </tbody>
     </table>
   </div>
-  {% else %}<p class="p-3">No invitations match the current view.</p>{% endif %}
+  {% else %}<p class="insight-empty">No invitations match the current view.</p>{% endif %}
+  {% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
 </section>
-{% include "includes/pagination.html" with pagination_label="Staff invitation pages" %}
 {% endblock %}

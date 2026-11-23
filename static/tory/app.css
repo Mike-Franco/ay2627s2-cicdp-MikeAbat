@@ -87,10 +87,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* Workspace */
 .workspace{margin-left:240px;min-height:100vh;display:flex;flex-direction:column}
-.workspace-main{flex:1;min-width:0}
+.workspace-main{flex:1;min-width:0;--page-max:1600px;--gutter:32px}
+/* TORY-68: content fills the width up to 1600px; form-only pages use a centred 880px column. */
+.workspace-main.layout-narrow{--page-max:880px}
 .mobile-bar{display:none}
 .menu-toggle{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid var(--line2);border-radius:var(--radius);background:var(--panel);color:var(--text);font:inherit;font-weight:500}
-.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph{padding:20px var(--gutter) 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-inner{max-width:calc(var(--page-max) - 2 * var(--gutter));margin-inline:auto}
+.ph h1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.ph-sku{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--muted)}
 .ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
 .ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .ph-actions form{display:contents}
@@ -99,7 +104,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .crumbs [aria-current]{color:var(--text)}
 .crumbs .sep{color:var(--line2)}
 .crumbs .inventory-badge-sm .inventory-mark{width:16px;height:16px;font-size:11px;border-radius:4px}
-.content{max-width:1240px;padding:20px 32px 40px}
+.content{width:100%;max-width:var(--page-max);margin-inline:auto;padding:20px var(--gutter) 40px}
 .content>*+*{margin-top:0}
 .public-header{padding:16px 28px;display:flex;align-items:center;gap:12px;background:var(--panel);border-bottom:1px solid var(--line)}
 .public-header .brand-word{font-size:17px}
@@ -152,7 +157,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .products-table{min-width:720px}
 .products-table thead{background:none}
 .products-table th,.products-table td,.tbl th,.tbl td{padding:6px 12px;border-bottom:1px solid var(--line);vertical-align:middle;text-align:left}
-.products-table thead th,.tbl thead th{height:var(--head-row);font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;padding-top:0;padding-bottom:0}
+.products-table thead th,.tbl thead th{height:var(--head-row);white-space:nowrap;padding-top:0;padding-bottom:0;border-bottom-color:var(--line2)}
 .products-table tbody th,.products-table tbody td,.tbl tbody td{height:var(--row)}
 .products-table tbody th{font-weight:500}
 .products-table tbody tr:last-child>*,.tbl tbody tr:last-child>*{border-bottom:0}
@@ -160,10 +165,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .products-table .num,.products-table .numeric,.tbl .num{text-align:right}
 .products-table .available{font-weight:600}
 .products-table .unit{display:block;font-size:11px;color:var(--muted)}
-.products-table .actions{min-width:180px}
+.products-table .actions{width:1%;white-space:nowrap}
+.products-table .cell-sku,.products-table .product-sku,.products-table .numeric,.nowrap{white-space:nowrap}
 .table{--bs-table-bg:var(--panel);--bs-table-color:var(--text);--bs-table-border-color:var(--line);--bs-table-hover-bg:var(--hover);--bs-table-striped-bg:var(--hover);font-size:13px}
 .table>:not(caption)>*>*{padding:8px 12px}
-.table thead th{font-size:12px;font-weight:500;color:var(--muted)}
 .table-light{--bs-table-bg:var(--panel);--bs-table-color:var(--muted)}
 .product-cell{display:flex;align-items:center;gap:10px}
 .product-symbol{flex:0 0 28px;width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius);background:var(--hover);color:var(--muted)}
@@ -202,10 +207,11 @@ a.pgb:hover{background:var(--hover);color:var(--text);text-decoration:none}
   .workspace{margin-left:0}
   .mobile-bar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
   .sidebar-scrim:not([hidden]){display:block;position:fixed;inset:0;border:0;background:rgb(0 0 0 / .45);z-index:20}
-  .ph{padding:16px}
-  .content{padding:16px 16px 32px}
 }
 @media (max-width:700px){
+  .workspace-main{--gutter:16px}
+  .ph{padding-top:16px}
+  .content{padding-top:16px;padding-bottom:32px}
   .btn,.form-control,.form-select,.sel,.inp,.sidebar-link,.inventory-switch,.pgb,.theme-control button,.menu-toggle,.profile-menu summary{min-height:44px}
   .pgb{min-width:44px}
   .sel.sm{min-height:44px}

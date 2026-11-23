@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
 <form method="post" enctype="multipart/form-data" class="panel p-3 inventory-form" novalidate data-sprite="{% static 'tory/icons/lucide-sprite.svg' %}">
@@ -32,7 +33,7 @@
   {% if inventory %}
   <fieldset class="access-section" aria-labelledby="access-title" data-access>
     <input type="hidden" name="access_form" value="1">
-    <h2 class="h6" id="access-title">Who can use this inventory</h2>
+    <h2 class="section-title" id="access-title">Who can use this inventory</h2>
     <p class="text-muted">Staff only see inventories they are ticked for. Managers can always see every inventory.</p>
     {% if access_error %}<div class="auth-error" role="alert">{{ access_error }}</div>{% endif %}
     <div class="people">
@@ -54,7 +55,7 @@
 </form>
 {% if inventory %}
 <section class="panel p-3 mt-3 danger-zone" aria-labelledby="deactivate-title">
-  <h2 class="h6" id="deactivate-title">Deactivate inventory</h2>
+  <h2 class="section-title" id="deactivate-title">Deactivate inventory</h2>
   <p class="text-muted">Hides {{ inventory.name }} from staff and stops new stock movements. History, products and reports are kept, and you can reactivate it later.</p>
   <details class="danger-details">
     <summary class="btn btn-danger">Deactivate {{ inventory.name }}…</summary>

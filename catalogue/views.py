@@ -36,7 +36,9 @@ from .product_page import (
 )
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change, save_selling_price
-from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
+from .reorder import (ORDER_COVER_DAYS, can_edit_shared_settings, recommendation, recommendation_from_evidence,
+                      save_shared_settings)
+from .templatetags.tory_format import whole_units
 
 
 @protected_view
@@ -148,6 +150,7 @@ def inventory_products(request, inventory_id):
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     total_product_count = links.count()
+    all_links = links
     filter_form = InventoryProductFilterForm(
         request.GET, categories=Category.objects.filter(business_id=inventory.business_id),
     )
@@ -193,6 +196,10 @@ def inventory_products(request, inventory_id):
             )
             for link in product_links:
                 link.can_manage_lifecycle = link.product_id in manageable
+    # TORY-68: one notice above the table instead of the same sentence on every row.
+    active_ids = list(all_links.filter(product__is_active=True).values_list("pk", flat=True))
+    no_forecast_count = sum(1 for forecast in forecasts_for_links(active_ids, at=timezone.now()).values()
+                            if not forecast.available)
     return render(
         request,
         "catalogue/inventory_products.html",
@@ -200,7 +207,7 @@ def inventory_products(request, inventory_id):
          "filter_form": filter_form, "total_product_count": total_product_count,
          "has_filters": bool(request.GET.get("q") or request.GET.get("reorder") or request.GET.get("category")),
          "sort": filter_form.cleaned_data.get("sort", "") if valid_filters else "",
-         "can_adjust_stock": can_adjust_stock},
+         "can_adjust_stock": can_adjust_stock, "no_forecast_count": no_forecast_count},
         status=200 if valid_filters else 400,
     )
 
@@ -216,6 +223,8 @@ def _prepare_stock_list(links, *, at):
             link.reorder = recommendation_from_evidence(
                 link.product, link.physical_quantity_units, forecasts[link.pk], link.display_quarantine_units,
             )
+            if link.reorder.missing_settings:
+                link.missing_text = f"Set {' and '.join(link.reorder.missing_settings)} to get a reorder point."
     return links
 
 
@@ -238,6 +247,19 @@ def _is_inventory_manager(user, inventory):
 def can_view_activity_log(user, inventory):
     """Who may open the business Activity log from a product page: Managers and (TORY-67) Staff."""
     return BusinessMembership.objects.filter(user=user, business_id=inventory.business_id, is_active=True).exists()
+
+
+def _product_header(user, inventory, link, now):
+    """Context for the header shared by every product tab (TORY-68): status pill and actions."""
+    position = stock_positions([link], at=now)[0]
+    link.can_manage_lifecycle = can_manage_product_lifecycle(user, link.product)
+    return {
+        "link": link, "position": position,
+        "status": position.status, "status_label": STATUS_LABELS[position.status],
+        "can_adjust_stock": _is_inventory_manager(user, inventory),
+        "can_edit_reorder": can_edit_shared_settings(user, link.product),
+        "batch_count": link.receiving_batches.filter(remaining_quantity_units__gt=0).count(),
+    }
 
 
 def _prepare_stock_link(link, user, inventory, now):
@@ -281,20 +303,19 @@ def product_stock(request, inventory_id, product_id):
     # TORY-66: Overview shows batches with stock left; the Batches tab also lists used-up ones.
     batches = fefo_batches(link, today=today, now=now, include_empty=tab == "batches")
     batch_page = paginate(request, batches)
-    position = stock_positions([link], at=now)[0]
+    header = _product_header(request.user, inventory, link, now)
+    position = header["position"]
     info = summary(position, today=today)
     projection, callout = outlook(position, info, today=today)
     scope = {"business_id": inventory.business_id, "inventory_id": inventory.pk, "product_id": link.product_id}
     sources = history_sources(scope)
     keys = history_keys(sources)
     recent = [history_row(event) for event in hydrate_history(sources, list(keys[:OVERVIEW_HISTORY_ROWS]))]
-    is_manager = _is_inventory_manager(request.user, inventory)
     return render(request, "catalogue/product_stock.html", {
-        "inventory": inventory, "product": link.product, "link": link, "tab": tab,
+        **header, "inventory": inventory, "product": link.product, "tab": tab,
         "batches": batch_page.object_list, "page": batch_page,
-        "batch_count": sum(1 for batch in link.receiving_batches.all() if batch.remaining_quantity_units),
-        "can_adjust_stock": is_manager, "can_view_activity": can_view_activity_log(request.user, inventory),
-        "info": info, "status": position.status, "status_label": STATUS_LABELS[position.status],
+        "can_view_activity": can_view_activity_log(request.user, inventory),
+        "info": info,
         "projection": projection, "callout": callout,
         "recent": recent, "history_count": keys.count(),
         "also_in": [shelf.name for shelf in authorized_inventories(request.user).filter(
@@ -407,8 +428,8 @@ def stock_history(request, inventory_id, product_id):
     page = paginate(request, history_keys(sources))
     events = hydrate_history(sources, list(page.object_list))
     return render(request, "catalogue/stock_history.html", {
+        **_product_header(request.user, inventory, link, timezone.now()),
         "inventory": inventory, "product": link.product, "events": events, "page": page,
-        "batch_count": link.receiving_batches.filter(remaining_quantity_units__gt=0).count(),
     })
 
 
@@ -457,13 +478,30 @@ def demand_forecast(request, inventory_id, product_id):
                                  product_id=product_id)
     except ReceiptRejected as error:
         raise Http404 from error
+    now = timezone.now()
+    header = _product_header(request.user, inventory, link, now)
     return render(request, "catalogue/demand_forecast.html", {
-        "inventory": inventory, "product": link.product, "forecast": reorder.forecast,
-        "reorder": reorder,
+        **header, "inventory": inventory, "product": link.product, "forecast": reorder.forecast,
+        "reorder": reorder, "calc": forecast_calculation(reorder),
+        # The strip uses the Overview tab's summary so both tabs always show the same numbers.
+        "info": summary(header["position"], today=singapore_day(now)),
         "form": form, "is_manager": is_manager,
         "observation_active": observation_active,
-        "can_edit_reorder": can_edit_shared_settings(request.user, link.product),
     }, status=400 if request.method == "POST" else 200)
+
+
+def forecast_calculation(reorder):
+    """The real numbers behind the reorder point and suggested order (TORY-68), or None without them."""
+    if reorder.reorder_point is None:
+        return None
+    average, lead = reorder.forecast.average, reorder.lead_time_days
+    return {
+        "total": int(average * 7), "average": average, "lead": lead, "safety": reorder.safety_stock_units,
+        "cover": ORDER_COVER_DAYS, "cover_total": ORDER_COVER_DAYS + lead,
+        "point": reorder.reorder_point, "point_units": whole_units(reorder.reorder_point),
+        "target": average * (ORDER_COVER_DAYS + lead) + reorder.safety_stock_units,
+        "available": reorder.available_units, "suggested": reorder.suggested_units,
+    }
 
 
 @protected_view
