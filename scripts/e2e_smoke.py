@@ -54,6 +54,13 @@ def main():
         snap("2-products")
         inventory_id = page.url.rstrip("/").split("/")[-2]
         forecast_href = page.locator("a[href$='/forecast/']").first.get_attribute("href")
+        # TORY-68: row actions are Receive + Issue + a menu that opens from the keyboard.
+        menu_button = page.locator("tbody .more-menu summary").first
+        menu_button.focus()
+        page.keyboard.press("Enter")
+        expect(page.locator("tbody .more-menu[open] [role='menuitem']").first).to_be_focused()
+        page.keyboard.press("Escape")
+        expect(page.locator("tbody .more-menu[open]")).to_have_count(0)
 
         page.goto(f"{base}/inventories/{inventory_id}/insights/")
         expect(page.get_by_role("heading", name="Insights", exact=True)).to_be_visible()
@@ -73,7 +80,9 @@ def main():
         page.goto(base + forecast_href)
         # TORY-62: the product name is the page title; the underline tab shows the forecast.
         expect(page.locator(".product-tabs a[aria-current='page']")).to_have_text("Forecast")
-        expect(page.locator(".summary-card")).to_have_count(3)
+        # TORY-68: the same four-number strip as the Overview tab.
+        expect(page.locator("section.strip > div")).to_have_count(4)
+        expect(page.locator("section.strip")).to_contain_text("Suggested order")
         snap("4-forecast")
 
         # TORY-62: Sign out (and the theme toggle) live in the sidebar profile menu.
