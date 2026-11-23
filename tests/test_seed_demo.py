@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
+from catalogue.metrics import accuracy_points, forecast_accuracy
 from catalogue.models import InventoryProduct, Product
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.models import (DemandAuditEvent, DemandCoverageEvent, ObservationActivation, ReceiptAuditEvent,
@@ -40,7 +41,12 @@ class SeedDemoTests(TestCase):
         self.assertNotIn(env["DEMO_MANAGER_PASSWORD"], output.getvalue())
         self.assertIn("seed-generated-password-2!", output.getvalue())
         self.assertSetEqual(set(business.inventories.values_list("name", flat=True)), {"Pharmacy", "Grocery"})
-        self.assertEqual(Product.objects.filter(business=business).count(), 15)
+        products = Product.objects.filter(business=business)
+        self.assertEqual(products.count(), 15)
+        for product in products:
+            self.assertGreater(product.lead_time_days, 0)
+            self.assertGreater(product.safety_stock_units, 0)
+            self.assertTrue(product.supplier_name)
         self.assertEqual(InventoryAssignment.objects.filter(inventory__business=business).count(), 4)
         today = timezone.localdate()
         self.assertEqual(ReceivingBatch.objects.filter(expiry_date__lt=today).count(), 1)
@@ -48,8 +54,13 @@ class SeedDemoTests(TestCase):
             ReceivingBatch.objects.filter(expiry_date__gt=today, expiry_date__lte=today + timedelta(days=7)).count(), 2,
         )
         self.assertEqual(ReceiptAuditEvent.objects.count(), ReceivingBatch.objects.count())
-        self.assertEqual(DemandAuditEvent.objects.filter(actor=staff).count(), 28)
-        self.assertEqual(DemandCoverageEvent.objects.filter(actor=manager, action="verified").count(), 15 * 7)
+        self.assertEqual(DemandAuditEvent.objects.filter(actor=staff).count(), 56)
+        self.assertEqual(DemandCoverageEvent.objects.filter(actor=manager, action="verified").count(), 15 * 14 - 2)
+
+        for inventory in business.inventories.all():
+            links = InventoryProduct.objects.filter(inventory=inventory).select_related("product")
+            accuracy = forecast_accuracy(accuracy_points(links, at=timezone.now()))
+            self.assertEqual(accuracy["value"], 0)
 
         self.client.force_login(manager)
         session = self.client.session
@@ -61,6 +72,16 @@ class SeedDemoTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.context["forecast"].displayed_average, "2.00")
             self.assertTrue(response.context["reorder"].alert)
+            self.assertGreater(response.context["reorder"].suggested_units, 0)
+            overview = self.client.get(reverse("product-stock", args=(link.inventory_id, link.product_id)))
+            self.assertContains(overview, "Next 7 days")
+            self.assertContains(overview, "stock arrives")
+
+        dashboard = self.client.get(reverse("home"))
+        self.assertContains(dashboard, 'aria-label="Do this first"')
+        task, = dashboard.context["demand_tasks"]
+        self.assertEqual(task["inventory"].name, "Grocery")
+        self.assertEqual(task["days"], [today - timedelta(days=2), today - timedelta(days=1)])
 
         models = (Business, get_user_model(), BusinessMembership, Inventory, InventoryAssignment, Product,
                   InventoryProduct, ReceivingBatch, ReceiptAuditEvent, DemandAuditEvent, DemandCoverageEvent,
