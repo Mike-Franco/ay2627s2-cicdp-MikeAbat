@@ -20,7 +20,7 @@ from .metrics import (
     STATUS_LABELS, complete_days, daily_movements, daily_on_hand, kpis, movement_metrics, singapore_day,
     stock_positions, unverified_days, week_start,
 )
-from .templatetags.tory_format import sgdate, sgd
+from .templatetags.tory_format import one_decimal, sgdate, sgd, whole_units
 
 
 def stock_series(position, history, *, at):
@@ -32,7 +32,7 @@ def stock_series(position, history, *, at):
     reorder = position.reorder.reorder_point if position.reorder else None
     return [
         {"day": day.isoformat(), "on_hand": balance,
-         "reorder_point": float(reorder) if reorder is not None else None,
+         "reorder_point": whole_units(reorder),
          "safety_stock": position.link.product.safety_stock_units}
         for day, balance in zip(days, balances, strict=True)
     ]
@@ -61,7 +61,7 @@ def supply_series(positions):
     ranked = sorted((position for position in positions if position.supply is not None),
                     key=lambda position: (position.supply, position.link.pk))
     return [
-        {"sku": row.link.product.sku, "name": row.link.product.name, "days": float(row.supply)}
+        {"sku": row.link.product.sku, "name": row.link.product.name, "days": float(one_decimal(row.supply))}
         for row in ranked[:10]
     ]
 
@@ -144,7 +144,7 @@ def _chart_cards(request, *, product_choices, product, category_choices, categor
             ("Singapore date", "On hand", "Reorder point", "Safety stock"),
             [
                 (sgdate(row["day"]), row["on_hand"],
-                 f'{row["reorder_point"]:.2f}' if row["reorder_point"] is not None else None, row["safety_stock"])
+                 row["reorder_point"], row["safety_stock"])
                 for row in stock
             ],
             empty="No products are linked to this inventory.",
@@ -167,7 +167,7 @@ def _chart_cards(request, *, product_choices, product, category_choices, categor
              "The shortest bars have the fewest days of stock left, and zero means no available units.",
              "Review the shortest-cover products first, then verify demand for products missing from the ranking."),
             ("SKU", "Product", "Days of supply"),
-            [(row["sku"], row["name"], f'{row["days"]:.2f}') for row in supply],
+            [(row["sku"], row["name"], one_decimal(row["days"])) for row in supply],
             empty="No active products have a verified, nonzero demand rate.",
         ),
         _card(
@@ -256,7 +256,7 @@ def inventory_insights(request, inventory_id):
     unpriced = [row.link.product for row in positions if row.value is None]
     reorder = [
         {"sku": row.link.product.sku, "name": row.link.product.name, "available": row.available,
-         "reorder_point": str(row.reorder.reorder_point) if row.reorder and row.reorder.reorder_point is not None else None,
+         "reorder_point": whole_units(row.reorder.reorder_point) if row.reorder else None,
          "alert": bool(row.reorder and row.reorder.alert)}
         for row in positions
     ]

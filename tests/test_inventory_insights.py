@@ -166,7 +166,7 @@ class InventoryInsightsTests(TestCase):
             )
         with patch("receiving.demand.tracking_enabled", return_value=True):
             response = self.client.get(self.url)
-        self.assertEqual(response.context["reorder_data_json"][0]["reorder_point"], "1")
+        self.assertEqual(response.context["reorder_data_json"][0]["reorder_point"], 1)
         self.assertTrue(all(row["verified_average"] == "0.00"
                             for row in response.context["demand_data_json"]))
 

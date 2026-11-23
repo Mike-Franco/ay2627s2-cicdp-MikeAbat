@@ -296,3 +296,21 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 .role-staff{background:var(--success-bg);color:var(--success)}
 .sidebar-help{margin-top:16px}
 @media(max-width:900px){.help-layout{grid-template-columns:1fr}.help-toc{position:static}}
+
+/* Demo polish: one-line activity log rows, inventory deactivation, mobile dashboard preview. */
+.activity-table td,.activity-table th{white-space:nowrap}
+.activity-user-line{display:inline-flex;align-items:center;gap:8px;max-width:16rem;min-width:0}
+.activity-user .user-ref{min-width:0}
+.activity-user .user-ref-name{white-space:nowrap;max-width:11rem}
+.activity-role{flex:0 0 auto;font-size:10px;font-weight:500;color:var(--muted)}
+.activity-details-text{display:inline-block;max-width:22rem;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.danger-zone{border-color:var(--attention-bg)}
+.danger-zone h2{margin-bottom:4px}
+.mobile-only{display:none}
+@media(max-width:699px){
+  .activity-table td,.activity-table th{white-space:normal}
+  .activity-user-line{max-width:100%}
+  .activity-details-text{max-width:100%;white-space:normal}
+  .mobile-preview tbody tr:nth-child(n+6){display:none}
+  .mobile-only{display:block}
+}

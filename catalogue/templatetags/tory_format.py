@@ -1,7 +1,7 @@
 """Shared display formatting for templates."""
 
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
 from django import template
@@ -44,3 +44,42 @@ def sgd(value):
     except (InvalidOperation, TypeError, ValueError):
         return value
     return f"S${amount:,.2f}"
+
+
+def whole_units(value):
+    """Round a unit quantity up to a whole number of units (None stays None).
+
+    Reorder points can be fractional (average demand × lead time + safety
+    stock). Rounding up matches the suggested order, which is the reorder
+    point minus available units, rounded up.
+    """
+    if value in (None, ""):
+        return None
+    try:
+        return int(Decimal(str(value)).to_integral_value(rounding=ROUND_CEILING))
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+def one_decimal(value):
+    """Round days of supply (or another ratio) to one decimal place, as a string."""
+    if value in (None, ""):
+        return None
+    try:
+        return f"{Decimal(str(value)).quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)}"
+    except (InvalidOperation, TypeError, ValueError):
+        return None
+
+
+@register.filter
+def units(value):
+    """Show a unit quantity as a whole number, rounded up; empty values render as an em dash."""
+    result = whole_units(value)
+    return "—" if result is None else result
+
+
+@register.filter
+def days(value):
+    """Show days of supply with one decimal place; empty values render as an em dash."""
+    result = one_decimal(value)
+    return "—" if result is None else result

@@ -11,7 +11,7 @@
 
 <div class="summary-cards" aria-label="Forecast summary">
   <div class="summary-card"><span class="stat-label">Average daily demand</span><strong class="stat-value d-block">{% if forecast.available %}{{ forecast.displayed_average }}{% else %}—{% endif %}</strong><span class="stat-unit">units per day, last 7 verified dates</span></div>
-  <div class="summary-card"><span class="stat-label">Reorder point</span><strong class="stat-value d-block">{% if reorder.reorder_point != None %}{{ reorder.reorder_point }}{% else %}—{% endif %}</strong><span class="stat-unit">{% if reorder.reorder_point != None %}{% if reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}{% else %}units{% endif %}</span></div>
+  <div class="summary-card"><span class="stat-label">Reorder point</span><strong class="stat-value d-block">{% if reorder.reorder_point != None %}{{ reorder.reorder_point|units }}{% else %}—{% endif %}</strong><span class="stat-unit">{% if reorder.reorder_point != None %}{% if reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}{% else %}units{% endif %}</span></div>
   <div class="summary-card"><span class="stat-label">Suggested quantity</span><strong class="stat-value d-block">{% if reorder.reorder_point != None %}{{ reorder.suggested_units }}{% else %}—{% endif %}</strong><span class="stat-unit">units to order</span></div>
 </div>
 
@@ -30,7 +30,7 @@
 
 {% if forecast.available %}
 <h2 class="h5 mt-4">How this is calculated</h2>
-<p class="help-text">Average daily demand: {{ forecast.displayed_average }} units, the total issued over the previous seven complete Asia/Singapore dates divided by seven.{% if reorder.reorder_point != None %} Reorder point: {{ forecast.average }} units/day × {{ reorder.lead_time_days }} days + {{ reorder.safety_stock_units }} safety units = {{ reorder.reorder_point }} units. {% if reorder.alert %}Reorder alert: available stock is at or below the point.{% else %}No reorder alert: available stock is above the point.{% endif %} Suggested quantity is the larger of zero and the reorder point minus {{ reorder.available_units }} available units, rounded up. Pending deliveries are excluded.{% endif %}</p>
+<p class="help-text">Average daily demand: {{ forecast.displayed_average }} units, the total issued over the previous seven complete Asia/Singapore dates divided by seven.{% if reorder.reorder_point != None %} Reorder point: {{ forecast.average }} units/day × {{ reorder.lead_time_days }} days + {{ reorder.safety_stock_units }} safety units = {{ reorder.reorder_point }}, shown rounded up as {{ reorder.reorder_point|units }} units. {% if reorder.alert %}Reorder alert: available stock is at or below the point.{% else %}No reorder alert: available stock is above the point.{% endif %} Suggested quantity is the larger of zero and the reorder point minus {{ reorder.available_units }} available units, rounded up. Pending deliveries are excluded.{% endif %}</p>
 {% endif %}
 
 <h2 class="h5 mt-4">Demand dates</h2>

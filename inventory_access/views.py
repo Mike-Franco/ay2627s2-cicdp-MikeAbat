@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_http_methods
 
 from django.core.files.storage import default_storage
 
@@ -120,9 +120,15 @@ def inventory_rename(request, inventory_id):
 
 
 @protected_view
-@require_POST
+@require_http_methods(["GET", "POST"])
 def inventory_status(request, inventory_id):
-    inventory = get_object_or_404(manageable_inventories(request.user), pk=inventory_id)
+    inventory = get_object_or_404(manageable_inventories(request.user).select_related("business"), pk=inventory_id)
+    if request.method == "GET":
+        # Deactivation is a confirm step reached from the edit page; reactivation
+        # stays a one-click action on the list.
+        if not inventory.is_active:
+            return redirect("inventory-list")
+        return render(request, "inventory_access/confirm_inventory_deactivation.html", {"inventory": inventory})
     if request.POST.get("is_active") not in {"true", "false"}:
         raise Http404
     form = InventoryStatusForm(request.POST)
