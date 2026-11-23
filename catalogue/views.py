@@ -236,8 +236,8 @@ def _is_inventory_manager(user, inventory):
 
 
 def can_view_activity_log(user, inventory):
-    """Who may open the business Activity log from a product page."""
-    return manager_memberships(user).filter(business_id=inventory.business_id).exists()
+    """Who may open the business Activity log from a product page: Managers and (TORY-67) Staff."""
+    return BusinessMembership.objects.filter(user=user, business_id=inventory.business_id, is_active=True).exists()
 
 
 def _prepare_stock_link(link, user, inventory, now):

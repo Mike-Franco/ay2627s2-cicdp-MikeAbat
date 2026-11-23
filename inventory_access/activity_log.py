@@ -36,6 +36,16 @@ KINDS = (
     ("invitation", "Staff invitation sent"),
 )
 KIND_LABELS = dict(KINDS)
+# TORY-67: Staff see stock movements only (CSV imports arrive as receipts and issues);
+# settings, access, product and demand-review rows stay Manager-only.
+STAFF_KINDS = ("receipt", "issue", "adjustment", "quarantine")
+# Short pill label and tone per kind, as in docs/ui-reference/v1.2/mockup/ActivityLog.dc.html.
+PILLS = {
+    "receipt": ("Received", "green"), "issue": ("Issued", "amber"), "adjustment": ("Adjusted", "neutral"),
+    "disposal": ("Disposed", "red"), "quarantine": ("Quarantined", "red"), "verification": ("Verified", "blue"),
+    "product": ("Product", "neutral"), "lifecycle": ("Product", "neutral"), "inventory": ("Settings", "neutral"),
+    "access": ("Access", "neutral"), "invitation": ("Invitation", "neutral"),
+}
 SYSTEM_ACTOR = "System (expiry quarantine)"
 NULL_INT = Value(None, output_field=BigIntegerField())
 NULL_TEXT = Value(None, output_field=TextField())
@@ -128,8 +138,12 @@ PRODUCT_FIELDS = {"verification": "coverage_day__inventory_product__product_id",
 
 
 def activity_rows(business_id, *, actor_id=None, kinds=(), inventory_id=None, product_query="", start=None,
-                  end=None):
-    """The filtered, newest-first union queryset of activity tuples (see COLUMNS)."""
+                  end=None, inventory_ids=None):
+    """The filtered, newest-first union queryset of activity tuples (see COLUMNS).
+
+    inventory_ids, when given, limits every source to those inventories (the Staff
+    view, TORY-67); sources without an inventory are then left out.
+    """
     product_ids = None
     if product_query:
         product_ids = Product.objects.filter(business_id=business_id).filter(
@@ -154,6 +168,11 @@ def activity_rows(business_id, *, actor_id=None, kinds=(), inventory_id=None, pr
             if field is None:
                 continue
             filters &= Q(**{field: inventory_id})
+        if inventory_ids is not None:
+            field = INVENTORY_FIELDS.get(kind, "inventory_id")
+            if field is None:
+                continue
+            filters &= Q(**{f"{field}__in": inventory_ids})
         if product_ids is not None:
             field = PRODUCT_FIELDS.get(kind, "product_id")
             if field is None:
@@ -245,6 +264,11 @@ def hydrate(business_id, tuples):
         row["inventory"] = inventories.get(row["inventory_id"])
         row["product"] = products.get(row["product_id"])
         row["details"] = _details(row, extras.get(row["kind"], {}).get(row["ref"]))
+        row["pill"], row["tone"] = PILLS[row["kind"]]
+        if row["kind"] in ("receipt", "issue") and (row["note"] or "").startswith("CSV import"):
+            row["pill"], row["tone"] = "Imported", "green"
+        row["day"] = row["at"].astimezone(SINGAPORE).date()
+        row["magnitude"] = abs(row["change"]) if row["change"] is not None else None
     return rows
 
 
@@ -261,7 +285,7 @@ from accounts.sessions import protected_view  # noqa: E402
 from catalogue.csv_exports import csv_download  # noqa: E402
 from catalogue.templatetags.tory_format import sgdate  # noqa: E402
 
-from .authorization import manager_memberships  # noqa: E402
+from django.core.exceptions import PermissionDenied  # noqa: E402
 from .authorization import authorized_inventories  # noqa: E402
 from .selection import current_inventory, scope_chip, scope_filter  # noqa: E402
 
@@ -276,13 +300,22 @@ class ActivityFilterForm(forms.Form):
     start = forms.DateField(required=False, label="From", widget=forms.DateInput(attrs={"type": "date"}))
     end = forms.DateField(required=False, label="To", widget=forms.DateInput(attrs={"type": "date"}))
 
-    def __init__(self, data, *, business_id):
+    def __init__(self, data, *, business_id, inventory_ids=None):
+        """inventory_ids limits the choices to a Staff member's assigned inventories (TORY-67)."""
         super().__init__(data)
-        members = (get_user_model().objects.filter(business_memberships__business_id=business_id)
-                   .distinct().order_by("email"))
+        members = get_user_model().objects.filter(business_memberships__business_id=business_id)
+        inventories = Inventory.objects.filter(business_id=business_id)
+        if inventory_ids is not None:
+            # Only people who work in the same inventories, and only the movement kinds.
+            members = members.filter(business_memberships__inventory_assignments__inventory_id__in=inventory_ids,
+                                     business_memberships__inventory_assignments__is_active=True)
+            inventories = inventories.filter(pk__in=inventory_ids)
+            self.fields["action"].choices = [("", "All stock movements"),
+                                             *((kind, KIND_LABELS[kind]) for kind in STAFF_KINDS)]
+        members = members.distinct().order_by("email")
         self.fields["user"].choices = [("", "Everyone"), *((user.pk, user.display_label) for user in members)]
-        self.fields["inventory"].choices = [("", "All inventories"), *Inventory.objects.filter(
-            business_id=business_id).order_by("name", "pk").values_list("pk", "name")]
+        self.fields["inventory"].choices = [("", "All inventories"), *inventories.order_by("name", "pk")
+                                            .values_list("pk", "name")]
         for field in self.fields.values():
             field.widget.attrs.setdefault("class", "form-select" if isinstance(field, forms.ChoiceField)
                                           else "form-control")
@@ -300,9 +333,12 @@ class ActivityFilterForm(forms.Form):
                 "start": data["start"], "end": data["end"]}
 
 
-def _business(request, business_id):
-    return get_object_or_404(manager_memberships(request.user).select_related("business"),
-                             business_id=business_id).business
+def _membership(request, business_id):
+    """Managers and (TORY-67) Staff of the business; anyone else gets a 404."""
+    return get_object_or_404(
+        BusinessMembership.objects.filter(user=request.user, is_active=True).select_related("business"),
+        business_id=business_id,
+    )
 
 
 def _csv_rows(business_id, rows):
@@ -319,20 +355,30 @@ def _csv_rows(business_id, rows):
 @protected_view
 @require_GET
 def activity_log(request, business_id, export=False):
-    business = _business(request, business_id)
+    membership = _membership(request, business_id)
+    business = membership.business
+    staff = membership.role == BusinessMembership.Role.STAFF
+    if staff and export:
+        raise PermissionDenied("The activity CSV is for Managers.")
+    assigned = list(authorized_inventories(request.user).filter(business_id=business.pk))
+    staff_scope = {"inventory_ids": [inventory.pk for inventory in assigned]} if staff else {}
     # TORY-63: default to the inventory selected in the sidebar when it belongs to
     # this business; ?scope=all (or choosing "All inventories") shows the business.
-    current = current_inventory(request, authorized_inventories(request.user).filter(business_id=business.pk))
+    current = current_inventory(request, assigned)
     shown, defaulted = scope_filter(request, current)
     data = request.GET.copy()
     if defaulted:
         data["inventory"] = shown
-    form = ActivityFilterForm(data, business_id=business.pk)
+    form = ActivityFilterForm(data, business_id=business.pk, **staff_scope)
     if not form.is_valid():
         return render(request, "inventory_access/activity_log.html", {
-            "business": business, "form": form, "rows": [], "page": None,
+            "business": business, "form": form, "rows": [], "page": None, "is_staff_view": staff,
         }, status=400)
-    rows = activity_rows(business.pk, **form.query())
+    query = form.query()
+    if staff:
+        query["kinds"] = set(query["kinds"]) & set(STAFF_KINDS) if query["kinds"] else set(STAFF_KINDS)
+        query.update(staff_scope)
+    rows = activity_rows(business.pk, **query)
     if export:
         stamp = timezone.now().astimezone(SINGAPORE).strftime("%Y%m%d-%H%M")
         return csv_download(f"tory-activity-{stamp}.csv", (
@@ -340,11 +386,11 @@ def activity_log(request, business_id, export=False):
             "Quantity change", "Details",
         ), _csv_rows(business.pk, list(rows)))
     page = paginate(request, rows, default=PAGE_SIZE)
-    all_count = activity_rows(business.pk, **{**form.query(), "inventory_id": None}).count() if current else 0
+    all_count = activity_rows(business.pk, **{**query, "inventory_id": None}).count() if current else 0
     return render(request, "inventory_access/activity_log.html", {
         "scope": scope_chip(request, current, shown_id=str(form.cleaned_data["inventory"] or "") or None,
                             all_count=all_count, noun="activity"),
         "breadcrumbs": [("Dashboard", reverse("home")), (business.name, None), ("Activity log", None)],
         "business": business, "form": form, "page": page, "rows": hydrate(business.pk, list(page.object_list)),
-        "is_filtered": any(request.GET.get(name) for name in form.fields),
+        "is_filtered": any(request.GET.get(name) for name in form.fields), "is_staff_view": staff,
     })
