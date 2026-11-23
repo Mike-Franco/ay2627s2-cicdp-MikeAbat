@@ -67,13 +67,16 @@ class SeedDemoPolishTests(TestCase):
         self.assertEqual((staff.display_name, staff.job_title), DEMO_PROFILES["staff"][:2])
         self.assertEqual(manager.display_label, "Mia Tan")
 
-    def test_rerun_backfills_blank_prices_and_names_without_touching_stock(self):
+    def test_rerun_fills_blank_prices_names_and_ordering_settings_without_touching_stock(self):
         self.seed()
         users = get_user_model().objects
         manager = users.get(email=self.env["DEMO_MANAGER_EMAIL"])
         staff = users.get(email=self.env["DEMO_STAFF_EMAIL"])
         # Simulate a demo seeded before this change, plus one name the user edited.
         InventoryProduct.objects.filter(inventory__business__name="Tory Demo").update(selling_price=None)
+        products = Product.objects.filter(business__name="Tory Demo")
+        products.update(lead_time_days=None, safety_stock_units=None, supplier_name="")
+        products.filter(sku="GR-01").update(lead_time_days=2, safety_stock_units=0, supplier_name="Custom Supplier")
         users.filter(pk=manager.pk).update(display_name="", job_title="")
         users.filter(pk=staff.pk).update(display_name="Ravi K.", job_title="")
         counts = (ReceivingBatch.objects.count(), DemandAuditEvent.objects.count(), Product.objects.count())
@@ -82,8 +85,15 @@ class SeedDemoPolishTests(TestCase):
 
         self.assertIn("already seeded", output)
         self.assertIn("Backfilled 2 demo profile(s), 15 selling price(s) and 0 product categories.", output)
+        self.assertIn("Backfilled ordering settings for 14 demo product(s).", output)
         self.assertNotIn("password", output)
         self.assertFalse(InventoryProduct.objects.filter(selling_price__isnull=True).exists())
+        self.assertFalse(products.filter(lead_time_days__isnull=True).exists())
+        self.assertFalse(products.filter(safety_stock_units__isnull=True).exists())
+        self.assertFalse(products.filter(supplier_name="").exists())
+        oat_milk = products.get(sku="GR-01")
+        self.assertEqual((oat_milk.lead_time_days, oat_milk.safety_stock_units, oat_milk.supplier_name),
+                         (2, 0, "Custom Supplier"))
         manager.refresh_from_db()
         staff.refresh_from_db()
         self.assertEqual(manager.display_name, "Mia Tan")

@@ -262,23 +262,28 @@ class BulkVerifySeedDemoTests(TestCase):
            "DEMO_STAFF_EMAIL": "bulk-seed-staff@example.test",
            "DEMO_MANAGER_PASSWORD": "bulk-seed-password-1!", "DEMO_STAFF_PASSWORD": "bulk-seed-password-2!"}
 
-    def test_fresh_seed_is_fully_verified_and_idempotent(self):
+    def test_fresh_seed_has_two_grocery_dates_to_verify_and_is_idempotent(self):
         with patch.dict(os.environ, self.ENV):
             call_command("seed_demo", stdout=StringIO())
         manager = get_user_model().objects.get(email=self.ENV["DEMO_MANAGER_EMAIL"])
-        links = list(InventoryProduct.objects.filter(inventory__business__name="Tory Demo"))
+        links = list(InventoryProduct.objects.filter(inventory__business__name="Tory Demo")
+                     .select_related("inventory", "product"))
         self.assertEqual(len(links), 15)
         for link in links:
             result = recommendation(user_id=manager.pk, inventory_id=link.inventory_id, product_id=link.product_id)
-            self.assertIsNotNone(result.reorder_point, link.product.sku)
+            if link.product.sku == "GR-07":
+                self.assertIsNone(result.reorder_point)
+            else:
+                self.assertIsNotNone(result.reorder_point, link.product.sku)
         now = timezone.now()
-        self.assertEqual(inventory_dashboard(manager, at=now)["unreviewed_demand"], [])
+        tasks = inventory_dashboard(manager, at=now)["unreviewed_demand"]
+        self.assertEqual([(inventory.name, count) for inventory, count in tasks], [("Grocery", 2)])
         events = DemandCoverageEvent.objects.count()
         with patch.dict(os.environ, self.ENV):
             call_command("seed_demo", stdout=StringIO())
         self.assertEqual(DemandCoverageEvent.objects.count(), events)
-        for inventory_id in {link.inventory_id for link in links}:
+        for inventory_id, name in {(link.inventory_id, link.inventory.name) for link in links}:
             result = verify_demand_days_for_inventory(user_id=manager.pk, inventory_id=inventory_id,
                                                       days=reviewable_days(now), at=now)
-            self.assertEqual(result.verified, ())
-        self.assertEqual(DemandCoverageEvent.objects.count(), events)
+            self.assertEqual(len(result.verified), 2 if name == "Grocery" else 0)
+        self.assertEqual(DemandCoverageEvent.objects.count(), events + 2)
