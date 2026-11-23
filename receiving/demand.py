@@ -170,6 +170,20 @@ def unreviewed_demand_days(inventory_ids, *, at=None):
             for inventory_id, count in expected.items() if count * len(days) > reviewed[inventory_id]}
 
 
+def unreviewed_by_day(inventory_id, *, at=None):
+    """{day: never-reviewed active products} for each date in the reviewable window (TORY-69)."""
+    days = reviewable_days(at)
+    if not days:
+        return {}
+    link_ids = list(InventoryProduct.objects.filter(
+        inventory_id=inventory_id, product__is_active=True,
+    ).values_list("pk", flat=True))
+    reviewed = Counter(day for _, day in DemandCoverageDay.objects.filter(
+        inventory_product_id__in=link_ids, day__in=days, events__isnull=False,
+    ).values_list("pk", "day").distinct())
+    return {day: len(link_ids) - reviewed[day] for day in days}
+
+
 def mark_demand_day_incomplete(*, user_id, inventory_id, product_id, day, reason):
     reason = reason.strip() if isinstance(reason, str) else ""
     if not reason or len(reason) > 2000:

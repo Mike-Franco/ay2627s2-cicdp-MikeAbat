@@ -1,25 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Import stock CSV · Tory{% endblock %}
-{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header crumb="Import CSV" %}Import stock CSV{% endpage_header %}{% endblock %}
 {% block content %}
-<p>Selected inventory: <strong>{{ inventory.name }}</strong></p>
-<p>Upload strict UTF-8 CSV with the exact header <code>sku,change</code>, or <code>sku,change,supplier_name</code> to also set each product's supplier (blank cells leave it unchanged). Maximum 262,144 bytes and 1,000 data rows. The whole file applies or none of it does.</p>
-<section class="panel mb-3" aria-labelledby="csv-format">
-  <div class="panel-heading d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <div><h2 id="csv-format">File format</h2><p>A positive change receives stock (products without expiry tracking only); a negative change issues stock, oldest expiry first.</p></div>
-    <a class="btn btn-outline-primary" href="{% url 'import-stock-csv-template' inventory.pk %}" download>Download template</a>
-  </div>
-  <div class="table-scroll"><table class="products-table csv-example" aria-label="Example CSV rows">
-    <thead><tr><th scope="col">sku</th><th scope="col">change</th><th scope="col">Meaning</th></tr></thead>
-    <tbody>{% for sku, change, meaning in template_rows %}<tr><td><code>{{ sku }}</code></td><td><code>{{ change }}</code></td><td>{{ meaning }}</td></tr>{% endfor %}</tbody>
-  </table></div>
-</section>
 {% if imported %}<div class="alert alert-success" role="status">Import recorded: {{ imported.pk }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  <div class="mb-3"><label class="form-label" for="{{ form.file.id_for_label }}">CSV file</label>{{ form.file }}{{ form.file.errors }}</div>
-  <button class="btn btn-primary" type="submit">Import CSV</button>
-</form>
-<a href="{% url 'inventory-products' inventory.pk %}">Back to products</a>
+<div class="split">
+  <section class="panel" aria-labelledby="upload-title">
+    <header class="card-h"><div class="card-title"><h2 id="upload-title">Upload to {{ inventory.name }}</h2></div></header>
+    <form method="post" enctype="multipart/form-data" class="form-card">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="drop" data-file-drop>
+        <input type="file" name="{{ form.file.html_name }}" id="{{ form.file.id_for_label }}" accept=".csv,text/csv" required aria-label="CSV file" aria-describedby="drop-hint">
+        <span class="drop-text"><strong>Drop a CSV file here</strong> <span class="muted">or</span></span>
+        <span class="btn btn-sm" aria-hidden="true">Choose file</span>
+        <span class="drop-name" data-file-name id="drop-hint">No file chosen · .csv, up to 256 KB</span>
+      </div>
+      {{ form.file.errors }}
+      <div class="btn-row"><button class="btn btn-primary" type="submit">Import CSV</button><a class="btn" href="{% url 'inventory-products' inventory.pk %}">Cancel</a></div>
+    </form>
+  </section>
+  <section class="panel" aria-labelledby="csv-format">
+    <header class="card-h"><div class="card-title"><h2 id="csv-format">File format</h2></div><a class="btn btn-sm" href="{% url 'import-stock-csv-template' inventory.pk %}" download>Download template</a></header>
+    <ul class="rules">
+      <li>Header <code>sku,change</code>, or <code>sku,change,supplier_name</code> to set suppliers (blank cells leave them unchanged).</li>
+      <li>A positive change receives stock (products without expiry tracking only); a negative change issues stock, earliest expiry first.</li>
+      <li>UTF-8, at most 1,000 rows and 256 KB.</li>
+      <li>All or nothing: if any row is invalid, nothing is imported.</li>
+    </ul>
+    <div class="table-scroll"><table class="products-table csv-example" aria-label="Example CSV rows">
+      <thead><tr><th scope="col">sku</th><th scope="col">change</th><th scope="col">Meaning</th></tr></thead>
+      <tbody>{% for sku, change, meaning in template_rows %}<tr><td><code>{{ sku }}</code></td><td><code>{{ change }}</code></td><td>{{ meaning }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+</div>
 {% endblock %}

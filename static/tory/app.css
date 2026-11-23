@@ -88,13 +88,23 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 /* Workspace */
 .workspace{margin-left:240px;min-height:100vh;display:flex;flex-direction:column}
 .workspace-main{flex:1;min-width:0;--page-max:1600px;--gutter:32px}
-/* TORY-68: content fills the width up to 1600px; form-only pages use a centred 880px column. */
-.workspace-main.layout-narrow{--page-max:880px}
+/* TORY-69: one container for every signed-in page - full width up to 1600px, header included.
+   Cards fill that width; the fields inside them are limited instead. */
+.content .form-control,.content .form-select,.content select,
+.content input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]){max-width:560px}
+.content textarea,.content textarea.form-control{max-width:720px}
+.content .product-filters :is(input,select),.content .fc-layout :is(input,select,textarea){max-width:none}
+.content .panel p:not(.notice),.content .page-intro,.content .help-text,.content .form-text,.ph-sub,.content .calc-body{max-width:75ch}
+.content>form.panel>div+div{margin-top:12px}
+.content>form.panel>div>label{display:block;margin-bottom:4px}
+.content>form.panel>.btn{margin-top:16px}
+.content>form.panel .helptext{display:block;color:var(--muted);font-size:12px;margin-bottom:4px;max-width:75ch}
 .mobile-bar{display:none}
 .menu-toggle{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border:1px solid var(--line2);border-radius:var(--radius);background:var(--panel);color:var(--text);font:inherit;font-weight:500}
 .ph{padding:20px var(--gutter) 14px;border-bottom:1px solid var(--line);background:var(--panel)}
 .ph-inner{max-width:calc(var(--page-max) - 2 * var(--gutter));margin-inline:auto}
 .ph h1{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.ph-sub{margin:6px 0 0;color:var(--muted);font-size:13px}
 .ph-sku{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--muted)}
 .ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
 .ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}

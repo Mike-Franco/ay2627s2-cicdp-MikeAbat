@@ -2,6 +2,18 @@
 
 All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refer to [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/pulls?q=is%3Apr+is%3Amerged).
 
+## v1.2.2 — 24 November 2026
+
+A fix-only release for inconsistent page widths (TORY-69, #121). There are no migrations.
+
+### Fixed
+- Every signed-in page now uses one container: full width up to 1600px, with 32px side padding (16px on phones). The page header shares that container, so titles, breadcrumbs and content line up on every page. The centred 880px column from v1.2.1 is removed. Fields inside cards are limited instead: inputs and selects to 560px, text areas to 720px, and text to about 75 characters per line.
+- **Import CSV:** an upload card with a file drop zone, and a File format card with short rules, an example and the template download.
+- **Verify demand:** the description is in the page header. A Last 7 days card shows a pill for each date and a "Verify N unverified days" button, and a One date card verifies a single date.
+- **Categories:** a full-width table with paging and colour swatches ("No colour" when unset).
+- **Staff invitations:** the invite form sits beside the invitations table on wide screens.
+- **Products:** the four filters sit on one row. The placeholder squares before product names are gone, and the footnote is replaced by help tips on the Physical, Quarantined and Available columns.
+
 ## v1.2.1 — 23 November 2026
 
 A fix-only release with UI corrections from the v1.2 review (TORY-68, #118). There are no migrations.
