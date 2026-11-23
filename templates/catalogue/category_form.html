@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{% if category.pk %}Edit category{% else %}Add category{% endif %} · Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}{% if category.pk %}Edit category{% else %}Add category{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
 <form class="panel p-3" method="post">

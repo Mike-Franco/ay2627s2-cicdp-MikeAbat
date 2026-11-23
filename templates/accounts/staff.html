@@ -28,14 +28,14 @@
           <td><span class="list-mobile-label" aria-hidden="true">Phone</span>{% if staff.phone %}<a href="tel:{{ staff.phone|cut:' ' }}">{{ staff.phone }}</a>{% else %}—{% endif %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Status</span>{% if staff.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Assigned inventories</span><div class="d-flex flex-wrap gap-2">{% for inventory in staff.assigned_inventories %}{% include "includes/inventory_badge.html" with inventory=inventory %}{% empty %}—{% endfor %}</div></td>
-          <td><span class="list-mobile-label" aria-hidden="true">Last sign-in</span>{{ staff.last_login|sgdate }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Actions</span>{% if staff.is_active %}<a class="btn btn-sm btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a>{% else %}—{% endif %}</td>
+          <td class="nowrap"><span class="list-mobile-label" aria-hidden="true">Last sign-in</span>{{ staff.last_login|sgdate }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Actions</span>{% if staff.is_active %}<a class="btn-text danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a>{% else %}<span class="muted">—</span>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
-  {% else %}<p class="p-3">No Staff accounts match the current view.</p>{% endif %}
+  {% else %}<p class="insight-empty">No Staff accounts match the current view.</p>{% endif %}
+  {% include "includes/pagination.html" with pagination_label="Staff pages" %}
 </section>
-{% include "includes/pagination.html" with pagination_label="Staff pages" %}
 {% endblock %}

@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Deactivate Staff · Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}Deactivate Staff{% endpage_header %}{% endblock %}
 {% block content %}
 <p>Deactivate {{ target.display_label }} ({{ target.email }})? Their previous sessions will be denied on the next protected request. Their account and history will be retained.</p>

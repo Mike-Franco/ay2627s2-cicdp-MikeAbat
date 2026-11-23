@@ -1,4 +1,4 @@
-<form method="get" class="product-filters" role="search" aria-label="{{ toolbar.search_label }}">
+<form method="get" class="product-filters" role="search" aria-label="{{ toolbar.search_label }}" data-autosubmit>
   {% for name, value in toolbar.hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
   {% if not toolbar.sort_choices and request.GET.sort %}<input type="hidden" name="sort" value="{{ toolbar.sort }}">{% endif %}
   <div class="product-filter-field">
@@ -22,8 +22,7 @@
   </div>
   {% endif %}
   <div class="product-filter-actions">
-    <button class="btn btn-primary" type="submit">Apply</button>
+    <button class="btn btn-primary" type="submit" data-autosubmit-button>Apply</button>
     {% if toolbar.is_filtered %}<a class="btn btn-outline-secondary" href="{{ toolbar.clear_url }}">Clear filters</a>{% endif %}
   </div>
 </form>
-<p class="list-result-count">{{ toolbar.count }} result{{ toolbar.count|pluralize }}</p>

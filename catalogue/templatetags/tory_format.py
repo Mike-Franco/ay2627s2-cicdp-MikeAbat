@@ -1,6 +1,8 @@
 """Shared display formatting for templates."""
 
 from datetime import date, datetime, timedelta
+from fractions import Fraction
+from math import ceil
 from decimal import ROUND_CEILING, ROUND_HALF_UP, Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
 
@@ -55,6 +57,10 @@ def whole_units(value):
     """
     if value in (None, ""):
         return None
+    # TORY-68: reorder points are exact Fractions (e.g. 71/7); str() of a Fraction
+    # is not a valid Decimal, which used to show "—" instead of 11.
+    if isinstance(value, (int, Fraction)):
+        return ceil(value)
     try:
         return int(Decimal(str(value)).to_integral_value(rounding=ROUND_CEILING))
     except (InvalidOperation, TypeError, ValueError):
@@ -142,3 +148,31 @@ def sgdayheading(value, now=None):
     if value == today - timedelta(days=1):
         return f"Yesterday · {label}"
     return label
+
+
+@register.filter
+def two_dp(value):
+    """Show an exact quantity (int, Fraction or Decimal) with two decimal places, rounded half up."""
+    if value in (None, ""):
+        return "—"
+    if isinstance(value, Fraction):
+        value = Decimal(value.numerator) / Decimal(value.denominator)
+    return f"{Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)}"
+
+
+@register.filter
+def expires_relative(value, now=None):
+    """'in 3 days', 'in 1 h', 'in 20 min' or 'Expired' for a future/past datetime (TORY-68)."""
+    if value in (None, ""):
+        return ""
+    now = now or timezone.now()
+    seconds = (value - now).total_seconds()
+    if seconds <= 0:
+        return "Expired"
+    minutes = int(seconds // 60)
+    if minutes < 60:
+        return f"in {max(minutes, 1)} min"
+    hours = minutes // 60
+    if hours < 48:
+        return f"in {hours} h"
+    return f"in {hours // 24} days"

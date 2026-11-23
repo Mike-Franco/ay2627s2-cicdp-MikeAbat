@@ -11,7 +11,7 @@
 :root{
   color-scheme:light;
   --bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;
-  --text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;
+  --text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--th-bg:#F3F3F6;
   --accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--on-accent:#FFFFFF;
   --red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;
   --blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;
@@ -24,7 +24,7 @@
 :root[data-theme="dark"]{
   color-scheme:dark;
   --bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;
-  --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;
+  --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--th-bg:#1B1B20;
   --accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--on-accent:#0E0E10;
   --red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;
   --blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;
@@ -35,7 +35,7 @@
   :root:not([data-theme="light"]){
     color-scheme:dark;
     --bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;
-    --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;
+    --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--th-bg:#1B1B20;
     --accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--on-accent:#0E0E10;
     --red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;
     --blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;
@@ -71,3 +71,10 @@
   --bs-success-text-emphasis:var(--green);--bs-success-bg-subtle:var(--green-bg);--bs-success-border-subtle:var(--green);
   --bs-info-text-emphasis:var(--blue);--bs-info-bg-subtle:var(--blue-bg);--bs-info-border-subtle:var(--blue);
 }
+
+/* TORY-68: one header row style for every table (plain, .products-table, .tbl and Bootstrap .table). */
+table thead th{background:var(--th-bg);color:var(--text);font-size:12px;font-weight:600;border-bottom:1px solid var(--line2)}
+.table thead th{--bs-table-bg:var(--th-bg);--bs-table-color:var(--text)}
+/* Sortable headers keep the header colour; only the active sort arrow is full strength. */
+thead th a.sort-link,thead th a.table-sort-link{color:var(--text)}
+thead th a.sort-link:hover,thead th a.table-sort-link:hover{color:var(--text);text-decoration:underline}

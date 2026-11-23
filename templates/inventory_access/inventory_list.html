@@ -12,7 +12,7 @@
   {% for inventory in inventories %}
   <article class="inventory-card" aria-labelledby="inventory-{{ inventory.pk }}">
     <div>
-      <h2 class="h5" id="inventory-{{ inventory.pk }}">{% if inventory.is_active %}<a href="{% url 'inventory-products' inventory.pk %}">{% include "includes/inventory_badge.html" with inventory=inventory %}</a>{% else %}{% include "includes/inventory_badge.html" with inventory=inventory %}{% endif %}</h2>
+      <h2 class="inventory-card-title" id="inventory-{{ inventory.pk }}">{% if inventory.is_active %}<a href="{% url 'inventory-products' inventory.pk %}">{% include "includes/inventory_badge.html" with inventory=inventory %}</a>{% else %}{% include "includes/inventory_badge.html" with inventory=inventory %}{% endif %}</h2>
       <small class="text-muted">{{ inventory.business.name }}</small>
       {% if inventory.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}
     </div>

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Selling price for {{ product.sku }} · Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}Selling price{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' %}

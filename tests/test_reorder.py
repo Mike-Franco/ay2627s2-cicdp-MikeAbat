@@ -151,9 +151,10 @@ class ReorderTests(TestCase):
         self.assertContains(response, "Physical")
         self.assertContains(response, "Quarantined")
         self.assertContains(response, "Available")
-        self.assertContains(response, "Reorder point unavailable")
-        self.assertContains(response, "Every date needs explicit Manager verification.")
-        self.assertContains(response, "Set lead time, safety stock.")
+        # TORY-68: a short pill with a help tip, plus one notice above the table.
+        self.assertContains(response, '<span class="status-pill neutral">No forecast</span>', html=False)
+        self.assertContains(response, "Each of the last 7 dates needs Manager verification")
+        self.assertContains(response, "1 product has no forecast yet")
         self.assertContains(response, '<td class="numeric available cell-available"><span class="mobile-label">Available</span>0<span class="unit">each</span></td>', html=True)
         self.assertContains(response, reverse("product-stock", args=[self.first.pk, self.product.pk]))
         self.assertNotContains(response, "Import stock CSV")
@@ -194,7 +195,7 @@ class ReorderTests(TestCase):
         link = response.context["product_links"][0]
         self.assertEqual((link.display_physical_units, link.display_quarantine_units,
                           link.display_available_units), (5, 5, 0))
-        self.assertContains(response, "Reorder point unavailable")
+        self.assertContains(response, '<span class="status-pill neutral">No forecast</span>', html=False)
 
     def test_exact_fraction_and_threshold_equality(self):
         save_shared_settings(user_id=self.manager.pk, inventory_id=self.first.pk,
