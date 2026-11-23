@@ -87,7 +87,8 @@ class InventoryManagementTests(TestCase):
         self.inventory.refresh_from_db()
         self.assertEqual(self.inventory.name, "Supply room")
         self.assertEqual(InventoryChangeAuditEvent.objects.get(action="rename").after["name"], "Supply room")
-        self.client.post(reverse("inventory-status", args=[self.inventory.pk]), {"is_active": "false"})
+        self.client.post(reverse("inventory-status", args=[self.inventory.pk]),
+                         {"is_active": "false", "confirm_name": self.inventory.name})
         self.inventory.refresh_from_db()
         self.assertFalse(self.inventory.is_active)
         self.assertEqual(self.client.get(reverse("inventory-products", args=[self.inventory.pk])).status_code, 404)
@@ -98,7 +99,8 @@ class InventoryManagementTests(TestCase):
         self.assertTrue(InventoryChangeAuditEvent.objects.get(action="reactivate").after["is_active"])
 
     def test_deactivation_removes_new_inventory_from_switcher(self):
-        response = self.client.post(reverse("inventory-status", args=[self.inventory.pk]), {"is_active": "false"})
+        response = self.client.post(reverse("inventory-status", args=[self.inventory.pk]),
+                         {"is_active": "false", "confirm_name": self.inventory.name})
         self.assertEqual(response.status_code, 302)
         self.assertContains(self.client.get(reverse("inventory-list")), "Main shelf")
 
@@ -123,7 +125,8 @@ class InventoryManagementTests(TestCase):
             user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,
             request_token=uuid.uuid4(), quantity_units=2, expiry_date=None,
         )
-        self.client.post(reverse("inventory-status", args=[self.inventory.pk]), {"is_active": "false"})
+        self.client.post(reverse("inventory-status", args=[self.inventory.pk]),
+                         {"is_active": "false", "confirm_name": self.inventory.name})
         with self.assertRaises(ReceiptRejected):
             receive_manual(
                 user_id=self.manager.pk, inventory_id=self.inventory.pk, product_id=self.product.pk,

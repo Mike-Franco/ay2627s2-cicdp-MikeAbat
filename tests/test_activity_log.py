@@ -19,7 +19,7 @@ from accounts.sessions import ACTIVE_KEY, CREATED_KEY
 from catalogue.lifecycle import set_product_active
 from catalogue.models import InventoryProduct, Product
 from inventory_access.activity_log import KINDS
-from inventory_access.inventory_changes import create_inventory
+from inventory_access.inventory_changes import create_inventory, set_staff_access
 from inventory_access.models import Business, BusinessMembership, Inventory, InventoryAssignment
 from receiving.csv_import import import_stock_csv
 from receiving.demand import verify_demand_day
@@ -117,6 +117,9 @@ class ActivityLogTests(TransactionTestCase):
         set_product_active(user_id=self.manager.pk, inventory_id=self.inventory.pk,
                            product_id=self.spare.pk, active=True)
         create_inventory(user=self.manager, business_id=self.business.pk, name="Annex")  # inventory
+        staff_role = BusinessMembership.objects.get(business=self.business, user=self.staff)
+        set_staff_access(user=self.manager, inventory=Inventory.objects.get(name="Annex"),  # access (TORY-65)
+                         membership_ids={staff_role.pk})
         now = timezone.now()
         StaffInvitation.objects.create(                                                 # invitation
             target_email="new@example.test", business=self.business, manager_membership=self.manager_role,
@@ -152,7 +155,8 @@ class ActivityLogTests(TransactionTestCase):
         self.assertEqual(set(by_kind), {kind for kind, _label in KINDS} - {"product"})
         expected_actor = {"receipt": self.manager, "issue": self.staff, "adjustment": self.manager,
                           "disposal": self.manager, "verification": self.manager, "lifecycle": self.manager,
-                          "inventory": self.manager, "invitation": self.manager, "quarantine": None}
+                          "inventory": self.manager, "access": self.manager, "invitation": self.manager,
+                          "quarantine": None}
         for kind, actor in expected_actor.items():
             with self.subTest(kind=kind):
                 self.assertEqual({row["actor"] for row in by_kind[kind]}, {actor})
@@ -197,7 +201,7 @@ class ActivityLogTests(TransactionTestCase):
         self.assertEqual([row["kind"] for row in rows], ["adjustment"])
         annex = Inventory.objects.get(name="Annex")
         rows, _ = self.rows(inventory=annex.pk)
-        self.assertEqual({row["kind"] for row in rows}, {"inventory"})
+        self.assertEqual({row["kind"] for row in rows}, {"inventory", "access"})
         rows, _ = self.rows(q="act-1")
         self.assertTrue(rows)
         self.assertTrue(all(row["product"] == self.product for row in rows))
