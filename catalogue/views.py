@@ -14,6 +14,7 @@ from accounts.sessions import protected_view
 from catalogue.models import Category, InventoryProduct, Product, ProductLifecycleAuditEvent
 from inventory_access.authorization import authorized_inventories, get_authorized_inventory, manager_memberships
 from inventory_access.models import BusinessMembership, Inventory
+from inventory_access.selection import current_inventory, scope_chip, scope_filter
 from receiving.demand import (
     forecasts_for_links,
     mark_demand_day_incomplete,
@@ -52,7 +53,11 @@ def product_catalogue(request):
     controls = TableControls.from_request(request, CATALOGUE_SORTS, default="sku")
     links = _search_product_links(visible_product_links(request.user), controls.query)
     category = request.GET.get("category", "")
-    inventory = request.GET.get("inventory", "")
+    # TORY-63: default to the inventory selected in the sidebar; ?scope=all widens to
+    # every inventory this user may see (visible_product_links never goes further).
+    current = current_inventory(request, inventories)
+    inventory, defaulted = scope_filter(request, current)
+    inventory = inventory or ""
     status = request.GET.get("status", "")
     valid = len(request.GET.get("q", "")) <= 200 and (not category or category in categories_by_id or category == "uncategorised") and (
         not inventory or inventory in inventories_by_id
@@ -72,7 +77,13 @@ def product_catalogue(request):
         ("inventory", "Inventory", [("", "All inventories"),
                                      *((str(item.pk), item.name) for item in inventories)]),
     ))
+    if defaulted:
+        for item in toolbar["filters"]:
+            if item["key"] == "inventory":
+                item["value"] = inventory  # keep the scope when the toolbar is submitted
+    all_count = visible_product_links(request.user).values("product_id").distinct().count() if current else 0
     return render(request, "catalogue/product_catalogue.html", {
+        "scope": scope_chip(request, current, shown_id=inventory or None, all_count=all_count, noun="products"),
         "product_links": page.object_list, "page": page, "toolbar": toolbar, "valid_filters": valid,
         "breadcrumbs": [("Dashboard", reverse("home")), ("Catalogue", None)],
         "category_managers": manager_memberships(request.user).select_related("business"),

@@ -162,6 +162,7 @@ class ListPaginationTests(TestCase):
                 result.append(len(queries))
             return result
 
+        counts()  # TORY-63: opening the products page selects the inventory, which scopes the catalogue
         initial = counts()
         self.add_products(2, 70)
         self.add_staff(1, 70)

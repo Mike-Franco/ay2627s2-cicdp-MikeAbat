@@ -83,3 +83,12 @@ def days(value):
     """Show days of supply with one decimal place; empty values render as an em dash."""
     result = one_decimal(value)
     return "—" if result is None else result
+
+
+@register.filter
+def day_list(values):
+    """Join dates as "Sat 21 Nov and Sun 22 Nov" (or "Fri 20 Nov, Sat 21 Nov and Sun 22 Nov")."""
+    labels = [dateformat.format(value, "D j M") for value in values]
+    if len(labels) < 2:
+        return "".join(labels)
+    return ", ".join(labels[:-1]) + " and " + labels[-1]

@@ -3,6 +3,7 @@
 {% block page_header %}{% page_header %}Catalogue{% header_actions %}{% for membership in category_managers %}<a class="btn" href="{% url 'category-list' membership.business_id %}">Categories{% if category_managers|length > 1 %} · {{ membership.business.name }}{% endif %}</a>{% endfor %}{% for inventory in create_inventories %}<a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product{% if create_inventories|length > 1 %} · {{ inventory.business.name }}{% endif %}</a>{% endfor %}{% endpage_header %}{% endblock %}
 {% block content %}
 {% load tory_format %}
+{% include "includes/scope_chip.html" %}
 <section class="panel" aria-label="Catalogue">
   {% include "includes/table_toolbar.html" %}
   {% if not valid_filters %}<p class="p-3" role="alert">Check the search length and choose a category and inventory available to your account.</p>

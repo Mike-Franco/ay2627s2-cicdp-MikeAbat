@@ -17,7 +17,8 @@ from receiving.models import (
 from .authorization import visible_product_links
 from .pagination import paginate
 from .metrics import (
-    STATUS_LABELS, complete_days, daily_movements, kpis, movement_metrics, singapore_day, stock_positions, unverified_days,
+    STATUS_LABELS, complete_days, daily_movements, kpis, movement_metrics, singapore_day, stock_positions,
+    unverified_summary,
 )
 
 
@@ -92,7 +93,7 @@ def dashboard(request):
     positions = stock_positions(links, at=at)
     movements = daily_movements(links, start=complete_days(at, 30)[0], at=at)
     stock_to_sales_30d, turnover_30d = movement_metrics(positions, movements, at=at)
-    unverified = unverified_days(positions, at=at)
+    unverified, tasks = unverified_summary(positions, at=at)
     managed = set(manageable_inventories(request.user).filter(pk__in=inventories).values_list("pk", flat=True))
     expiry_rows = ReceivingBatch.objects.filter(
         inventory_product_id__in=[link.pk for link in links],
@@ -110,6 +111,7 @@ def dashboard(request):
         totals[position.link.inventory_id] += position.quarantined
     actions = _panel(request, "actions", _action_rows(positions), 10)
     until = today + timedelta(days=7)
+    demand_tasks = [{"inventory": inventories[pk], **tasks[pk]} for pk in sorted(managed) if pk in tasks]
     return render(request, "accounts/home.html", {
         "assigned": assigned, "chosen": chosen, "kpi_cards": kpis(positions, turnover_30d=turnover_30d, unverified=unverified),
         "stock_to_sales_30d": stock_to_sales_30d,
@@ -118,8 +120,9 @@ def dashboard(request):
         "expiring_later": [batch for batch in expiring["rows"] if batch.expiry_date > until],
         "recent_activity": activities["rows"],
         "inventory_totals": [(inventory, totals[inventory.pk]) for inventory in selected],
-        "unverified_demand": [(inventories[pk], unverified[pk]) for pk in sorted(managed)
-                              if unverified is not None and unverified.get(pk)],
+        # "Do this first" (TORY-63): only Managers can verify demand, so only they see the task.
+        "demand_tasks": demand_tasks,
+        "demand_days_total": sum(len(task["days"]) for task in demand_tasks),
         "reorder_unavailable": sum(position.reorder is not None and position.reorder.reorder_point is None
                                    for position in positions),
     })

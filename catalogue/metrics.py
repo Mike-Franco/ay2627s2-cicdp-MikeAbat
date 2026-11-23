@@ -205,16 +205,19 @@ def movement_metrics(positions, movements, *, at):
     return stock_to_sales(current, issued), turnover(issued, balances)
 
 
-def unverified_days(positions, *, at):
+def _unverified_pairs(positions, *, at):
+    """(link id -> inventory id, unverified (link id, day) pairs), or None before activation.
+
+    A product-day counts as verified when its latest coverage event is a
+    verification whose total still matches the recorded issues.
+    """
     dates = reviewable_days(at)
     if not dates:
         return None
     links = {position.link.pk: position.link.inventory_id for position in positions if position.reorder is not None}
-    counts = Counter(links.values())
-    for inventory_id in counts:
-        counts[inventory_id] *= len(dates)
+    pending = {(link_id, day) for link_id in links for day in dates}
     if not links:
-        return counts
+        return links, pending
     latest = DemandCoverageEvent.objects.filter(
         coverage_day__inventory_product_id__in=links, coverage_day__day__in=dates,
     ).order_by("coverage_day_id", "-pk").distinct("coverage_day_id").values_list(
@@ -228,8 +231,35 @@ def unverified_days(positions, *, at):
         )
         for key, total in verified.items():
             if total == observed.get(key, 0):
-                counts[links[key[0]]] -= 1
-    return counts
+                pending.discard(key)
+    return links, pending
+
+
+def unverified_summary(positions, *, at):
+    """(unverified product-days per inventory, demand tasks per inventory) from one query.
+
+    The counts are None before demand observation is activated; every
+    inventory with products is a key. A task (TORY-63) lists the dates that
+    still need verifying and how many products wait on them.
+    """
+    result = _unverified_pairs(positions, at=at)
+    if result is None:
+        return None, {}
+    links, pending = result
+    counts = Counter({inventory_id: 0 for inventory_id in links.values()})
+    days, products = defaultdict(set), defaultdict(set)
+    for link_id, day in pending:
+        counts[links[link_id]] += 1
+        days[links[link_id]].add(day)
+        products[links[link_id]].add(link_id)
+    tasks = {inventory_id: {"days": sorted(dates), "products": len(products[inventory_id])}
+             for inventory_id, dates in days.items()}
+    return counts, tasks
+
+
+def unverified_days(positions, *, at):
+    """Unverified product-days per inventory, or None before activation."""
+    return unverified_summary(positions, at=at)[0]
 
 
 def kpis(positions, *, turnover_30d, unverified):

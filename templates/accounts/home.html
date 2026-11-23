@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Dashboard · Tory{% endblock %}
-{% block page_header %}{% page_header %}Dashboard{% endpage_header %}{% endblock %}
+{% block page_header %}{% page_header %}Dashboard{% header_actions %}{% with first=demand_tasks.0 %}{% if first %}<a class="btn" href="{% url 'bulk-verify-demand' first.inventory.pk %}?scope=week">Verify demand <span class="count-badge" aria-label="{{ demand_days_total }} day{{ demand_days_total|pluralize }} to verify">{{ demand_days_total }}</span></a>{% endif %}{% endwith %}{% endpage_header %}{% endblock %}
 {% block content %}
 {% if assigned %}
 <form method="get" class="product-filters" aria-label="Filter dashboard by inventory">
@@ -15,12 +15,13 @@
   <div class="product-filter-actions"><button class="btn btn-primary">Apply</button></div>
 </form>
 {% include "includes/stock_kpis.html" %}
-{% for inventory, count in unverified_demand %}
-<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="status">
-  <span><strong>{{ count }} unverified demand day{{ count|pluralize }}</strong> in {% include "includes/inventory_badge.html" with inventory=inventory %}.</span>
-  <a class="btn btn-sm btn-primary" href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand</a>
+{% for task in demand_tasks %}{% with days=task.days|length %}
+<div class="todo" role="region" aria-label="Do this first">
+  <span class="todo-tag">Do this first</span>
+  <div class="todo-text"><strong>Verify {{ days }} demand day{{ days|pluralize }} in {{ task.inventory.name }}</strong> ({{ task.days|day_list }}). Forecasts and reorder suggestions for {{ task.products }} product{{ task.products|pluralize }} stay paused until you do.</div>
+  <a class="btn btn-primary" href="{% url 'bulk-verify-demand' task.inventory.pk %}?scope=week">Verify {{ days }} day{{ days|pluralize }}</a>
 </div>
-{% endfor %}
+{% endwith %}{% endfor %}
 <section id="actions" class="panel mb-3" aria-labelledby="dashboard-actions">
   <div class="panel-heading"><h2 id="dashboard-actions">Stock actions</h2>{% include "includes/dashboard_panel_link.html" with panel=actions label="stock actions" %}</div>
   {% if actions.rows %}

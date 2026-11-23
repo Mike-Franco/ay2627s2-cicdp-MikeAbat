@@ -2,6 +2,7 @@
 
 from .authorization import authorized_inventories
 from .models import BusinessMembership
+from .selection import current_inventory, url_inventory_id
 
 
 def workspace(request):
@@ -9,11 +10,12 @@ def workspace(request):
         return {}
 
     inventories = list(authorized_inventories(request.user).select_related("business"))
-    inventory_id = getattr(request, "tory_inventory_id", None)
-    if inventory_id is None and request.resolver_match:
-        inventory_id = (request.resolver_match.kwargs or {}).get("inventory_id")
+    inventory_id = url_inventory_id(request)
+    # The inventory in the URL (breadcrumbs, product links) and the remembered
+    # selection that the switcher, the inventory group and Manage pages follow.
     selected = next((item for item in inventories if item.pk == inventory_id), None)
-    role_inventory = selected or (inventories[0] if inventories else None)
+    current = current_inventory(request, inventories)
+    role_inventory = current or (inventories[0] if inventories else None)
     role = None
     if role_inventory:
         role = BusinessMembership.objects.filter(
@@ -24,6 +26,7 @@ def workspace(request):
     return {
         "workspace_inventories": inventories,
         "workspace_inventory": selected,
+        "workspace_current": current,
         "workspace_default_inventory": role_inventory,
         "workspace_role": BusinessMembership.Role.MANAGER.label if role == BusinessMembership.Role.MANAGER else (
             BusinessMembership.Role.STAFF.label if role == BusinessMembership.Role.STAFF else None
