@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Exists, OuterRef
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.sessions import protected_view
@@ -34,7 +35,10 @@ def _business(request, business_id):
 def category_list(request, business_id):
     business = _business(request, business_id)
     categories = business.categories.annotate(in_use=Exists(Product.objects.filter(category_id=OuterRef("pk"))))
-    return render(request, "catalogue/category_list.html", {"business": business, "categories": categories})
+    return render(request, "catalogue/category_list.html", {
+        "business": business, "categories": categories,
+        "breadcrumbs": [("Dashboard", reverse("home")), ("Catalogue", reverse("product-catalogue")), ("Categories", None)],
+    })
 
 
 @protected_view

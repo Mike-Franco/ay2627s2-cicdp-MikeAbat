@@ -189,6 +189,6 @@ class InventoryIdentityTests(TestCase):
         page = self.client.get(reverse("inventory-products", args=[self.inventory.pk])).content.decode()
         switcher = page[page.index('class="inventory-switch"'):page.index("</summary>")]
         self.assertIn("lucide-sprite.svg#snowflake", switcher)
-        crumb = re.search(r'<nav class="workspace-crumb".*?</nav>', page, re.S).group(0)
+        crumb = re.search(r'<nav class="crumbs" aria-label="Breadcrumb">.*?</nav>', page, re.S).group(0)
         self.assertIn("tone-sky", crumb)
         self.assertContains(self.client.get(reverse("inventory-list")), "lucide-sprite.svg#snowflake")

@@ -2,17 +2,16 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 
-from django.core.paginator import Paginator
 from django.db.models import Q
 
 from .metrics import stock_positions as measure_stock
-
+from .pagination import paginate as paginate_rows
 
 PAGE_SIZE = 25
 
 
 def paginate(request, rows):
-    return Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    return paginate_rows(request, rows, default=PAGE_SIZE)
 
 
 @dataclass(frozen=True)
@@ -34,7 +33,7 @@ class TableControls:
         return field.desc(nulls_last=True) if self.sort.startswith("-") else field.asc(nulls_last=True)
 
     def toolbar(self, request, page, *, search_label, filters=(), sort_choices=()):
-        keys = {"q", "sort", "page", *(key for key, _, _ in filters)}
+        keys = {"q", "sort", "page", "per_page", *(key for key, _, _ in filters)}
         passthrough = [(key, value) for key, values in request.GET.lists()
                        if key not in keys for value in values]
         clear = request.GET.copy()

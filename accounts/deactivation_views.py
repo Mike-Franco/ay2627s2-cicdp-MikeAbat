@@ -1,10 +1,10 @@
 """Manager-facing Staff list and explicit confirmation flow."""
 
-from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from catalogue.pagination import paginate
 from inventory_access.models import BusinessMembership
 
 from .deactivation import StaffDeactivationRejected, deactivate_staff, visible_staff
@@ -31,7 +31,7 @@ def _scoped_staff(request, business_id, target_id=None):
 @require_GET
 @account_not_found
 def manager_staff(request, business_id):
-    page = Paginator(_scoped_staff(request, business_id), 25).get_page(request.GET.get("page"))
+    page = paginate(request, _scoped_staff(request, business_id))
     return render(request, "accounts/staff.html", {
         "business_id": business_id, "staff_accounts": page.object_list, "page": page,
     })

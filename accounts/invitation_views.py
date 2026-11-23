@@ -1,7 +1,6 @@
 """Scoped Manager controls and public Staff password setup."""
 
 from django.contrib import messages
-from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Exists, OuterRef
 from django.http import Http404, JsonResponse
@@ -11,6 +10,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.decorators.http import require_http_methods, require_POST
 
+from catalogue.pagination import paginate
 from inventory_access.models import BusinessMembership, Inventory
 from .invitation_email import InvitationDeliveryError, ensure_delivery_ready, send_invitation
 from .invitations import (StaffInvitationError, prepare_staff_invitation,
@@ -86,7 +86,7 @@ def manager_invitations(request, business_id):
     invitations = StaffInvitation.objects.filter(
         Exists(links), ~Exists(links.exclude(inventory_id__in=allowed)), business_id=business_id,
     ).prefetch_related("inventories").order_by("-issued_at", "-pk")
-    page = Paginator(invitations, 25).get_page(request.GET.get("page"))
+    page = paginate(request, invitations)
     return render(request, "accounts/invitations.html", {
         "inventories": inventories, "invitations": page.object_list, "page": page,
         "business_id": business_id, "error": error,

@@ -1,13 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Categories · Tory{% endblock %}
-{% block breadcrumb %}Categories{% endblock %}
+{% block page_header %}{% page_header %}Categories{% header_actions %}<a class="btn btn-primary" href="{% url 'category-create' business.pk %}">Add category</a>{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading">
-  <div><p class="eyebrow">{{ business.name }}</p><h1>Categories</h1></div>
-  <a class="btn btn-primary" href="{% url 'category-create' business.pk %}">Add category</a>
-</div>
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
-<p><a href="{% url 'product-catalogue' %}">Back to catalogue</a></p>
 <ul class="list-group">
 {% for category in categories %}
   <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">

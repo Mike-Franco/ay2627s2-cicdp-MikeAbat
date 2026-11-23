@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Oat Milk</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;--grid:#EEEEF2;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;--grid:#202026}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.t h2{font-size:14px;font-weight:600;margin:0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.t.dark .btn.primary{color:#0E0E10}
+.btn.icon{width:32px;padding:0;justify-content:center}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.red{color:var(--red);background:var(--red-bg)}.pill.amber{color:var(--amber);background:var(--amber-bg)}.pill.green{color:var(--green);background:var(--green-bg)}.pill.blue{color:var(--blue);background:var(--blue-bg)}
+.ph{padding:20px 32px 0;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.tabs{display:flex;gap:20px;margin-top:14px}
+.tabs a{padding:8px 0;color:var(--muted);border-bottom:2px solid transparent;font-weight:500}
+.t .tabs a.on{color:var(--text);border-color:var(--accent);text-decoration:none}
+.menu{position:absolute;right:0;top:38px;z-index:5;width:200px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);box-shadow:0 10px 28px rgba(0,0,0,.12);padding:4px}
+.menu a{display:block;padding:7px 10px;border-radius:5px;color:var(--text)}
+.t .menu a:hover{background:var(--hover);text-decoration:none}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:16px;max-width:1240px}
+.strip{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.strip>div{flex:1 1 140px;padding:12px 16px;border-right:1px solid var(--line)}
+.strip>div:last-child{border-right:0}
+.strip .k{font-size:12px;color:var(--muted)}
+.strip .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.strip .s{font-size:11.5px;color:var(--muted)}
+.grid2{display:flex;flex-wrap:wrap;gap:16px}
+.card{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden;min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-weight:500;color:var(--muted);font-size:12px;text-align:left;padding:0 12px;height:32px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th.num{text-align:right}
+.tbl td{padding:0 12px;height:36px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;padding:0 14px 14px;font-size:12.5px}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.callout{margin:0 14px 14px;padding:10px 12px;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-size:12.5px}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.pg{display:flex;gap:4px}
+.pgb{min-width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.pgb.on{border-color:var(--line2);color:var(--text);background:var(--panel)}
+.pgb:disabled{opacity:.45;cursor:default}
+svg text{font-family:Inter,sans-serif}
+@media (max-width:700px){.main,.ph{padding-left:16px;padding-right:16px}.btn{min-height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 1100px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="products" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1>Oat Milk</h1><span class="mono">GR-01</span><span class="pill amber">Low stock</span></div>
+<div class="ph-actions">
+<button class="btn primary" type="button">Receive</button>
+<button class="btn" type="button">Issue</button>
+<button class="btn" type="button">Adjust</button>
+<button class="btn icon" type="button" aria-label="More actions" aria-expanded="true">⋯</button>
+<div class="menu" role="menu"><a href="#" role="menuitem">Edit product</a><a href="#" role="menuitem">Transfer to Pharmacy</a><a href="#" role="menuitem">Quarantine a batch</a><a href="#" role="menuitem">Print label</a><hr><a href="#" role="menuitem" style="color: var(--red)">Deactivate product</a></div>
+</div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><a href="Products.dc.html">Grocery</a><span class="sep">/</span><a href="Products.dc.html">Products</a><span class="sep">/</span><span>Oat Milk</span></nav>
+<nav class="tabs" aria-label="Product sections"><a href="#" class="on">Overview</a><a href="#">Batches (2)</a><a href="#">History</a><a href="#">Forecast</a></nav>
+</header>
+<main class="main">
+<div class="strip">
+<div><div class="k">Available</div><div class="v" style="color: var(--red)">4</div><div class="s">cartons · reorder at 12</div></div>
+<div><div class="k">Quarantined</div><div class="v">0</div><div class="s">none held</div></div>
+<div><div class="k">Avg demand</div><div class="v">1.6</div><div class="s">per day, 30d verified</div></div>
+<div><div class="k">Days of supply</div><div class="v">2.5</div><div class="s">runs out ~Thu 26 Nov</div></div>
+<div><div class="k">Suggested order</div><div class="v">24</div><div class="s">covers 14 days + lead time</div></div>
+<div><div class="k">Price</div><div class="v">S$4.20</div><div class="s">value on hand S$16.80</div></div>
+</div>
+
+<div class="grid2">
+<section class="card" style="flex: 3 1 520px">
+<div class="card-h"><h2>Batches · issued FEFO</h2><span class="muted" style="font-size: 12px">Earliest expiry goes out first</span></div>
+<div style="overflow-x: auto"><table class="tbl">
+<thead><tr><th>Batch</th><th>Received</th><th>Expires</th><th class="num">Qty</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="mono">OM-2411-A</td><td>9 Nov</td><td>27 Nov <span class="muted">· 4 days</span></td><td class="num">4</td><td><span class="pill amber">Expiring</span></td></tr>
+<tr><td class="mono">OM-2410-C</td><td>24 Oct</td><td>20 Nov</td><td class="num">0</td><td><span class="pill blue">Used up</span></td></tr>
+</tbody></table></div>
+</section>
+<section class="card" style="flex: 2 1 360px">
+<div class="card-h"><h2>Next 7 days</h2><a href="#" style="font-size: 12px">Full forecast</a></div>
+<svg viewBox="0 0 360 130" width="100%" role="img" aria-label="Projected stock for the next 7 days, falling to zero on Thursday">
+<g stroke="var(--grid)"><line x1="30" y1="20" x2="350" y2="20"></line><line x1="30" y1="60" x2="350" y2="60"></line></g>
+<line x1="30" y1="100" x2="350" y2="100" stroke="var(--line2)"></line>
+<line x1="30" y1="52" x2="350" y2="52" stroke="var(--amber)" stroke-dasharray="4 4"></line>
+<text x="348" y="47" font-size="10" fill="var(--amber)" text-anchor="end">Reorder 12</text>
+<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="30,84 76,90 122,97 168,100 214,100 260,100 306,100 350,100"></polyline>
+<circle cx="168" cy="100" r="4" fill="var(--red)"></circle>
+<g font-size="10" fill="var(--muted)" text-anchor="middle"><text x="30" y="118">Mon</text><text x="76" y="118">Tue</text><text x="122" y="118">Wed</text><text x="168" y="118" fill="var(--red)">Thu · 0</text><text x="214" y="118">Fri</text><text x="260" y="118">Sat</text><text x="306" y="118">Sun</text></g>
+<g font-size="10" fill="var(--muted)" text-anchor="end"><text x="24" y="104">0</text><text x="24" y="64">16</text><text x="24" y="24">32</text></g>
+</svg>
+<div class="callout">Order 24 cartons today. Supplier lead time is 2 days, so stock arrives Wed before it runs out.</div>
+<dl class="kv"><dt>Category</dt><dd>Dairy alternatives</dd><dt>Unit</dt><dd>carton (1 L)</dd><dt>Supplier</dt><dd>Oatside SG · 2-day lead</dd><dt>Also in</dt><dd class="muted">No other inventory</dd></dl>
+</section>
+</div>
+
+<section class="card">
+<div class="card-h"><h2>Recent history</h2><a href="ActivityLog.dc.html" style="font-size: 12px">Open in Activity log</a></div>
+<div style="overflow-x: auto"><table class="tbl">
+<thead><tr><th>When</th><th>Who</th><th>Action</th><th class="num">Qty</th><th class="num">After</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td title="23 Nov 2026, 12:48">25 min ago</td><td>Ravi Kumar</td><td>Issued</td><td class="num neg">−3</td><td class="num">4</td><td class="muted">Café order</td></tr>
+<tr><td title="21 Nov 2026, 17:10">Sat 17:10</td><td>Ravi Kumar</td><td>Issued</td><td class="num neg">−2</td><td class="num">7</td><td class="muted">—</td></tr>
+<tr><td title="20 Nov 2026, 08:30">Fri 08:30</td><td>Mia Tan</td><td>Expired</td><td class="num neg">−3</td><td class="num">9</td><td class="muted">Batch OM-2410-C written off</td></tr>
+<tr><td title="9 Nov 2026, 10:00">9 Nov</td><td>Ravi Kumar</td><td>Received</td><td class="num pos">+12</td><td class="num">12</td><td class="muted">Batch OM-2411-A</td></tr>
+</tbody></table></div>
+<div class="pager"><span>Showing <strong style="color: var(--text)">1–4</strong> of 18</span><div class="pg"><button class="pgb" type="button" disabled aria-label="Previous page">‹</button><button class="pgb on" type="button" aria-current="page">1</button><button class="pgb" type="button">2</button><button class="pgb" type="button">3</button><button class="pgb" type="button" aria-label="Next page">›</button></div></div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

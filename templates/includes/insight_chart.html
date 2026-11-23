@@ -34,18 +34,19 @@
   {% if card.key == "value" and unpriced_products %}
   <p class="chart-price-note">Products with no selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
   {% endif %}
-  <details class="chart-data"><summary>Show data</summary>
+  <details class="chart-data"{% if card.page.touched %} open{% endif %}><summary>Show data</summary>
     <div class="table-scroll" role="region" aria-label="{{ card.title }} data" tabindex="0">
       <table class="products-table" aria-label="{{ card.title }} data">
-        <thead><tr>{% for heading in card.headers %}<th scope="col">{{ heading }}</th>{% endfor %}</tr></thead>
+        <thead><tr>{% for heading in card.headers %}<th scope="col"{% if forloop.counter > card.text_columns %} class="numeric"{% endif %}>{{ heading }}</th>{% endfor %}</tr></thead>
         <tbody>
-        {% for row in card.rows %}
-          <tr>{% for value in row %}{% if forloop.first %}<th scope="row">{{ value }}</th>{% else %}<td>{{ value|default_if_none:"—" }}</td>{% endif %}{% endfor %}</tr>
+        {% for row in card.page.object_list %}
+          <tr>{% for value in row %}{% if forloop.first %}<th scope="row">{{ value }}</th>{% else %}<td{% if forloop.counter > card.text_columns %} class="numeric"{% endif %}>{{ value|default_if_none:"—" }}</td>{% endif %}{% endfor %}</tr>
         {% empty %}
           <tr><td colspan="{{ card.headers|length }}">{{ card.empty }}</td></tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
+    {% include "includes/pagination.html" with page=card.page pagination_label=card.title|add:" data pages" %}
   </details>
 </section>

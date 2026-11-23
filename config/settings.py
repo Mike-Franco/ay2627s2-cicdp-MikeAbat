@@ -86,6 +86,8 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "inventory_access.context_processors.workspace",
             ],
+            # {% page_header %} is used by every authenticated page (TORY-62).
+            "builtins": ["catalogue.templatetags.tory_ui"],
         },
     },
 ]

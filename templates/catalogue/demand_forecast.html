@@ -1,13 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Demand forecast for {{ product.sku }} · Tory{% endblock %}
-{% block breadcrumb %}{{ product.sku }} · Forecast{% endblock %}
+{% block page_header %}{% page_header crumb="Forecast" %}{{ product.name }}{% header_actions %}{% if can_edit_reorder %}<a class="btn" href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a>{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' with active_tab='forecast' %}
-<div class="products-heading">
-  <div><h1>Demand forecast for {{ product.sku }}</h1></div>
-  {% if can_edit_reorder %}<div class="heading-actions"><a class="btn btn-outline-secondary" href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a></div>{% endif %}
-</div>
 
 <div class="summary-cards" aria-label="Forecast summary">
   <div class="summary-card"><span class="stat-label">Average daily demand</span><strong class="stat-value d-block">{% if forecast.available %}{{ forecast.displayed_average }}{% else %}—{% endif %}</strong><span class="stat-unit">units per day, last 7 verified dates</span></div>

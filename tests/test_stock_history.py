@@ -140,8 +140,10 @@ class StockHistoryTests(TransactionTestCase):
             issue_stock(user_id=self.staff.pk, inventory_id=self.inventory.pk,
                         product_id=self.product.pk, quantity_units=1)
         self.authenticate(self.manager)
+        default = self.client.get(self.history_url())
+        self.assertEqual(len(default.context["events"]), 25)  # TORY-62: product history defaults to 25 rows
         with CaptureQueriesContext(connection) as queries:
-            first = self.client.get(self.history_url())
+            first = self.client.get(self.history_url() + "?per_page=50")
         self.assertEqual(first.status_code, 200)
         self.assertTrue(any("UNION ALL" in query["sql"] and "LIMIT 50" in query["sql"]
                             for query in queries.captured_queries))
@@ -149,23 +151,23 @@ class StockHistoryTests(TransactionTestCase):
         self.assertEqual(len(first_events), 50)
         self.assertEqual([event["audit"].batch_id for event in first_events],
                          [batch.pk for batch in reversed(receipts[5:])])
-        self.assertContains(first, "Page 1 of 2")
-        self.assertContains(first, '?page=2')
+        self.assertContains(first, "Showing <strong>1–50</strong> of 56")
+        self.assertContains(first, 'per_page=50&amp;page=2')
 
-        second = self.client.get(self.history_url() + "?page=2")
+        second = self.client.get(self.history_url() + "?per_page=50&page=2")
         second_events = second.context["events"]
         self.assertEqual(len(second_events), 6)
         self.assertEqual([event["kind"] for event in second_events], ["receipt"] * 5 + ["issue"])
         self.assertEqual([event["audit"].batch_id for event in second_events[:5]],
                          [batch.pk for batch in reversed(receipts[:5])])
-        self.assertContains(second, "Page 2 of 2")
-        self.assertContains(second, '?page=1')
+        self.assertContains(second, "Showing <strong>51–56</strong> of 56")
+        self.assertContains(second, 'per_page=50&amp;page=1')
         self.assertEqual(len({(event["kind"], event["audit"].pk)
                               for event in first_events + second_events}), 56)
 
         for value, expected in (("bad", 1), ("0", 2), ("-1", 2), ("9999", 2)):
             with self.subTest(page=value):
-                response = self.client.get(self.history_url() + f"?page={value}")
+                response = self.client.get(self.history_url() + f"?per_page=50&page={value}")
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.context["page"].number, expected)
 

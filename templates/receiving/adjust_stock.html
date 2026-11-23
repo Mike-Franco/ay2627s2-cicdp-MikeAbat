@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Adjust {{ product.name }} count · Tory{% endblock %}
-{% block breadcrumb %}{{ product.sku }} · Adjust{% endblock %}
+{% block page_header %}{% page_header crumb="Adjust" %}Adjust count{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' %}
-<h1>Adjust {{ product.name }} count</h1>
 <p>{{ inventory.name }} · Physical balance: {{ link.physical_quantity_units }} {{ product.base_unit_label }}</p>
 <p class="available-line">Available: <strong>{{ available_units }} {{ product.base_unit_label|default:"units" }}</strong>{% if quarantined_units %} <span class="text-muted">({{ quarantined_units }} quarantined, not issuable)</span>{% endif %}</p>
 <p>Count existing, non-expired, non-quarantined batches only. This does not create batches or dispose of quarantined stock.</p>

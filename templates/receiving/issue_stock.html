@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Issue stock · Tory{% endblock %}
-{% block breadcrumb %}{{ product.sku }} · Issue{% endblock %}
+{% block page_header %}{% page_header crumb="Issue" %}Issue stock{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' %}
-<h1>Issue stock</h1>
 <p>{{ product.sku }} — {{ product.name }} in {{ inventory.name }}</p>
 <p class="available-line">Available: <strong>{{ available_units }} {{ product.base_unit_label|default:"units" }}</strong>{% if quarantined_units %} <span class="text-muted">({{ quarantined_units }} quarantined, not issuable)</span>{% endif %}</p>
 <form method="post">

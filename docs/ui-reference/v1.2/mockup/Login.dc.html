@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Sign in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816}
+.t{--mk-t:#5B5BD6;--mk-l:#3B3B9E;--mk-r:#8E8FF5}
+.t.dark{--mk-t:#8E8FF5;--mk-l:#5B5BD6;--mk-r:#B9BAFB}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.wrap{min-height:800px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 16px;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px}
+.card{width:100%;max-width:360px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:24px;display:flex;flex-direction:column;gap:14px}
+.card h1{font-size:18px;font-weight:600;margin:0}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:500;display:flex;justify-content:space-between}
+.field label a{font-weight:400;font-size:12px}
+.inp{height:36px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 10px}
+.inp:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.btn{height:36px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;font:inherit;font-weight:500;cursor:pointer}
+.t.dark .btn{color:#0E0E10}
+.check{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.check input{accent-color:var(--accent)}
+.err{padding:8px 10px;border-radius:6px;background:var(--red-bg);color:var(--red);font-size:12.5px}
+.foot{font-size:12px;color:var(--muted);text-align:center;max-width:360px}
+@media (max-width:700px){.inp,.btn{height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}">
+<div class="wrap">
+<div class="brand"><svg viewBox="0 0 37.04 35.80" width="30" height="30" aria-hidden="true"><polygon points="9.26,0.90 17.02,5.00 9.26,9.10 1.50,5.00" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="27.78,0.90 35.54,5.00 27.78,9.10 20.02,5.00" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="18.52,16.70 26.28,20.80 18.52,24.90 10.76,20.80" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="1.05,5.78 8.48,10.45 8.81,19.22 1.38,14.55" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="19.57,5.78 27.00,10.45 27.33,19.22 19.90,14.55" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="10.31,21.58 17.74,26.25 18.07,35.02 10.64,30.35" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="10.04,10.45 17.47,5.78 17.14,14.55 9.71,19.22" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="28.56,10.45 35.99,5.78 35.66,14.55 28.23,19.22" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="19.30,26.25 26.73,21.58 26.40,30.35 18.97,35.02" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/></svg>Tory</div>
+<form class="card" onsubmit="return false">
+<h1>Sign in</h1>
+<div class="err" role="alert" style="display: {{errDisplay}}">That email and password don't match. Try again or reset your password.</div>
+<div class="field"><label for="e">Email</label><input id="e" class="inp" type="email" autocomplete="username" placeholder="you@company.sg"></div>
+<div class="field"><label for="p">Password <a href="#">Forgot password?</a></label><input id="p" class="inp" type="password" autocomplete="current-password"></div>
+<label class="check"><input type="checkbox"> Keep me signed in on this device</label>
+<button class="btn" type="submit">Sign in</button>
+</form>
+<p class="foot">Tory is invite-only. Ask your store manager to send you an invitation. Got an invite link? Open it to set your password.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"showError":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { themeClass: theme === 'dark' ? 'dark' : '', errDisplay: this.props.showError ? 'block' : 'none' };
+  }
+}
+</script>
+</body>
+</html>

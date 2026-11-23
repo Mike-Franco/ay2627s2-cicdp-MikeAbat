@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Selling price for {{ product.sku }} · Tory{% endblock %}
-{% block breadcrumb %}{{ product.sku }} · Selling price{% endblock %}
+{% block page_header %}{% page_header %}Selling price{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' %}
-<div class="products-heading"><div><h1>Selling price for {{ product.sku }}</h1><p>Applies to {{ inventory.name }} only. Other inventories keep their own price.</p></div></div>
+<p class="page-intro">Applies to {{ inventory.name }} only. Other inventories keep their own price.</p>
 <form method="post" class="panel p-3">
   {% csrf_token %}
   {{ form.non_field_errors }}

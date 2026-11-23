@@ -15,6 +15,7 @@ from inventory_access.models import Inventory
 from receiving.demand import _totals
 from receiving.models import ReceivingBatch
 
+from .pagination import PER_PAGE_CHOICES, SMALL_PER_PAGE_CHOICES, paginate
 from .authorization import visible_inventory_product_links
 from .metrics import (
     STATUS_LABELS, complete_days, daily_movements, daily_on_hand, kpis, movement_metrics, singapore_day,
@@ -252,6 +253,14 @@ def inventory_insights(request, inventory_id):
         request, product_choices=product_choices, product=selected_id, category_choices=category_choices,
         category=category, grouping=grouping, datasets=(stock, traffic, supply, value, demand, expiry),
     )
+    for card in cards:
+        # Every data table pages (TORY-62): the ranking shows 5 rows by default, the others 10.
+        ranking = card["key"] == "supply"
+        card["text_columns"] = 2 if ranking else 1  # leading label columns; the rest are numbers
+        card["page"] = paginate(
+            request, card["rows"], prefix=f"{card['key']}_", default=5 if ranking else 10,
+            choices=SMALL_PER_PAGE_CHOICES if ranking else PER_PAGE_CHOICES, fragment=card["key"],
+        )
     priced = [row.value for row in positions if row.value is not None]
     unpriced = [row.link.product for row in positions if row.value is None]
     reorder = [
