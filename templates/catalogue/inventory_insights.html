@@ -1,18 +1,59 @@
 {% extends "base.html" %}
-{% load static %}
-{% block title %}Inventory insights · {{ inventory.name }} · Tory{% endblock %}
-{% block page_header %}{% page_header %}Insights{% endpage_header %}{% endblock %}
+{% load static tory_format %}
+{% block title %}Insights · {{ inventory.name }} · Tory{% endblock %}
+{% block page_header %}{% page_header %}Insights{% header_actions %}<div class="seg" role="group" aria-label="Date range">{% for item in range_links %}<a href="{{ item.url }}"{% if item.current %} class="on" aria-current="true"{% endif %}>{{ item.key }}</a>{% endfor %}</div><a class="btn" href="{{ export_url }}"><svg class="icon" aria-hidden="true" focusable="false"><use href="{% static 'tory/icons/ui-sprite.svg' %}#download"></use></svg>Export CSV</a>{% endpage_header %}{% endblock %}
 {% block content %}
-{% include "includes/stock_kpis.html" %}
+<p class="page-intro">Last {{ range_days }} days · data as of <time datetime="{{ as_of_iso }}">{{ as_of|sgdate }} SGT</time></p>
+<section class="strip" aria-label="Key numbers">
+  {% for kpi in kpis %}
+  <div><div class="k">{{ kpi.label }} {% include "includes/help_tip.html" with tip=kpi.help %}</div><div class="v">{{ kpi.value }}</div><div class="s">{{ kpi.note }}</div></div>
+  {% endfor %}
+</section>
 <div class="insight-grid">
   {% for card in cards %}{% include "includes/insight_chart.html" %}{% endfor %}
 </div>
+
+<section class="panel" id="ranking" aria-labelledby="ranking-heading">
+  <header class="card-h">
+    <div class="card-title"><h2 id="ranking-heading">Days of supply ranking</h2>{% include "includes/help_tip.html" with tip=ranking_help %}</div>
+    <form method="get" action="#ranking" class="pager-size" data-autosubmit>
+      {% for name, value in sort_hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <label><span class="visually-hidden">Sort</span><select class="sel sm" name="supply_sort"><option value="soonest"{% if not most_first %} selected{% endif %}>Runs out soonest</option><option value="most"{% if most_first %} selected{% endif %}>Most stock</option></select></label>
+      <button class="btn sm" type="submit" data-autosubmit-button>Sort</button>
+    </form>
+  </header>
+  {% if ranking_page.object_list %}
+  <div class="table-scroll" role="region" aria-label="Days of supply ranking" tabindex="0">
+    <table class="products-table">
+      <thead><tr><th scope="col">#</th><th scope="col">Product</th><th scope="col">SKU</th><th scope="col" class="numeric">On hand</th><th scope="col" class="numeric">Avg / day</th><th scope="col" class="numeric">Days left</th><th scope="col" class="cover-col">Cover</th></tr></thead>
+      <tbody>{% for row in ranking_page.object_list %}
+        <tr><td class="muted">{{ row.rank }}</td><th scope="row"><a href="{{ row.url }}">{{ row.product.name }}</a></th><td class="mono">{{ row.sku }}</td><td class="numeric">{{ row.available }}</td><td class="numeric">{{ row.average|default:"—" }}</td><td class="numeric{% if row.urgent %} urgent{% endif %}">{{ row.days }}</td><td><span class="bar{% if row.urgent %} urgent{% endif %}" aria-hidden="true"><i class="w-{{ row.cover }}"></i></span></td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<p class="insight-empty">No active products have a verified, non-zero demand rate yet.</p>{% endif %}
+  {% include "includes/pagination.html" with page=ranking_page pagination_label="Days of supply pages" %}
+</section>
+
+<section class="panel" id="expiring" aria-labelledby="expiring-heading">
+  <header class="card-h"><div class="card-title"><h2 id="expiring-heading">Expiring stock by week</h2>{% include "includes/help_tip.html" with tip=expiring_help %}</div></header>
+  {% if expiring_page.object_list %}
+  <div class="table-scroll" role="region" aria-label="Expiring stock by week" tabindex="0">
+    <table class="products-table">
+      <thead><tr><th scope="col">Week</th><th scope="col">Product</th><th scope="col">Batch</th><th scope="col" class="numeric">Units</th><th scope="col" class="numeric">Value at risk</th><th scope="col">Expires</th></tr></thead>
+      <tbody>{% for row in expiring_page.object_list %}
+        <tr><td>{{ row.week }}</td><th scope="row"><a href="{{ row.url }}">{{ row.product.name }}</a></th><td class="mono">{{ row.batch }}</td><td class="numeric">{{ row.units }}</td><td class="numeric">{% if row.value is None %}—{% else %}{{ row.value|sgd }}{% endif %}</td><td>{{ row.expires|sgdate }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<p class="insight-empty">No eligible stock expires in the next four weeks.</p>{% endif %}
+  {% include "includes/pagination.html" with page=expiring_page pagination_label="Expiring stock pages" %}
+</section>
 {{ stock_data_json|json_script:"stock-data" }}
 {{ traffic_data_json|json_script:"traffic-data" }}
-{{ supply_data_json|json_script:"supply-data" }}
 {{ value_data_json|json_script:"value-data" }}
 {{ demand_data_json|json_script:"demand-data" }}
-{{ expiry_data_json|json_script:"expiry-data" }}
+{{ forecast_data_json|json_script:"forecast-data" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
 <script src="{% static 'tory/insights.js' %}" defer></script>
 {% endblock %}

@@ -30,6 +30,38 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // "?" help tips: CSS opens them on hover and focus; a tap toggles them, Escape or a tap elsewhere closes.
+  var tips = document.querySelectorAll('.help');
+  function closeTips(except) {
+    tips.forEach(function (tip) {
+      if (tip !== except && tip.classList.contains('open')) {
+        tip.classList.remove('open');
+        tip.querySelector('.help-btn').setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+  tips.forEach(function (tip) {
+    var button = tip.querySelector('.help-btn');
+    button.addEventListener('click', function (event) {
+      event.stopPropagation();
+      var open = !tip.classList.contains('open');
+      closeTips(tip);
+      tip.classList.toggle('open', open);
+      button.setAttribute('aria-expanded', String(open));
+    });
+  });
+  document.addEventListener('click', function () { closeTips(null); });
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    var focused = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.help') : null;
+    closeTips(null);
+    if (focused) focused.classList.add('dismissed');
+  });
+  tips.forEach(function (tip) {
+    tip.addEventListener('focusout', function () { tip.classList.remove('dismissed'); });
+    tip.addEventListener('mouseleave', function () { tip.classList.remove('dismissed'); });
+  });
+
   // Rows-per-page selects submit straight away; the Apply button stays for no-JS.
   document.querySelectorAll('form[data-autosubmit]').forEach(function (form) {
     var button = form.querySelector('[data-autosubmit-button]');

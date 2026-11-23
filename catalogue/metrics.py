@@ -4,6 +4,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from decimal import Decimal
+from fractions import Fraction
 from statistics import median
 
 from django.db.models import F, Sum
@@ -190,8 +191,8 @@ def turnover(issued, balances):
     return ratio(issued * len(balances), sum(balances))
 
 
-def movement_metrics(positions, movements, *, at):
-    days = complete_days(at, 30)
+def movement_metrics(positions, movements, *, at, days=30):
+    days = complete_days(at, days)
     today = singapore_day(at)
     net = Counter()
     sales = Counter()
@@ -205,33 +206,34 @@ def movement_metrics(positions, movements, *, at):
     return stock_to_sales(current, issued), turnover(issued, balances)
 
 
-def _unverified_pairs(positions, *, at):
-    """(link id -> inventory id, unverified (link id, day) pairs), or None before activation.
+def verified_demand(link_ids, dates, *, at):
+    """{(link id, day): units} for product-days whose latest coverage event is a
+    verification that still matches the recorded issues. Unverified days are absent."""
+    if not link_ids or not dates:
+        return {}
+    latest = DemandCoverageEvent.objects.filter(
+        coverage_day__inventory_product_id__in=link_ids, coverage_day__day__in=dates,
+    ).order_by("coverage_day_id", "-pk").distinct("coverage_day_id").values_list(
+        "coverage_day__inventory_product_id", "coverage_day__day", "action", "verified_total_units",
+    )
+    verified = {(link_id, day): total for link_id, day, action, total in latest if action == "verified"}
+    if not verified:
+        return {}
+    group = "stock_out__inventory_product_id"
+    observed = _totals(
+        {f"{group}__in": {link_id for link_id, _ in verified}}, min(dates), singapore_day(at), group_by=(group,),
+    )
+    return {key: total for key, total in verified.items() if total == observed.get(key, 0)}
 
-    A product-day counts as verified when its latest coverage event is a
-    verification whose total still matches the recorded issues.
-    """
+
+def _unverified_pairs(positions, *, at):
+    """(link id -> inventory id, unverified (link id, day) pairs), or None before activation."""
     dates = reviewable_days(at)
     if not dates:
         return None
     links = {position.link.pk: position.link.inventory_id for position in positions if position.reorder is not None}
     pending = {(link_id, day) for link_id in links for day in dates}
-    if not links:
-        return links, pending
-    latest = DemandCoverageEvent.objects.filter(
-        coverage_day__inventory_product_id__in=links, coverage_day__day__in=dates,
-    ).order_by("coverage_day_id", "-pk").distinct("coverage_day_id").values_list(
-        "coverage_day__inventory_product_id", "coverage_day__day", "action", "verified_total_units",
-    )
-    verified = {(link_id, day): total for link_id, day, action, total in latest if action == "verified"}
-    if verified:
-        group = "stock_out__inventory_product_id"
-        observed = _totals(
-            {f"{group}__in": {link_id for link_id, _ in verified}}, dates[0], singapore_day(at), group_by=(group,),
-        )
-        for key, total in verified.items():
-            if total == observed.get(key, 0):
-                pending.discard(key)
+    pending.difference_update(verified_demand(list(links), dates, at=at))
     return links, pending
 
 
@@ -281,3 +283,57 @@ def kpis(positions, *, turnover_30d, unverified):
         {"label": "Unverified demand days", "value": sum(unverified.values()) if unverified is not None else None,
          "description": "Active product-days in the reviewable demand window without verified coverage."},
     ]
+
+
+# Forecast accuracy (TORY-64) -------------------------------------------------
+# Each point is (forecast units, verified actual units) for one product-day.
+MIN_ACCURACY_POINTS = 3
+
+
+def _percent(value):
+    value = Fraction(value) * 100
+    return Decimal(value.numerator) / Decimal(value.denominator)
+
+
+def mape(points):
+    """Mean absolute percentage error over points with non-zero actual demand (a % of zero is undefined)."""
+    usable = [(Fraction(forecast), actual) for forecast, actual in points if actual]
+    if not usable:
+        return None, 0
+    total = sum(abs(forecast - actual) / actual for forecast, actual in usable)
+    return _percent(total / len(usable)), len(usable)
+
+
+def wape(points):
+    """Weighted absolute percentage error: sum of absolute errors / sum of actual demand."""
+    points = [(Fraction(forecast), actual) for forecast, actual in points]
+    actual = sum(actual for _, actual in points)
+    if not points or not actual:
+        return None, len(points)
+    return _percent(sum(abs(forecast - actual) for forecast, actual in points) / actual), len(points)
+
+
+def forecast_accuracy(points):
+    """MAPE when at least three non-zero days exist, else the WAPE fallback; None below three points.
+
+    Returns {"value": percent or None, "method": "MAPE" | "WAPE" | None, "points": n}.
+    """
+    points = list(points)
+    value, used = mape(points)
+    if value is not None and used >= MIN_ACCURACY_POINTS:
+        return {"value": value, "method": "MAPE", "points": used}
+    value, used = wape(points)
+    if value is not None and used >= MIN_ACCURACY_POINTS:
+        return {"value": value, "method": "WAPE", "points": used}
+    return {"value": None, "method": None, "points": len(points)}
+
+
+def accuracy_points(links, *, at):
+    """Pair last week's 7-day forecast (made seven days ago) with each verified day since."""
+    link_ids = [link.pk for link in links if link.product.is_active]
+    week_ago = at - timedelta(days=7)
+    forecasts = {pk: forecast for pk, forecast in forecasts_for_links(link_ids, at=week_ago).items()
+                 if forecast.available}
+    dates = complete_days(at, 7)
+    actual = verified_demand(list(forecasts), dates, at=at)
+    return [(forecasts[link_id].average, units) for (link_id, _), units in sorted(actual.items())]
