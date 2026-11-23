@@ -176,12 +176,12 @@ class CatalogueTests(TestCase):
         self.assertContains(response, f'href="{reverse("receive-batch", args=[self.inventory_a.pk, self.product_a.pk])}"')
         self.assertContains(response, "Stock history")
         self.assertContains(response, "Demand forecast")
-        self.assertNotContains(response, "Adjust batch count")
+        self.assertNotContains(response, ">Adjust<")
         self.assertNotContains(response, f'href="{reverse("adjust-stock", args=[self.inventory_a.pk, self.product_a.pk])}"')
         self.assertEqual(self.client.get(reverse("product-stock", args=[self.inventory_b.pk, self.product_b.pk])).status_code, 404)
         self.authenticate(self.manager_a)
         response = self.client.get(url)
-        self.assertContains(response, "Adjust batch count")
+        self.assertContains(response, ">Adjust<")  # TORY-66: header action, as in the mockup
         self.assertContains(response, f'href="{reverse("adjust-stock", args=[self.inventory_a.pk, self.product_a.pk])}"')
 
     def test_transaction_forms_keep_post_and_csrf_in_assigned_scope(self):

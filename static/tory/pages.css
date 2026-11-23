@@ -390,3 +390,20 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 .danger-details>summary::-webkit-details-marker{display:none}
 .confirm-dialog{display:flex;flex-direction:column;gap:10px;max-width:420px;margin-top:12px;padding:14px;border:1px solid var(--line2);border-radius:var(--radius-card);background:var(--panel)}
 @media(max-width:700px){.prow input[type=checkbox]{width:22px;height:22px}}
+
+/* TORY-66: product page. */
+.strip.strip-6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.grid2>.panel{margin:0}
+.chart-frame.chart-small{height:10rem}
+.callout{margin:0 14px 12px;padding:10px 12px;border-left:3px solid var(--accent);border-radius:var(--radius);background:var(--accent-weak);color:var(--text);font-size:13px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0;padding:12px 14px;border-top:1px solid var(--line);font-size:13px}
+.kv dt{color:var(--muted);font-weight:400}
+.kv dd{margin:0}
+.products-table td.neg{color:var(--red)}
+.products-table td.pos{color:var(--green)}
+.more-items hr{margin:4px 0;border-color:var(--line)}
+.ph-actions .more-menu summary{min-width:32px}
+@media(max-width:1100px){.strip.strip-6{grid-template-columns:repeat(3,minmax(0,1fr))}.strip.strip-6>div{border-left:0;border-top:1px solid var(--line)}.strip.strip-6>div:nth-child(-n+3){border-top:0}}
+@media(max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){.strip.strip-6{grid-template-columns:repeat(2,minmax(0,1fr))}.strip.strip-6>div:nth-child(3){border-top:1px solid var(--line)}}

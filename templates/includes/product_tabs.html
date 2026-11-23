@@ -1,6 +1,7 @@
-{% comment %}Underline tab bar for one product's pages. The page title and breadcrumb come from {% page_header %}.{% endcomment %}<p class="page-intro product-meta"><span class="product-sku">{{ product.sku }}</span> · {{ product.base_unit_label|default:'Base unit not set' }}{% if not product.is_active %} · <span class="pill neutral">Inactive</span>{% endif %}</p>
-<nav class="product-tabs" aria-label="Product pages">
+{% comment %}Underline tab bar for one product's pages (TORY-66). The page title and breadcrumb come from {% page_header %}.{% endcomment %}<p class="page-intro product-meta"><span class="product-sku">{{ product.sku }}</span> · {{ product.base_unit_label|default:'Base unit not set' }}{% if status_label %} · <span class="pill {% if status == 'out' %}red{% elif status == 'low' or status == 'expiring' %}amber{% elif status == 'quarantined' %}blue{% else %}green{% endif %}">{{ status_label }}</span>{% endif %}{% if not product.is_active %} · <span class="pill neutral">Inactive</span>{% endif %}</p>
+<nav class="product-tabs" aria-label="Product sections">
   <a href="{% url 'product-stock' inventory.pk product.pk %}" {% if active_tab == 'stock' %}aria-current="page"{% endif %}>Overview</a>
+  <a href="{% url 'product-stock' inventory.pk product.pk %}?tab=batches" {% if active_tab == 'batches' %}aria-current="page"{% endif %}>Batches{% if batch_count is not None %} ({{ batch_count }}){% endif %}</a>
   <a href="{% url 'stock-history' inventory.pk product.pk %}" {% if active_tab == 'history' %}aria-current="page"{% endif %}>History</a>
   {% if product.is_active %}<a href="{% url 'demand-forecast' inventory.pk product.pk %}" {% if active_tab == 'forecast' %}aria-current="page"{% endif %}>Forecast</a>{% endif %}
 </nav>
