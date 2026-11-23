@@ -51,7 +51,7 @@ class FormatTests(SimpleTestCase):
         self.assertNotIn("max-width:1240px", app)
         self.assertIn(".content{width:100%;max-width:var(--page-max);margin-inline:auto;", app)
         self.assertIn("--page-max:1600px;--gutter:32px", app)
-        self.assertIn(".workspace-main.layout-narrow{--page-max:880px}", app)
+        self.assertNotIn("layout-narrow", app)  # TORY-69: one container for every page
         pages = (STATIC / "pages.css").read_text(encoding="utf-8")
         self.assertIn(".product-tabs::-webkit-scrollbar{display:none}", pages)
         self.assertIn("scrollbar-width:none", pages)
@@ -192,14 +192,14 @@ class Tory68PageTests(TestCase):
         for label in (">Adjust<", ">Dispose<", ">Deactivate<"):
             self.assertNotContains(response, label)
 
-    def test_form_pages_use_the_narrow_column(self):
+    def test_form_pages_use_the_same_container_as_products(self):
+        # TORY-69 replaced the TORY-68 880px form column with the shared full-width container.
         for name, args in (("product-edit", (self.inventory.pk, self.product.pk)),
                            ("reorder-settings", (self.inventory.pk, self.product.pk)),
                            ("inventory-rename", (self.inventory.pk,)), ("account", ()),
-                           ("staff-invitations", (self.business.pk,))):
+                           ("staff-invitations", (self.business.pk,)), ("inventory-products", (self.inventory.pk,))):
             with self.subTest(page=name):
-                self.assertContains(self.get(name, *args), 'class="workspace-main layout-narrow"')
-        self.assertContains(self.get("inventory-products", self.inventory.pk), 'class="workspace-main"')
+                self.assertContains(self.get(name, *args), '<main id="main-content" class="workspace-main">')
 
     def test_invitations_page(self):
         now = timezone.now()

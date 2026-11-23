@@ -29,7 +29,11 @@
 .content>ul.list-group{margin-top:20px}
 .content>ul.list-group .list-group-item{padding:14px 18px}
 .content .alert{border-radius:var(--radius-card)}
-.product-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(210px,1fr) auto;gap:10px;align-items:end;padding:10px 12px;border-bottom:1px solid var(--line)}
+/* TORY-69: filters sit on one row (search wider) and wrap only when the row is too narrow. */
+.product-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:10px 12px;border-bottom:1px solid var(--line)}
+.product-filters>.product-filter-field{flex:1 1 160px}
+.product-filters>.product-filter-field:first-of-type{flex:2 1 240px}
+.product-filters>.product-filter-actions{flex:0 0 auto}
 .product-filter-field{min-width:0}
 .product-filter-field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:4px}
 .product-filter-field .form-control,.product-filter-field .form-select{font-size:13px}
@@ -41,8 +45,7 @@
 @media(max-width:600px){.balance-grid{grid-template-columns:1fr}.content>form{padding:16px}.product-tabs{gap:18px}}
 /* TORY-68: tabs fit on desktop; on phones they scroll sideways without a visible scrollbar. */
 @media(max-width:700px){.product-tabs{overflow-x:auto;scrollbar-width:none}.product-tabs::-webkit-scrollbar{display:none}}
-@media(max-width:1100px){.product-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.product-filter-actions{grid-column:1/-1}}
-@media(max-width:600px){.product-filters{grid-template-columns:1fr}}
+@media(max-width:600px){.product-filters>.product-filter-field,.product-filters>.product-filter-field:first-of-type{flex-basis:100%}}
 
 /* TORY-51: dashboard tiles, error pages, activity, cards, mobile product cards. */
 .stat-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
@@ -461,3 +464,24 @@ label.prow:hover{background:var(--hover)}
 /* TORY-68: section headings without Bootstrap size classes. */
 .section-title{font-size:13px;font-weight:600;margin:0 0 4px}
 .inventory-card-title{font-size:16px;font-weight:600;margin:0}
+
+/* TORY-69: two-column page layouts (stacked under 1100px), file drop zone, rule lists, swatches. */
+.split{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;margin-bottom:14px}
+.split>.panel{margin:0}
+@media(min-width:1100px){
+  .split{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .split.split-aside{grid-template-columns:400px minmax(0,1fr)}
+}
+.drop{position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;min-height:132px;padding:20px;border:1.5px dashed var(--line2);border-radius:var(--radius-card);background:var(--hover);text-align:center}
+.drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.drop:hover,.drop.is-over{border-color:var(--accent);background:var(--accent-weak)}
+.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.drop-name{flex-basis:100%;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.drop.has-file .drop-name{color:var(--text);font-weight:500}
+.rules{margin:0;padding:12px 14px 12px 32px;font-size:13px;line-height:1.55;max-width:75ch}
+.rules li+li{margin-top:4px}
+.rules+.table-scroll{border-top:1px solid var(--line)}
+.swatch-name{display:inline-flex;align-items:center;gap:6px}
+.swatch-dot{width:10px;height:10px;flex:none;border-radius:50%;box-shadow:0 0 0 1px var(--line2)}
+.th-help{display:inline-flex;align-items:center;gap:5px}
+.th-help .help-btn{font-weight:600}

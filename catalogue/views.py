@@ -17,6 +17,7 @@ from receiving.demand import (
     forecasts_for_links,
     mark_demand_day_incomplete,
     reviewable_days,
+    unreviewed_by_day,
     verify_demand_day,
     verify_demand_days_for_inventory,
 )
@@ -530,9 +531,13 @@ def bulk_verify_demand(request, inventory_id):
             )
         except ReceiptRejected as error:
             form.add_error(None if error.field == "__all__" else "day", str(error))
+    # TORY-69: one pill per date; a date is unverified while any active product has no review.
+    pending = unreviewed_by_day(inventory.pk, at=timezone.now())
     return render(request, "catalogue/bulk_verify_demand.html", {
         "inventory": inventory, "form": form, "result": result,
         "window": reviewable_days(now),
+        "week": [{"day": day, "unverified": count} for day, count in pending.items()],
+        "unverified_days": sum(1 for count in pending.values() if count),
     }, status=400 if request.method == "POST" and result is None else 200)
 
 
