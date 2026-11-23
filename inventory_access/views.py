@@ -1,8 +1,10 @@
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from django.core.files.storage import default_storage
@@ -20,7 +22,9 @@ from .authorization import (
     manager_memberships,
 )
 from .forms import InventoryForm, InventoryStatusForm
-from .inventory_changes import create_inventory, update_inventory
+from .inventory_changes import (
+    AccessRejected, confirms_name, create_inventory, set_staff_access, staff_access, update_inventory,
+)
 from .models import BusinessMembership, Inventory
 
 
@@ -100,23 +104,58 @@ def inventory_rename(request, inventory_id):
     form = InventoryForm(request.POST or None, request.FILES or None, initial={
         "name": inventory.name, "icon": inventory.icon, "colour": inventory.colour,
     })
+    access_error = None
     if request.method == "POST" and form.is_valid():
         picture = _store_picture(form)
         try:
-            update_inventory(
-                user=request.user, inventory=inventory, name=form.cleaned_data["name"],
-                icon=form.cleaned_data["icon"] or None, colour=form.cleaned_data["colour"] or None,
-                picture=picture if picture else ("" if form.cleaned_data["remove_picture"] else None),
-            )
+            with transaction.atomic():
+                update_inventory(
+                    user=request.user, inventory=inventory, name=form.cleaned_data["name"],
+                    icon=form.cleaned_data["icon"] or None, colour=form.cleaned_data["colour"] or None,
+                    picture=picture if picture else ("" if form.cleaned_data["remove_picture"] else None),
+                )
+                # TORY-65: the access checklist is saved with the rest of the page. The marker
+                # field keeps a name-only submission from removing everyone's access.
+                if request.POST.get("access_form") == "1":
+                    try:
+                        staff_ids = {int(value) for value in request.POST.getlist("staff")}
+                    except ValueError as error:
+                        raise AccessRejected("Choose Staff from this business only.") from error
+                    changes = set_staff_access(user=request.user, inventory=inventory, membership_ids=staff_ids)
+        except AccessRejected as error:
+            _discard_picture(picture)
+            access_error = error.messages[0]
         except ValidationError as error:
             _discard_picture(picture)
             form.add_error("name", error)
         else:
-            messages.success(request, "Inventory saved.")
+            changed = len(changes) if request.POST.get("access_form") == "1" else 0
+            messages.success(request, "Inventory saved." + (
+                f" Access changed for {changed} {'person' if changed == 1 else 'people'}." if changed else ""))
             return redirect("inventory-list")
+    people = staff_access(inventory)
+    if request.method == "POST" and request.POST.get("access_form") == "1":
+        chosen = set(request.POST.getlist("staff"))
+        for person in people:
+            if not person["manager"]:
+                person["has_access"] = str(person["membership"].pk) in chosen
+    staff_with_access = [person for person in people if person["has_access"] and not person["manager"]]
     return render(request, "inventory_access/inventory_form.html", {
-        "form": form, "business": inventory.business, "inventory": inventory,
+        "form": form, "business": inventory.business, "inventory": inventory, "people": people,
+        "access_count": sum(person["has_access"] for person in people), "access_error": access_error,
+        "staff_losing_access": len(staff_with_access),
+        "product_count": InventoryProduct.objects.filter(inventory=inventory).count(),
+        "breadcrumbs": [("Dashboard", reverse("home")), ("All inventories", reverse("inventory-list")),
+                        (inventory, reverse("inventory-products", args=[inventory.pk])), ("Edit", None)],
     }, status=400 if request.method == "POST" else 200)
+
+
+def _deactivation_counts(inventory):
+    return {
+        "product_count": InventoryProduct.objects.filter(inventory=inventory).count(),
+        "staff_losing_access": sum(1 for person in staff_access(inventory)
+                                   if person["has_access"] and not person["manager"]),
+    }
 
 
 @protected_view
@@ -128,12 +167,21 @@ def inventory_status(request, inventory_id):
         # stays a one-click action on the list.
         if not inventory.is_active:
             return redirect("inventory-list")
-        return render(request, "inventory_access/confirm_inventory_deactivation.html", {"inventory": inventory})
+        return render(request, "inventory_access/confirm_inventory_deactivation.html", {
+            "inventory": inventory, **_deactivation_counts(inventory),
+        })
     if request.POST.get("is_active") not in {"true", "false"}:
         raise Http404
     form = InventoryStatusForm(request.POST)
     if not form.is_valid():
         messages.error(request, "Choose whether to activate or deactivate the inventory.")
+    elif not form.cleaned_data["is_active"] and not confirms_name(inventory, request.POST.get("confirm_name")):
+        # TORY-65: deactivating needs the inventory's exact name typed in (case-sensitive, trimmed).
+        return render(request, "inventory_access/confirm_inventory_deactivation.html", {
+            "inventory": inventory, "confirm_error": f"Type {inventory.name} exactly to confirm.",
+            "typed": request.POST.get("confirm_name", ""),
+            **_deactivation_counts(inventory),
+        }, status=400)
     else:
         active = form.cleaned_data["is_active"]
         update_inventory(user=request.user, inventory=inventory, is_active=active)

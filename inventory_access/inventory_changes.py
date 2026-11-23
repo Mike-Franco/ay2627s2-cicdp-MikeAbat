@@ -90,3 +90,73 @@ def update_inventory(*, user, inventory, name=None, is_active=None, icon=None, c
         _record_change(user, inventory, action, before)
         if inventory.picture.name != old_picture:
             delete_image_after_commit(old_picture)
+
+
+class AccessRejected(ValidationError):
+    pass
+
+
+def staff_access(inventory):
+    """Every active membership of the inventory's business, with whether it can use this inventory."""
+    from .models import BusinessMembership
+
+    memberships = (BusinessMembership.objects.filter(business_id=inventory.business_id, is_active=True,
+                                                     user__is_active=True)
+                   .select_related("user").order_by("role", "user__email"))
+    assignments = InventoryAssignment.objects.filter(membership__in=memberships, is_active=True,
+                                                     inventory__is_active=True).select_related("inventory")
+    here, elsewhere = set(), {}
+    for assignment in assignments:
+        if assignment.inventory_id == inventory.pk:
+            here.add(assignment.membership_id)
+        else:
+            elsewhere.setdefault(assignment.membership_id, []).append(assignment.inventory.name)
+    return [{"membership": membership, "manager": membership.role == BusinessMembership.Role.MANAGER,
+             "has_access": membership.role == BusinessMembership.Role.MANAGER or membership.pk in here,
+             "elsewhere": sorted(elsewhere.get(membership.pk, []))} for membership in memberships]
+
+
+@transaction.atomic
+def set_staff_access(*, user, inventory, membership_ids):
+    """Make exactly these Staff memberships able to use the inventory (TORY-65).
+
+    Assignment rows are switched on or off, never deleted. Each change writes an
+    audit event for the Activity log. Ids that are not active Staff in this
+    business are rejected, so nothing changes. Returns [(membership, granted)].
+    """
+    from .models import BusinessMembership, InventoryAccessAuditEvent
+
+    manager = _lock_manager(user, inventory.business_id)
+    get_object_or_404(InventoryAssignment.objects.select_for_update(no_key=True),
+                      membership=manager, inventory_id=inventory.pk, is_active=True)
+    inventory = get_object_or_404(Inventory.objects.select_for_update(), pk=inventory.pk,
+                                  business_id=manager.business_id, is_active=True)
+    staff = {membership.pk: membership for membership in BusinessMembership.objects.select_for_update(
+        no_key=True).filter(business_id=inventory.business_id, role=BusinessMembership.Role.STAFF, is_active=True)
+        .select_related("user")}
+    wanted = set(membership_ids)
+    if not wanted <= set(staff):
+        raise AccessRejected("Choose Staff from this business only.", code="foreign_membership")
+    assignments = {assignment.membership_id: assignment for assignment in InventoryAssignment.objects
+                   .select_for_update(no_key=True).filter(inventory=inventory, membership_id__in=staff)}
+    now = timezone.now()
+    changes = []
+    for pk, membership in staff.items():
+        assignment = assignments.get(pk)
+        active = bool(assignment and assignment.is_active)
+        if (pk in wanted) == active:
+            continue
+        if assignment is None:
+            InventoryAssignment.objects.create(membership=membership, inventory=inventory)
+        else:
+            assignment.is_active = pk in wanted
+            assignment.save(update_fields=["is_active"])
+        InventoryAccessAuditEvent.objects.create(actor=user, business_id=inventory.business_id, inventory=inventory,
+                                                 membership=membership, granted=pk in wanted, occurred_at=now)
+        changes.append((membership, pk in wanted))
+    return changes
+
+
+def confirms_name(inventory, typed):
+    """Deactivation confirm: the typed name must match exactly (case-sensitive), ignoring outer spaces."""
+    return isinstance(typed, str) and typed.strip() == inventory.name.strip()

@@ -46,3 +46,12 @@
     }
   });
 })();
+
+// TORY-65: "Select all staff" ticks every Staff checkbox in the access list.
+(function () {
+  const button = document.querySelector("[data-select-all-staff]");
+  if (!button) return;
+  button.addEventListener("click", () => {
+    document.querySelectorAll('[data-access] input[name="staff"]').forEach((box) => { box.checked = true; });
+  });
+})();

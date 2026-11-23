@@ -115,3 +115,20 @@ class InventoryChangeAuditEvent(models.Model):
                 name="inventory_change_action_before",
             ),
         ]
+
+
+class InventoryAccessAuditEvent(models.Model):
+    """A Manager gave or removed a Staff member's access to one inventory (TORY-65)."""
+
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    business = models.ForeignKey(Business, on_delete=models.PROTECT, related_name="+")
+    inventory = models.ForeignKey(Inventory, on_delete=models.PROTECT, related_name="access_audit_events")
+    membership = models.ForeignKey(BusinessMembership, on_delete=models.PROTECT, related_name="access_audit_events")
+    granted = models.BooleanField()
+    occurred_at = models.DateTimeField()
+
+    class Meta:
+        indexes: ClassVar = [models.Index(fields=["business", "occurred_at"], name="inv_access_audit_time")]
+
+    def __str__(self):
+        return f"{'grant' if self.granted else 'revoke'} {self.membership_id} → {self.inventory_id}"

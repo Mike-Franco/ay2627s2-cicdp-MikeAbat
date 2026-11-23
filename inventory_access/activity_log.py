@@ -20,7 +20,7 @@ from receiving.models import (
 )
 from receiving.services import SINGAPORE
 
-from .models import BusinessMembership, Inventory, InventoryChangeAuditEvent
+from .models import BusinessMembership, Inventory, InventoryAccessAuditEvent, InventoryChangeAuditEvent
 
 KINDS = (
     ("receipt", "Stock received"),
@@ -32,6 +32,7 @@ KINDS = (
     ("product", "Product created or edited"),
     ("lifecycle", "Product activated or deactivated"),
     ("inventory", "Inventory changed"),
+    ("access", "Inventory access changed"),
     ("invitation", "Staff invitation sent"),
 )
 KIND_LABELS = dict(KINDS)
@@ -110,6 +111,9 @@ def _sources(business_id):
         "inventory": _source(
             InventoryChangeAuditEvent.objects.filter(**scope), "inventory", at=F("occurred_at"),
             actor=F("actor_id"), inventory=F("inventory_id"), product=NULL_INT, note=_text("action")),
+        "access": _source(
+            InventoryAccessAuditEvent.objects.filter(**scope), "access", at=F("occurred_at"),
+            actor=F("actor_id"), inventory=F("inventory_id"), product=NULL_INT),
         "invitation": _source(
             StaffInvitation.objects.filter(**scope), "invitation", at=F("issued_at"), actor=F("invited_by_id"),
             inventory=NULL_INT, product=NULL_INT, note=_text("target_email")),
@@ -120,7 +124,7 @@ TIME_FIELDS = {"quarantine": "recorded_at", "verification": "recorded_at", "invi
 ACTOR_FIELDS = {"invitation": "invited_by_id", "quarantine": None}
 INVENTORY_FIELDS = {"verification": "coverage_day__inventory_product__inventory_id", "invitation": None}
 PRODUCT_FIELDS = {"verification": "coverage_day__inventory_product__product_id", "inventory": None,
-                  "invitation": None}
+                  "access": None, "invitation": None}
 
 
 def activity_rows(business_id, *, actor_id=None, kinds=(), inventory_id=None, product_query="", start=None,
@@ -165,8 +169,9 @@ def activity_rows(business_id, *, actor_id=None, kinds=(), inventory_id=None, pr
 
 
 DETAIL_MODELS = {
-    "product": ProductChangeAuditEvent, "lifecycle": ProductLifecycleAuditEvent,
-    "inventory": InventoryChangeAuditEvent, "invitation": StaffInvitation,
+    "product": ProductChangeAuditEvent.objects, "lifecycle": ProductLifecycleAuditEvent.objects,
+    "inventory": InventoryChangeAuditEvent.objects, "invitation": StaffInvitation.objects,
+    "access": InventoryAccessAuditEvent.objects.select_related("membership__user"),
 }
 
 
@@ -209,6 +214,9 @@ def _details(row, extra):
             return extra.get_action_display()
         changed = [key for key in _changed_keys(extra.before, extra.after) if key != "is_active"]
         return "Changed " + ", ".join(changed) if changed else extra.get_action_display()
+    if kind == "access" and extra is not None:
+        name = extra.membership.user.display_label
+        return f"Gave {name} access" if extra.granted else f"Removed {name}’s access"
     if kind == "invitation" and extra is not None:
         return f"Invited {extra.target_email} (now {extra.get_status_display().lower()})"
     return note
@@ -226,7 +234,7 @@ def hydrate(business_id, tuples):
     for kind, model in DETAIL_MODELS.items():
         refs = {row["ref"] for row in rows if row["kind"] == kind}
         if refs:
-            extras[kind] = model.objects.in_bulk(refs)
+            extras[kind] = model.in_bulk(refs)
     role_labels = dict(BusinessMembership.Role.choices)
     for row in rows:
         row["label"] = KIND_LABELS[row["kind"]]

@@ -177,7 +177,8 @@ class PolishPageTests(TestCase):
         self.assertTrue(self.inventory.is_active)
         self.assertFalse(InventoryChangeAuditEvent.objects.exists())
 
-        self.assertRedirects(self.client.post(status_url, {"is_active": "false"}), reverse("inventory-list"))
+        self.assertRedirects(self.client.post(status_url, {"is_active": "false", "confirm_name": "Front shelf"}),
+                             reverse("inventory-list"))
         self.inventory.refresh_from_db()
         self.assertFalse(self.inventory.is_active)
         self.assertRedirects(self.client.get(status_url), reverse("inventory-list"))
