@@ -19,3 +19,7 @@ Only documentation files were transferred from the source workspace. The PoC's P
 Some source documents discuss or cite PoC implementation files that are intentionally absent from this repository. Those paths are evidence references in the original reports, not files promised by this transfer. See [PoC handover](POC_HANDOVER.md), [PoC results](POC_RESULTS.md), and [technical feasibility](TECHNICAL_FEASIBILITY.md) for the recorded scope and limitations. The source workspace retained separately is the location for the original PoC source and its artifacts.
 
 The following source-only paths remain intentionally unresolved here: `requirements.txt`, `.env.example`, `manage.py`, `config/settings.py`, `config/urls.py`, `inventory/models.py`, `inventory/services.py`, `inventory/csv_import.py`, `inventory/tests.py`, and `inventory/migrations/`. They identify the separate experiment's evidence and are not broken links to files in this repository.
+
+## Third-party assets
+
+- **Lucide icons 1.70.0** (ISC licence, copy in [`static/tory/icons/LICENSE-lucide.txt`](../static/tory/icons/LICENSE-lucide.txt)). A 24-icon subset used for inventory icons (TORY-54), self-hosted as `static/tory/icons/lucide-sprite.svg`. Rebuild it from the `lucide-static` npm package with `python -I scripts/build_icon_sprite.py <package dir>`; the script keeps only plain shape elements and geometry attributes. Only the icon key is stored in the database.

@@ -19,14 +19,15 @@
       <header class="topbar">
         <button class="menu-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded="false">Menu</button>
         <nav class="workspace-crumb" aria-label="Breadcrumb">
-          <a href="{% url 'inventory-list' %}">Inventory</a>
-          {% if workspace_inventory %}<span aria-hidden="true">›</span><a href="{% url 'inventory-products' workspace_inventory.pk %}">{{ workspace_inventory.name }}</a>{% endif %}
-          <span aria-hidden="true">›</span><span aria-current="page">{% block breadcrumb %}Workspace{% endblock %}</span>
+          {% if request.resolver_match.url_name == 'home' %}<span aria-current="page">Dashboard</span>{% else %}
+          <a href="{% url 'home' %}">Dashboard</a>
+          {% if workspace_inventory %}<span aria-hidden="true">›</span><a href="{% url 'inventory-products' workspace_inventory.pk %}">{% include "includes/inventory_badge.html" with inventory=workspace_inventory %}</a>{% endif %}
+          <span aria-hidden="true">›</span><span aria-current="page">{% block breadcrumb %}Workspace{% endblock %}</span>{% endif %}
         </nav>
         <div class="theme-control" role="group" aria-label="Colour theme"><button type="button" data-set-theme="light">Light</button><button type="button" data-set-theme="dark">Dark</button></div>
       </header>
   {% else %}
-    <header class="public-header"><a class="brand" href="{% url 'login' %}"><span class="brand-mark">T</span><span class="brand-word">Tory</span></a><div class="theme-control" role="group" aria-label="Colour theme"><button type="button" data-set-theme="light">Light</button><button type="button" data-set-theme="dark">Dark</button></div></header>
+    <header class="public-header"><a class="brand" href="{% url 'landing' %}"><span class="brand-mark">T</span><span class="brand-word">Tory</span></a><div class="theme-control" role="group" aria-label="Colour theme"><button type="button" data-set-theme="light">Light</button><button type="button" data-set-theme="dark">Dark</button></div></header>
   {% endif %}
   <main id="main-content" class="{% if request.user.is_authenticated and not public_auth_page %}content{% else %}public-content{% endif %}">{% block content %}{% endblock %}</main>
   {% if request.user.is_authenticated and not public_auth_page %}</div><button class="sidebar-scrim" type="button" aria-label="Close menu" hidden></button>{% endif %}

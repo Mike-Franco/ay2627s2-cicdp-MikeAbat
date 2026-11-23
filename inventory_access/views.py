@@ -3,9 +3,15 @@ from django.core.exceptions import ValidationError
 from django.db.models import Exists, OuterRef
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_http_methods
+
+from django.core.files.storage import default_storage
 
 from accounts.sessions import protected_view
+from config.media import store_image
+from catalogue.models import InventoryProduct
+from catalogue.table_lists import INVENTORY_SORT_CHOICES, INVENTORY_SORTS, TableControls, paginate, prepare_inventory_cards
+from django.utils import timezone
 
 from .authorization import (
     authorized_inventories,
@@ -13,7 +19,7 @@ from .authorization import (
     manageable_inventories,
     manager_memberships,
 )
-from .forms import InventoryNameForm, InventoryStatusForm
+from .forms import InventoryForm, InventoryStatusForm
 from .inventory_changes import create_inventory, update_inventory
 from .models import BusinessMembership, Inventory
 
@@ -21,12 +27,22 @@ from .models import BusinessMembership, Inventory
 @protected_view
 def inventory_list(request):
     managed = manageable_inventories(request.user)
-    inventories = authorized_inventories(request.user).select_related("business").annotate(
+    controls = TableControls.from_request(request, INVENTORY_SORTS, default="name")
+    active = authorized_inventories(request.user).select_related("business").annotate(
         can_manage=Exists(managed.filter(pk=OuterRef("pk"))),
     )
+    inactive = managed.filter(is_active=False).select_related("business")
+    if controls.query:
+        active = active.filter(name__icontains=controls.query)
+        inactive = inactive.filter(name__icontains=controls.query)
+    inventories = list(active) + list(inactive)
+    links = list(InventoryProduct.objects.filter(
+        inventory_id__in=[inventory.pk for inventory in inventories if inventory.is_active],
+    ).select_related("product"))
+    page = paginate(request, prepare_inventory_cards(inventories, links, at=timezone.now(), sort=controls.sort))
     return render(request, "inventory_access/inventory_list.html", {
-        "inventories": inventories,
-        "inactive_inventories": managed.filter(is_active=False).select_related("business"),
+        "inventories": page.object_list, "page": page,
+        "toolbar": controls.toolbar(request, page, search_label="Search inventories", sort_choices=INVENTORY_SORT_CHOICES),
         "manager_memberships": manager_memberships(request.user).select_related("business").order_by(
             "business__name", "business_id",
         ),
@@ -49,11 +65,14 @@ def inventory_create(request, business_id):
         manager = manager_memberships(request.user).select_related("business").get(business_id=business_id)
     except BusinessMembership.DoesNotExist as error:
         raise Http404 from error
-    form = InventoryNameForm(request.POST if request.method == "POST" else None)
+    form = InventoryForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
+        picture = _store_picture(form)
         try:
-            create_inventory(user=request.user, business_id=business_id, name=form.cleaned_data["name"])
+            create_inventory(user=request.user, business_id=business_id, name=form.cleaned_data["name"],
+                             icon=form.cleaned_data["icon"], colour=form.cleaned_data["colour"], picture=picture or "")
         except ValidationError as error:
+            _discard_picture(picture)
             form.add_error("name", error)
         else:
             messages.success(request, "Inventory added.")
@@ -62,20 +81,38 @@ def inventory_create(request, business_id):
                   status=400 if request.method == "POST" else 200)
 
 
+def _store_picture(form):
+    content = form.cleaned_data.get("picture_upload")
+    return store_image(content, "inventories") if content is not None else None
+
+
+def _discard_picture(name):
+    if name:
+        default_storage.delete(name)
+
+
 @protected_view
 @require_http_methods(["GET", "POST"])
 def inventory_rename(request, inventory_id):
     inventory = get_object_or_404(
         manageable_inventories(request.user).filter(is_active=True).select_related("business"), pk=inventory_id,
     )
-    form = InventoryNameForm(request.POST if request.method == "POST" else None, initial={"name": inventory.name})
+    form = InventoryForm(request.POST or None, request.FILES or None, initial={
+        "name": inventory.name, "icon": inventory.icon, "colour": inventory.colour,
+    })
     if request.method == "POST" and form.is_valid():
+        picture = _store_picture(form)
         try:
-            update_inventory(user=request.user, inventory=inventory, name=form.cleaned_data["name"])
+            update_inventory(
+                user=request.user, inventory=inventory, name=form.cleaned_data["name"],
+                icon=form.cleaned_data["icon"] or None, colour=form.cleaned_data["colour"] or None,
+                picture=picture if picture else ("" if form.cleaned_data["remove_picture"] else None),
+            )
         except ValidationError as error:
+            _discard_picture(picture)
             form.add_error("name", error)
         else:
-            messages.success(request, "Inventory name saved.")
+            messages.success(request, "Inventory saved.")
             return redirect("inventory-list")
     return render(request, "inventory_access/inventory_form.html", {
         "form": form, "business": inventory.business, "inventory": inventory,
@@ -83,9 +120,15 @@ def inventory_rename(request, inventory_id):
 
 
 @protected_view
-@require_POST
+@require_http_methods(["GET", "POST"])
 def inventory_status(request, inventory_id):
-    inventory = get_object_or_404(manageable_inventories(request.user), pk=inventory_id)
+    inventory = get_object_or_404(manageable_inventories(request.user).select_related("business"), pk=inventory_id)
+    if request.method == "GET":
+        # Deactivation is a confirm step reached from the edit page; reactivation
+        # stays a one-click action on the list.
+        if not inventory.is_active:
+            return redirect("inventory-list")
+        return render(request, "inventory_access/confirm_inventory_deactivation.html", {"inventory": inventory})
     if request.POST.get("is_active") not in {"true", "false"}:
         raise Http404
     form = InventoryStatusForm(request.POST)

@@ -46,7 +46,7 @@ def main():
         snap("1-dashboard")
 
         page.goto(f"{base}/inventories/")
-        page.locator(".inventory-card h3 a").first.click()
+        page.locator(".inventory-card :is(h2, h3) a").first.click()
         expect(page.get_by_role("heading", name="Products", exact=True)).to_be_visible()
         expect(page.locator("a.product-name")).not_to_have_count(0)
         snap("2-products")
@@ -55,11 +55,14 @@ def main():
 
         page.goto(f"{base}/inventories/{inventory_id}/insights/")
         expect(page.get_by_role("heading", name="Inventory insights")).to_be_visible()
-        for chart in ("demand-chart", "reorder-chart", "expiry-chart"):
+        # TORY-59: six explained chart cards; seeded demo data always fills these four
+        # (the value and days-of-supply cards may legitimately show their empty state).
+        expect(page.locator("section.insight-card")).to_have_count(6)
+        charts = ("stock-chart", "traffic-chart", "demand-chart", "expiry-chart")
+        for chart in charts:
             expect(page.locator(f"canvas#{chart}")).to_be_visible()
         page.wait_for_function(
-            "() => window.Chart && ['demand-chart', 'reorder-chart', 'expiry-chart']"
-            ".every(id => Chart.getChart(document.getElementById(id)))")
+            "ids => window.Chart && ids.every(id => Chart.getChart(document.getElementById(id)))", arg=list(charts))
         snap("3-insights")
 
         page.goto(base + forecast_href)
@@ -69,7 +72,10 @@ def main():
 
         page.get_by_role("button", name="Sign out").click()
         expect(page).to_have_url(f"{base}/login/")
+        # TORY-60: "/" is the public landing page; the dashboard needs sign-in again.
         page.goto(f"{base}/")
+        expect(page.get_by_role("link", name="Sign in").first).to_be_visible()
+        page.goto(f"{base}/dashboard/")
         expect(page).to_have_url(f"{base}/login/")
         snap("5-signed-out")
         browser.close()

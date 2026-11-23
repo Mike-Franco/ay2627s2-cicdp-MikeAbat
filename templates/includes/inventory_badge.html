@@ -1,0 +1,8 @@
+{% comment %}
+An inventory's mark (TORY-54): its picture if it has one, otherwise its icon on
+its colour, followed by its name. Usage:
+  {% include "includes/inventory_badge.html" with inventory=some_inventory %}
+  {% include "includes/inventory_badge.html" with inventory=some_inventory size="lg" icon_only=True %}
+size is sm (default, 20px), md (32px) or lg (48px). The mark is decorative; with
+icon_only, show the inventory's name next to the include yourself.
+{% endcomment %}{% load static %}<span class="inventory-badge inventory-badge-{{ size|default:'sm' }}">{% if inventory.picture %}<img class="inventory-mark inventory-photo" src="{{ inventory.picture.url }}" alt="" aria-hidden="true" loading="lazy" decoding="async">{% else %}<span class="inventory-mark tone-{{ inventory.colour|default:'slate' }}" aria-hidden="true"><svg class="icon" focusable="false"><use href="{% static 'tory/icons/lucide-sprite.svg' %}#{{ inventory.icon|default:'package' }}"></use></svg></span>{% endif %}{% if not icon_only %}<span class="inventory-badge-name">{{ inventory.name }}</span>{% endif %}</span>

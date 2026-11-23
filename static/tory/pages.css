@@ -66,7 +66,7 @@
 .inventory-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .inventory-card{display:flex;flex-direction:column;gap:10px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
 .inventory-card h3{font-size:16px;margin:0}
-.inventory-card .card-stats{display:flex;gap:18px;font-size:12px;color:var(--muted)}
+.inventory-card .card-stats{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;color:var(--muted)}
 .inventory-card .card-stats strong{display:block;font-size:20px;color:var(--ink);font-variant-numeric:tabular-nums}
 .inventory-card .card-stats .attention strong{color:var(--attention)}
 .actions-compact{display:none}
@@ -115,3 +115,202 @@ th[aria-sort=ascending] .sort-link::after{content:" ↑"}
 th[aria-sort=descending] .sort-link::after{content:" ↓"}
 /* CSV import example table. */
 .products-table.csv-example{min-width:0}
+
+/* TORY-52: sidebar navigation. The selected inventory's pages form one group. */
+.sidebar{overflow-y:auto}
+.sidebar .manage-label{margin-top:20px}
+.inventory-switcher{margin:26px 0 18px}
+.nav-group{margin:0 0 5px}
+.nav-group-summary{list-style:none;display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:8px;cursor:pointer;color:var(--ink);font-weight:650;font-size:13px}
+.nav-group-summary::-webkit-details-marker{display:none}
+.nav-group-summary:hover{background:var(--subtle)}
+.nav-group-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-group-caret{margin-left:auto;transition:transform .15s ease}
+.nav-group:not([open]) .nav-group-caret{transform:rotate(-90deg)}
+.nav-group-links{margin-left:14px;padding-left:8px;border-left:1px solid var(--line)}
+.nav-group-links .sidebar-link{padding:7px 11px;margin-bottom:2px}
+@media(prefers-reduced-motion:reduce){.nav-group-caret{transition:none}}
+
+/* TORY-55/TORY-54: preset colours (config/palette.py). White text passes WCAG AA on each. */
+.tone-slate{--tone:#475569}.tone-indigo{--tone:#4338ca}.tone-blue{--tone:#1d4ed8}.tone-sky{--tone:#0369a1}
+.tone-teal{--tone:#0f766e}.tone-green{--tone:#15803d}.tone-amber{--tone:#b45309}.tone-orange{--tone:#c2410c}
+.tone-rose{--tone:#be123c}.tone-purple{--tone:#7e22ce}
+[class*=" tone-"],[class^="tone-"]{background:var(--tone);color:#fff}
+
+/* TORY-55: avatars (templates/includes/user_avatar.html). */
+.avatar{display:inline-grid;place-items:center;flex:0 0 auto;border-radius:50%;font-weight:700;line-height:1;letter-spacing:.3px;object-fit:cover;user-select:none}
+.avatar-sm{width:24px;height:24px;flex-basis:24px;font-size:10px}
+.avatar-md{width:34px;height:34px;flex-basis:34px;font-size:12px}
+.avatar-lg{width:72px;height:72px;flex-basis:72px;font-size:24px}
+.avatar-photo{background:var(--subtle)}
+.user-ref{display:inline-flex;align-items:center;gap:7px;min-width:0;vertical-align:middle}
+.user-ref-name{overflow:hidden;text-overflow:ellipsis}
+.user-card .account-link{display:flex;align-items:center;gap:8px;min-width:0;flex:1;color:inherit;font-size:inherit}
+.user-card .account-link:hover strong,.user-card .account-link[aria-current] strong{color:var(--accent)}
+
+/* TORY-55: profile page. */
+.profile-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.profile-tabs a{padding:9px 14px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.profile-tabs a:hover{color:var(--ink)}
+.profile-tabs a[aria-current]{color:var(--accent);border-bottom-color:var(--accent);font-weight:650}
+.profile-summary{display:flex;align-items:center;gap:16px;padding:20px 22px}
+.profile-summary h2{font-size:19px;margin:0}
+.profile-summary p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.profile-facts{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:0;padding:0 22px 20px;font-size:13px}
+.profile-facts dt{color:var(--muted);font-weight:500}
+.profile-facts dd{margin:0}
+.swatch-picker{display:flex;flex-wrap:wrap;gap:8px;border:0;padding:0;margin:0}
+.swatch-picker legend{font-size:14px;margin-bottom:6px}
+.swatch{position:relative}
+.swatch input{position:absolute;opacity:0;width:1px;height:1px}
+.swatch label{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;font-size:0}
+.swatch input:checked+label{border-color:var(--ink);box-shadow:0 0 0 2px var(--panel) inset}
+.swatch input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.swatch input:checked+label::after{content:"✓";font-size:14px;color:#fff}
+@media(max-width:520px){.profile-facts{grid-template-columns:1fr}.profile-facts dd{margin-bottom:6px}}
+
+.list-result-count { margin: 0; padding: .5rem 1rem; color: var(--bs-secondary-color); }
+.table-sort-link { display: inline-flex; align-items: center; gap: .3rem; }
+.table-sort-link span { font-size: .9em; }
+.list-mobile-label { display: none; }
+.user-avatar {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--bs-tertiary-bg);
+  font-size: .8rem;
+  font-weight: 700;
+}
+@media (max-width: 699px) {
+  /* Keep headers and their sort links available above the stacked rows. */
+  .responsive-list, .responsive-list thead, .responsive-list tbody { display: block; width: 100%; min-width: 0; }
+  .responsive-list thead tr { display: flex; flex-wrap: wrap; }
+  .responsive-list thead th { display: none; }
+  .responsive-list thead th:has(.table-sort-link) { display: block; }
+  .responsive-list tbody tr { display: grid; padding: .6rem .9rem; }
+  .responsive-list tbody tr + tr { border-top: 1px solid var(--bs-border-color); }
+  .responsive-list tbody th, .responsive-list tbody td { border: 0; padding: .35rem 0; overflow-wrap: anywhere; }
+  .responsive-list tbody td { display: grid; grid-template-columns: minmax(7rem, .8fr) minmax(0, 1fr); gap: .5rem; }
+  .list-mobile-label { display: inline; font-weight: 600; color: var(--bs-secondary-color); }
+}
+
+/* TORY-54: inventory badge (templates/includes/inventory_badge.html) and Lucide icons. */
+.icon{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.inventory-badge{display:inline-flex;align-items:center;gap:7px;min-width:0;vertical-align:middle}
+.inventory-badge-name{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.inventory-mark{display:inline-grid;place-items:center;flex:0 0 auto;object-fit:cover}
+.inventory-badge-sm .inventory-mark{width:20px;height:20px;font-size:13px;border-radius:5px}
+.inventory-badge-md .inventory-mark{width:32px;height:32px;font-size:18px;border-radius:8px}
+.inventory-badge-lg .inventory-mark{width:48px;height:48px;font-size:26px;border-radius:11px}
+.inventory-badge-lg{gap:12px;font-size:17px;font-weight:650}
+.inventory-photo{background:var(--subtle)}
+.inventory-mark[hidden]{display:none}
+.inventory-preview{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.icon-picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px;max-width:34rem}
+.icon-choice{position:relative}
+.icon-choice input{position:absolute;opacity:0;width:1px;height:1px}
+.icon-choice label{display:grid;place-items:center;height:44px;border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:20px;color:var(--muted);background:var(--panel)}
+.icon-choice label:hover{color:var(--ink);background:var(--subtle)}
+.icon-choice input:checked+label{color:var(--accent);border-color:var(--accent);background:var(--selected);box-shadow:0 0 0 1px var(--accent) inset}
+.icon-choice input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.inventory-switch .inventory-badge-md .inventory-mark{width:31px;height:31px}
+.switcher-options .inventory-badge{font-weight:500}
+.inventory-form legend{font-size:14px;font-weight:500;margin-bottom:8px}
+
+.stock-kpis .stat-tile { position: relative; padding-right: 2rem; }
+.metric-tip {
+  position: absolute;
+  top: .7rem;
+  right: .7rem;
+  width: 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: help;
+}
+.metric-tip-text {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: 1.5rem;
+  right: 0;
+  width: 11rem;
+  padding: .5rem;
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 .2rem .8rem rgba(0, 0, 0, .2);
+  border: 1px solid var(--line);
+  border-radius: .35rem;
+  text-align: left;
+  font-size: .8rem;
+}
+.metric-tip:hover .metric-tip-text, .metric-tip:focus .metric-tip-text { display: block; }
+
+.insight-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.insight-card { min-width: 0; scroll-margin-top: 5rem; }
+.insight-card .panel-heading time { font-variant-numeric: tabular-nums; }
+.chart-guide { display: grid; gap: .6rem; margin: 0; padding: 1rem; }
+.chart-guide dt { color: var(--ink); }
+.chart-guide dd { color: var(--muted); margin: .1rem 0 0; }
+.insight-empty, .chart-price-note { margin: 0; padding: 1rem; color: var(--muted); }
+@media (max-width: 1100px) {
+  .insight-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* TORY-60: public landing page. */
+.landing-hero{max-width:52rem;padding:28px 0 36px}
+.landing-hero h1{font-size:clamp(28px,4.2vw,42px);line-height:1.15;letter-spacing:-1px;margin-bottom:16px}
+.landing-lead{font-size:17px;color:var(--muted);max-width:44rem}
+.landing-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.landing-features h2,.landing-steps h2{font-size:22px;margin:10px 0 16px}
+.landing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:14px}
+.landing-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px}
+.landing-card h3{font-size:16px;margin:12px 0 6px}
+.landing-card p{margin:0;color:var(--muted);font-size:14px}
+.landing-icon{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;font-size:22px}
+.landing-steps{margin-top:36px}
+.landing-steps ol{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:14px;padding:0;list-style:none;counter-reset:step}
+.landing-steps li{counter-increment:step;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 20px 20px 62px;position:relative}
+.landing-steps li::before{content:counter(step);position:absolute;left:20px;top:18px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font-weight:700}
+.landing-footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.landing-footer p{margin:0 0 4px}
+
+/* TORY-60: Help page. */
+.help-layout{display:grid;grid-template-columns:15rem minmax(0,1fr);gap:20px;align-items:start}
+.help-toc{position:sticky;top:16px;padding:16px 18px;font-size:13px}
+.help-toc ol{padding-left:18px;margin:8px 0 12px}
+.help-toc li{margin-bottom:4px}
+.help-legend{margin:0;color:var(--muted);font-size:12px}
+.help-section{padding:20px 22px;margin-bottom:16px;scroll-margin-top:16px}
+.help-section h2{font-size:19px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.help-section p:last-child,.help-section ul:last-child,.help-section ol:last-child{margin-bottom:0}
+.help-formulas{background:var(--subtle);border-radius:9px;padding:12px 12px 12px 30px}
+.help-example{border-left:3px solid var(--accent);padding-left:12px}
+.help-terms dt{margin-top:8px}
+.help-terms dd{margin:0 0 4px;color:var(--muted)}
+.role-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:650;vertical-align:middle}
+.role-manager{background:var(--selected);color:var(--accent)}
+.role-staff{background:var(--success-bg);color:var(--success)}
+.sidebar-help{margin-top:16px}
+@media(max-width:900px){.help-layout{grid-template-columns:1fr}.help-toc{position:static}}
+
+/* Demo polish: one-line activity log rows, inventory deactivation, mobile dashboard preview. */
+.activity-table td,.activity-table th{white-space:nowrap}
+.activity-user-line{display:inline-flex;align-items:center;gap:8px;max-width:16rem;min-width:0}
+.activity-user .user-ref{min-width:0}
+.activity-user .user-ref-name{white-space:nowrap;max-width:11rem}
+.activity-role{flex:0 0 auto;font-size:10px;font-weight:500;color:var(--muted)}
+.activity-details-text{display:inline-block;max-width:22rem;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.danger-zone{border-color:var(--attention-bg)}
+.danger-zone h2{margin-bottom:4px}
+.mobile-only{display:none}
+@media(max-width:699px){
+  .activity-table td,.activity-table th{white-space:normal}
+  .activity-user-line{max-width:100%}
+  .activity-details-text{max-width:100%;white-space:normal}
+  .mobile-preview tbody tr:nth-child(n+6){display:none}
+  .mobile-only{display:block}
+}

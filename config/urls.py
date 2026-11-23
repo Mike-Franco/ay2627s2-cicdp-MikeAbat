@@ -4,25 +4,30 @@ from django.conf import settings
 from django.urls import path, re_path
 from django.views.static import serve as serve_static
 
-from accounts import views
+from accounts import public_views, views
 from accounts import account_views
 from accounts import invitation_views
 from accounts import reset_views
 from accounts import deactivation_views
 from inventory_access import views as inventory_views
 from config.health import healthz
-from catalogue import views as catalogue_views
+from catalogue import categories, dashboard_views, views as catalogue_views
+from inventory_access import team_lists
 from receiving import views as receiving_views
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
-    path("", views.home, name="home"),
+    # TORY-60: "/" is the public landing page; signed-in users are sent to the dashboard.
+    path("", public_views.landing, name="landing"),
+    path("dashboard/", dashboard_views.dashboard, name="home"),
+    path("help/", public_views.help_page, name="help"),
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("account/", account_views.account, name="account"),
-    path("businesses/<int:business_id>/staff-invitations/", invitation_views.manager_invitations, name="staff-invitations"),
+    path("account/profile/", account_views.account_profile, name="account-profile"),
+    path("businesses/<int:business_id>/staff-invitations/", team_lists.invitation_list, name="staff-invitations"),
     path("businesses/<int:business_id>/staff-invitations/<int:invitation_id>/<str:action>/", invitation_views.change_invitation, name="staff-invitation-change"),
-    path("businesses/<int:business_id>/staff/", deactivation_views.manager_staff, name="manager-staff"),
+    path("businesses/<int:business_id>/staff/", team_lists.staff_list, name="manager-staff"),
     path("businesses/<int:business_id>/staff/<int:target_id>/deactivate/confirm/", deactivation_views.confirm_staff_deactivation, name="confirm-staff-deactivation"),
     path("businesses/<int:business_id>/staff/<int:target_id>/deactivate/", deactivation_views.deactivate_staff_view, name="deactivate-staff"),
     path("staff/setup/", invitation_views.staff_invitation_setup, name="staff-invitation-setup"),
@@ -31,6 +36,10 @@ urlpatterns = [
     path("inventories/", inventory_views.inventory_list, name="inventory-list"),
     path("inventories/<int:inventory_id>/", inventory_views.inventory_detail, name="inventory-detail"),
     path("catalogue/", catalogue_views.product_catalogue, name="product-catalogue"),
+    path("businesses/<int:business_id>/categories/", categories.category_list, name="category-list"),
+    path("businesses/<int:business_id>/categories/new/", categories.category_edit, name="category-create"),
+    path("businesses/<int:business_id>/categories/<int:category_id>/edit/", categories.category_edit, name="category-edit"),
+    path("businesses/<int:business_id>/categories/<int:category_id>/delete/", categories.category_delete, name="category-delete"),
     path("inventories/<int:inventory_id>/products/", catalogue_views.inventory_products, name="inventory-products"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/", catalogue_views.product_stock, name="product-stock"),
     path("inventories/<int:inventory_id>/products/<int:product_id>/lifecycle/", catalogue_views.product_lifecycle, name="product-lifecycle"),
@@ -57,6 +66,11 @@ if settings.DJANGO_ENV == "development" and not settings.DEBUG:
     urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve_static, {
         "document_root": settings.BASE_DIR / "static", "show_indexes": False,
     })]
+if settings.DJANGO_ENV == "development":
+    # Uploaded pictures (TORY-53). Staging serves /media/ from Caddy instead.
+    urlpatterns += [re_path(r"^media/(?P<path>.*)$", serve_static, {
+        "document_root": settings.MEDIA_ROOT, "show_indexes": False,
+    })]
 
 urlpatterns += [
     path("inventories/<int:inventory_id>/products/stock.csv", catalogue_views.export_inventory_stock, name="export-inventory-stock"),
@@ -82,4 +96,12 @@ urlpatterns += [
 urlpatterns += [
     path("inventories/<int:inventory_id>/demand/verify/", catalogue_views.bulk_verify_demand,
          name="bulk-verify-demand"),
+]
+
+from inventory_access import activity_log  # noqa: E402
+
+urlpatterns += [
+    path("businesses/<int:business_id>/activity/", activity_log.activity_log, name="activity-log"),
+    path("businesses/<int:business_id>/activity.csv", activity_log.activity_log, {"export": True},
+         name="activity-log-csv"),
 ]

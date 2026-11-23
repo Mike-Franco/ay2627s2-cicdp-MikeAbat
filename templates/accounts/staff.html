@@ -1,29 +1,41 @@
 {% extends "base.html" %}
-{% load tory_cards %}
+{% load tory_format %}
 {% block title %}Staff · Tory{% endblock %}
 {% block breadcrumb %}Staff{% endblock %}
 {% block content %}
 <div class="products-heading"><div><h1>Staff</h1><p>Staff accounts within your current authority.</p></div></div>
-{% if staff_accounts %}
-{% staff_inventory_names staff_accounts business_id as inventory_names %}
-<section class="panel" aria-labelledby="staff-title">
-  <div class="panel-heading"><h2 id="staff-title">Staff accounts</h2></div>
+<section class="panel" aria-label="Staff accounts">
+  {% include "includes/table_toolbar.html" %}
+  {% if staff_accounts %}
   <div class="table-scroll" role="region" aria-label="Staff accounts" tabindex="0">
-    <table class="products-table staff-table">
-      <thead><tr><th scope="col">Email</th><th scope="col">Status</th><th scope="col">Inventories</th><th scope="col">Action</th></tr></thead>
+    <table class="products-table responsive-list" aria-label="Staff accounts">
+      <thead><tr>
+        {% include "includes/sortable_header.html" with key="name" label="Name" %}
+        {% include "includes/sortable_header.html" with key="email" label="Email" %}
+        <th scope="col">Job title</th>
+        <th scope="col">Phone</th>
+        {% include "includes/sortable_header.html" with key="status" label="Status" %}
+        <th scope="col">Inventories</th>
+        {% include "includes/sortable_header.html" with key="last_login" label="Last sign-in" %}
+        <th scope="col">Actions</th>
+      </tr></thead>
       <tbody>
       {% for staff in staff_accounts %}
         <tr>
-          <th scope="row">{% if staff.get_full_name %}<span class="d-block">{{ staff.get_full_name }}</span>{% endif %}<span class="product-sku">{{ staff.email }}</span></th>
-          <td>{% if staff.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}</td>
-          <td>{{ inventory_names|get_item:staff.pk|join:", "|default:"—" }}</td>
-          <td>{% if staff.is_active %}<a class="btn btn-sm btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a>{% endif %}</td>
+          <th scope="row"><span class="user-ref">{% include "includes/user_avatar.html" with user=staff %}<span class="user-ref-name">{{ staff.display_name|default:staff.get_full_name|default:"—" }}</span></span></th>
+          <td><span class="list-mobile-label" aria-hidden="true">Email</span>{{ staff.email }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Job title</span>{{ staff.job_title|default:"—" }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Phone</span>{% if staff.phone %}<a href="tel:{{ staff.phone|cut:' ' }}">{{ staff.phone }}</a>{% else %}—{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Status</span>{% if staff.is_active %}<span class="status-pill success">Active</span>{% else %}<span class="status-pill neutral">Inactive</span>{% endif %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Assigned inventories</span><div class="d-flex flex-wrap gap-2">{% for inventory in staff.assigned_inventories %}{% include "includes/inventory_badge.html" with inventory=inventory %}{% empty %}—{% endfor %}</div></td>
+          <td><span class="list-mobile-label" aria-hidden="true">Last sign-in</span>{{ staff.last_login|sgdate }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Actions</span>{% if staff.is_active %}<a class="btn btn-sm btn-outline-danger" href="{% url 'confirm-staff-deactivation' business_id staff.pk %}">Deactivate</a>{% else %}—{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
+  {% else %}<p class="p-3">No Staff accounts match the current view.</p>{% endif %}
 </section>
-{% else %}<p>No Staff accounts in your current scope.</p>{% endif %}
 {% include "includes/pagination.html" with pagination_label="Staff pages" %}
 {% endblock %}

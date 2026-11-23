@@ -5,6 +5,10 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower, Trim
 
+from config.palette import DEFAULT_TONE, TONE_CHOICES, TONE_KEYS
+
+from .icons import DEFAULT_ICON, ICON_KEYS, ICONS
+
 
 class Business(models.Model):
     name = models.CharField(max_length=160)
@@ -36,6 +40,11 @@ class Inventory(models.Model):
     name = models.CharField(max_length=160)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # TORY-54: how the inventory is recognised at a glance. Only preset keys
+    # are stored; the picture is written only by config.media.
+    icon = models.CharField(max_length=24, choices=ICONS, default=DEFAULT_ICON)
+    colour = models.CharField(max_length=12, choices=TONE_CHOICES, default=DEFAULT_TONE)
+    picture = models.FileField(upload_to="inventories/", max_length=120, blank=True)
 
     class Meta:
         ordering = ["name", "pk"]
@@ -43,6 +52,8 @@ class Inventory(models.Model):
             models.UniqueConstraint(
                 "business", Lower(Trim("name")), name="unique_inventory_business_name_ci",
             ),
+            models.CheckConstraint(condition=models.Q(icon__in=sorted(ICON_KEYS)), name="inventory_icon_preset"),
+            models.CheckConstraint(condition=models.Q(colour__in=sorted(TONE_KEYS)), name="inventory_colour_preset"),
         ]
 
     def save(self, *args, **kwargs):
@@ -84,6 +95,7 @@ class InventoryChangeAuditEvent(models.Model):
         RENAME = "rename", "Rename"
         DEACTIVATE = "deactivate", "Deactivate"
         REACTIVATE = "reactivate", "Reactivate"
+        RESTYLE = "restyle", "Change icon, colour or picture"
 
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     business = models.ForeignKey(Business, on_delete=models.PROTECT)
@@ -98,7 +110,7 @@ class InventoryChangeAuditEvent(models.Model):
             models.CheckConstraint(
                 condition=(
                     models.Q(action="create", before__isnull=True)
-                    | models.Q(action__in=("rename", "deactivate", "reactivate"), before__isnull=False)
+                    | models.Q(action__in=("rename", "deactivate", "reactivate", "restyle"), before__isnull=False)
                 ),
                 name="inventory_change_action_before",
             ),

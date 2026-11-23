@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Tory · Inventory made simple{% endblock %}
+{% block content %}
+{% with sprite="tory/icons/lucide-sprite.svg" %}
+<section class="landing-hero" aria-labelledby="landing-title">
+  <p class="eyebrow">Tory</p>
+  <h1 id="landing-title">Inventory made simple: track stock, catch expiries, know what to reorder.</h1>
+  <p class="landing-lead">For small shops, pharmacies and stores that run one or more stockrooms. Every unit in and out is recorded, expired batches are held back automatically, and reorder suggestions come from demand your Manager has verified.</p>
+  <div class="landing-actions"><a class="btn btn-primary btn-lg" href="{% url 'login' %}">Sign in</a><a class="btn btn-outline-secondary btn-lg" href="#how-it-works">How it works</a></div>
+</section>
+
+<section class="landing-features" aria-labelledby="features-title">
+  <h2 id="features-title">What Tory does</h2>
+  <div class="landing-grid">
+    <article class="landing-card"><span class="landing-icon tone-blue" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#truck"></use></svg></span><h3>Stock in and out with FEFO</h3><p>Receive batches with their expiry dates. Issues take the batch that expires first, then undated stock in the order it arrived, so older stock moves first.</p></article>
+    <article class="landing-card"><span class="landing-icon tone-rose" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#archive"></use></svg></span><h3>Expiry and quarantine</h3><p>At the start of its expiry date (Singapore time) a batch is quarantined and can no longer be issued. Managers dispose of it with a recorded reason.</p></article>
+    <article class="landing-card"><span class="landing-icon tone-teal" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#clipboard-list"></use></svg></span><h3>Verified forecasts and reorder suggestions</h3><p>Once a Manager has verified the last seven days of demand and set the lead time and safety stock, Tory shows the average daily demand, a reorder point and how many units to order.</p></article>
+    <article class="landing-card"><span class="landing-icon tone-amber" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#box"></use></svg></span><h3>CSV import and export</h3><p>Import a simple <code>sku,change</code> file of stock movements, and download current stock or a product's full history as CSV.</p></article>
+    <article class="landing-card"><span class="landing-icon tone-purple" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#store"></use></svg></span><h3>Manager and Staff roles</h3><p>Managers set up inventories, products and their team. Staff receive and issue stock, and see products, forecasts and insights, only in the inventories they are assigned to.</p></article>
+    <article class="landing-card"><span class="landing-icon tone-indigo" aria-hidden="true"><svg class="icon"><use href="{% static sprite %}#sparkles"></use></svg></span><h3>Dashboard and insights</h3><p>See what is out of stock, running low or expiring first, then explore explained charts of stock levels, intake and outtake, days of supply and retail value.</p></article>
+  </div>
+</section>
+
+<section class="landing-steps" id="how-it-works" aria-labelledby="how-title">
+  <h2 id="how-title">How it works</h2>
+  <ol>
+    <li><strong>Set up.</strong> A Manager adds inventories, products with their lead time and safety stock, and invites Staff to the inventories they work in.</li>
+    <li><strong>Record every movement.</strong> The team receives and issues stock as it happens, or imports a CSV. Tory keeps the batches, expiry and history in order.</li>
+    <li><strong>Review and reorder.</strong> The Manager verifies each day's demand. The dashboard then shows what needs reordering and how much.</li>
+  </ol>
+</section>
+{% endwith %}
+<footer class="landing-footer">
+  <p>Tory is a CA1 student project. Source code: <a href="{{ repository_url }}">GitHub repository</a>.</p>
+  <p>No tracking, no third-party analytics.</p>
+</footer>
+{% endblock %}

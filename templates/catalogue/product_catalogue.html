@@ -11,17 +11,43 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% for membership in category_managers %}
+  <a href="{% url 'category-list' membership.business_id %}">Manage categories{% if category_managers|length > 1 %} · {{ membership.business.name }}{% endif %}</a>
+  {% endfor %}
 </div>
-<form method="get" action="{% url 'product-catalogue' %}" class="product-filters" role="search" aria-label="Search catalogue">
-  <div class="product-filter-field"><label for="{{ search_form.q.id_for_label }}">{{ search_form.q.label }}</label>{{ search_form.q }}{% if search_form.q.errors %}<div class="filter-errors" role="alert">{{ search_form.q.errors }}</div>{% endif %}</div>
-  <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Search</button>{% if search_form.q.value %}<a class="btn btn-outline-secondary" href="{% url 'product-catalogue' %}">Clear search</a>{% endif %}</div>
-</form>
-{% if product_links %}
-  <ul class="list-group">{% for link in product_links %}<li class="list-group-item"><a href="{% url 'inventory-products' link.inventory_id %}">{{ link.product.sku }} — {{ link.product.name }}</a><span class="text-muted"> · {{ link.inventory.name }}</span></li>{% endfor %}</ul>
-{% elif not search_form.errors and search_form.cleaned_data.q %}
-  <p>No authorised products match your search.</p>
-{% elif not search_form.errors %}
-  <p>No products are linked to your authorised inventories.</p>
-{% endif %}
+{% load tory_format %}
+<section class="panel" aria-label="Catalogue">
+  {% include "includes/table_toolbar.html" %}
+  {% if not valid_filters %}<p class="p-3" role="alert">Check the search length and choose a category and inventory available to your account.</p>
+  {% elif product_links %}
+  <div class="table-scroll" role="region" aria-label="Catalogue products" tabindex="0">
+    <table class="products-table responsive-list" aria-label="Catalogue products">
+      <thead><tr>
+        {% include "includes/sortable_header.html" with key="name" label="Name" %}
+        {% include "includes/sortable_header.html" with key="sku" label="SKU" %}
+        {% include "includes/sortable_header.html" with key="category" label="Category" %}
+        <th scope="col">Inventories</th>
+        {% include "includes/sortable_header.html" with key="available" label="Total available" %}
+        <th scope="col">Status</th><th scope="col">Price range</th><th scope="col">Active</th>
+      </tr></thead>
+      <tbody>
+      {% for row in product_links %}
+        <tr>
+          <th scope="row"><a href="{% url 'product-stock' row.inventory_id row.product.pk %}">{{ row.product.name }}</a></th>
+          <td><span class="list-mobile-label" aria-hidden="true">SKU</span>{{ row.product.sku }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Category</span>{{ row.product.category|default:"Uncategorised" }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Inventories</span><div class="d-flex flex-wrap gap-2">{% for link in row.links %}<a href="{% url 'inventory-products' link.inventory_id %}">{% include "includes/inventory_badge.html" with inventory=link.inventory %}</a>{% endfor %}</div></td>
+          <td><span class="list-mobile-label" aria-hidden="true">Total available</span>{{ row.available_units }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Status</span>{{ row.status }}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Price range</span>{% with prices=row.prices %}{% if prices %}{{ prices|first|sgd }}{% else %}—{% endif %}{% if prices|length > 1 %} – {{ prices|last|sgd }}{% endif %}{% endwith %}</td>
+          <td><span class="list-mobile-label" aria-hidden="true">Active</span>{{ row.product.is_active|yesno:"Yes,No" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif toolbar.is_filtered %}<p class="p-3">No authorised products match your search.</p>
+  {% else %}<p class="p-3">No products are linked to your authorised inventories.</p>{% endif %}
+</section>
 {% include "includes/pagination.html" with pagination_label="Catalogue pages" %}
 {% endblock %}

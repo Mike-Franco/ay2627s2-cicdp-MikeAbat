@@ -35,3 +35,6 @@ docker-compose.yml
 .dockerignore
 .idea
 .vscode
+
+# User uploads (TORY-53); never baked into the image
+media

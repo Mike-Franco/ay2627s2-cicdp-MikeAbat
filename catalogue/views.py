@@ -1,6 +1,4 @@
 from collections import defaultdict
-from datetime import timedelta
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -13,11 +11,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from accounts.sessions import protected_view
-from catalogue.models import InventoryProduct, Product, ProductLifecycleAuditEvent
-from inventory_access.authorization import get_authorized_inventory
+from catalogue.models import Category, InventoryProduct, Product, ProductLifecycleAuditEvent
+from inventory_access.authorization import authorized_inventories, get_authorized_inventory, manager_memberships
 from inventory_access.models import BusinessMembership, Inventory
 from receiving.demand import (
-    _totals,
     forecasts_for_links,
     mark_demand_day_incomplete,
     reviewable_days,
@@ -31,7 +28,6 @@ from receiving.models import (
     ExpiryQuarantineEvent,
     ObservationActivation,
     ReceiptAuditEvent,
-    ReceivingBatch,
     StockAdjustmentAuditEvent,
 )
 from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
@@ -39,111 +35,53 @@ from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
                             visible_inventory_product_links, visible_product_links)
 from .csv_exports import csv_download, history_rows, stock_rows
-from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ProductSearchForm, ReorderSettingsForm
-from .templatetags.tory_format import sgdate
+from .table_lists import CATALOGUE_SORTS, CATALOGUE_STATUSES, TableControls, catalogue_rows, paginate
+from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ReorderSettingsForm
+from .insights import inventory_insights as inventory_insights
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change, save_selling_price
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
 
 
 @protected_view
-def inventory_insights(request, inventory_id):
-    try:
-        inventory, links = visible_inventory_product_links(request.user, inventory_id)
-    except Inventory.DoesNotExist as error:
-        raise Http404 from error
-    now = timezone.now()
-    today = now.astimezone(SINGAPORE).date()
-    first_day = today - timedelta(days=29)
-    demand = _totals(
-        {"business_id": inventory.business_id, "inventory_id": inventory.pk},
-        first_day, today + timedelta(days=1),
-    )
-    forecast_data = forecasts_for_links([link.pk for link in links if link.product.is_active], at=now)
-    labels = [first_day + timedelta(days=offset) for offset in range(30)]
-    active_link_ids = [link.pk for link in links if link.product.is_active]
-    active_forecasts = [forecast_data.get(link_id) for link_id in active_link_ids]
-    average = None
-    if active_forecasts and all(item and item.available for item in active_forecasts):
-        total_average = sum((item.average for item in active_forecasts), start=0)
-        average = f"{Decimal(total_average.numerator) / Decimal(total_average.denominator):.2f}"
-    demand_data = [
-        {"day": day.isoformat(), "issued": demand.get(day, 0), "verified_average": average}
-        for day in labels
-    ] if links else []
-    batch_totals = ReceivingBatch.objects.filter(
-        inventory_product__in=links, remaining_quantity_units__gt=0,
-    ).order_by().values("inventory_product_id").annotate(
-        quarantined=Sum(Case(
-            When(expiry_date__lte=today, then=F("remaining_quantity_units")),
-            When(expiry_date__gt=today, then=F("quarantined_quantity_units")),
-            default=F("quarantined_quantity_units"),
-        ), default=0),
-    )
-    quarantine_by_link = dict(batch_totals.values_list("inventory_product_id", "quarantined"))
-    reorder_data = []
-    # Selling-price value of available (issuable) stock; unpriced products are listed, not guessed.
-    stock_value, priced, unpriced = Decimal(0), 0, []
-    for link in links:
-        quarantine = quarantine_by_link.get(link.pk, 0)
-        forecast = forecast_data.get(link.pk)
-        result = None
-        if link.product.is_active and forecast and forecast.available:
-            result = recommendation_from_evidence(link.product, link.physical_quantity_units, forecast, quarantine)
-        reorder_data.append({
-            "sku": link.product.sku, "name": link.product.name,
-            "available": link.physical_quantity_units - quarantine,
-            "reorder_point": str(result.reorder_point) if result and result.reorder_point is not None else None,
-            "alert": bool(result and result.alert),
-        })
-        available = link.physical_quantity_units - quarantine
-        if link.selling_price is None:
-            unpriced.append(link.product)
-        else:
-            stock_value += available * link.selling_price
-            priced += 1
-    # Four rolling 7-day windows starting tomorrow, so stock expiring in the
-    # next few days is never dropped by a calendar-week boundary.
-    window_start = today + timedelta(days=1)
-    week_starts = [window_start + timedelta(days=7 * offset) for offset in range(4)]
-    expiry_totals = defaultdict(int)
-    expiring = ReceivingBatch.objects.filter(
-        inventory_product__in=links, expiry_date__gte=window_start,
-        expiry_date__lt=window_start + timedelta(days=28),
-        remaining_quantity_units__gt=F("quarantined_quantity_units"),
-    ).values("expiry_date", "remaining_quantity_units", "quarantined_quantity_units")
-    for batch in expiring:
-        index = (batch["expiry_date"] - window_start).days // 7
-        expiry_totals[index] += batch["remaining_quantity_units"] - batch["quarantined_quantity_units"]
-    expiry_data = [{
-        "week": f"{sgdate(start)} – {sgdate(start + timedelta(days=6))}",
-        "units": expiry_totals[index],
-    } for index, start in enumerate(week_starts)]
-    return render(request, "catalogue/inventory_insights.html", {
-        "inventory": inventory, "demand_data": demand_data,
-        "demand_data_json": demand_data, "reorder_data_json": reorder_data, "expiry_data_json": expiry_data,
-        "reorder_data": reorder_data, "expiry_data": expiry_data, "has_products": bool(links),
-        "stock_value": stock_value, "priced_count": priced, "unpriced_products": unpriced,
-    })
-
-
-@protected_view
 def product_catalogue(request):
-    search_form = ProductSearchForm(request.GET)
-    valid_search = search_form.is_valid()
-    links = _search_product_links(visible_product_links(request.user), search_form.cleaned_data["q"]) if valid_search else []
-    page = Paginator(links, 25).get_page(request.GET.get("page"))
-    return render(
-        request,
-        "catalogue/product_catalogue.html",
-        {"product_links": page.object_list, "page": page, "search_form": search_form,
-         "create_inventories": managed_inventories(request.user).select_related("business")
-         .order_by("business_id", "name", "pk").distinct("business_id")},
-        status=200 if valid_search else 400,
+    inventories = list(authorized_inventories(request.user))
+    categories = list(Category.objects.filter(business_id__in={inventory.business_id for inventory in inventories}))
+    categories_by_id = {str(category.pk): category.pk for category in categories}
+    inventories_by_id = {str(inventory.pk): inventory.pk for inventory in inventories}
+    controls = TableControls.from_request(request, CATALOGUE_SORTS, default="sku")
+    links = _search_product_links(visible_product_links(request.user), controls.query)
+    category = request.GET.get("category", "")
+    inventory = request.GET.get("inventory", "")
+    status = request.GET.get("status", "")
+    valid = len(request.GET.get("q", "")) <= 200 and (not category or category in categories_by_id or category == "uncategorised") and (
+        not inventory or inventory in inventories_by_id
     )
+    if category:
+        links = links.filter(product__category_id=categories_by_id.get(category))
+    if inventory in inventories_by_id:
+        links = links.filter(inventory_id=inventories_by_id[inventory])
+    if status in {"active", "inactive"}:
+        links = links.filter(product__is_active=status == "active")
+    rows = catalogue_rows(links, at=timezone.now(), status=status, sort=controls.sort) if valid else []
+    page = paginate(request, rows)
+    toolbar = controls.toolbar(request, page, search_label="Search product name or SKU", filters=(
+        ("category", "Category", [("", "All categories"), ("uncategorised", "Uncategorised"),
+                                 *((str(item.pk), item.name) for item in categories)]),
+        ("status", "Status", CATALOGUE_STATUSES),
+        ("inventory", "Inventory", [("", "All inventories"),
+                                     *((str(item.pk), item.name) for item in inventories)]),
+    ))
+    return render(request, "catalogue/product_catalogue.html", {
+        "product_links": page.object_list, "page": page, "toolbar": toolbar, "valid_filters": valid,
+        "category_managers": manager_memberships(request.user).select_related("business"),
+        "create_inventories": managed_inventories(request.user).select_related("business")
+        .order_by("business_id", "name", "pk").distinct("business_id"),
+    }, status=200 if valid else 400)
 
 
 def _search_product_links(links, query):
+    links = links.select_related("product__category")
     if query:
         return links.filter(Q(product__name__icontains=query) | Q(product__sku__icontains=query))
     return links
@@ -203,13 +141,17 @@ def inventory_products(request, inventory_id):
     except Inventory.DoesNotExist as error:
         raise Http404 from error
     total_product_count = links.count()
-    filter_form = InventoryProductFilterForm(request.GET)
+    filter_form = InventoryProductFilterForm(
+        request.GET, categories=Category.objects.filter(business_id=inventory.business_id),
+    )
     product_links = []
     page = None
     valid_filters = filter_form.is_valid()
     can_adjust_stock = _is_inventory_manager(request.user, inventory)
     if valid_filters:
         links = _search_product_links(links, filter_form.cleaned_data["q"])
+        if filter_form.cleaned_data["category"]:
+            links = links.filter(product__category=filter_form.cleaned_data["category"])
         selected_status = filter_form.cleaned_data["reorder"]
         now = timezone.now()
         links = links.annotate(display_quarantine_units=Sum(Case(
@@ -249,7 +191,7 @@ def inventory_products(request, inventory_id):
         "catalogue/inventory_products.html",
         {"inventory": inventory, "product_links": product_links, "page": page,
          "filter_form": filter_form, "total_product_count": total_product_count,
-         "has_filters": bool(request.GET.get("q") or request.GET.get("reorder")),
+         "has_filters": bool(request.GET.get("q") or request.GET.get("reorder") or request.GET.get("category")),
          "sort": filter_form.cleaned_data.get("sort", "") if valid_filters else "",
          "can_adjust_stock": can_adjust_stock},
         status=200 if valid_filters else 400,

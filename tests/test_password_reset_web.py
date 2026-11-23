@@ -172,7 +172,7 @@ class PasswordResetWebTests(TransactionTestCase):
             self.assertNotIn(token.encode(), response.content)
             self.assertNotIn(b"long-password-0001", response.content)
         for client in clients:
-            self.assertEqual(client.get("/").status_code, 302)
+            self.assertEqual(client.get(reverse("home")).status_code, 302)
         self.assertFalse(self.client.post(self.setup_url, {"token": token, "password": "long-password-0001", "password_confirm": "long-password-0001"}).json()["ok"])
 
     def test_expired_and_superseded_links_fail(self):

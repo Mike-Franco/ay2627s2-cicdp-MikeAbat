@@ -1,4 +1,5 @@
 from datetime import timedelta
+from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -9,13 +10,15 @@ from django.utils import timezone
 
 from accounts.models import StaffInvitation, StaffInvitationInventory
 from accounts.sessions import ACTIVE_KEY, CREATED_KEY
-from catalogue.models import InventoryProduct, Product
+from catalogue.models import Category, InventoryProduct, Product
 from inventory_access.models import (
     Business,
     BusinessMembership,
     Inventory,
     InventoryAssignment,
 )
+
+from receiving.services import receive_manual
 
 
 class ListPaginationTests(TestCase):
@@ -143,6 +146,7 @@ class ListPaginationTests(TestCase):
         self.login(self.manager)
         pages = [
             (reverse("product-catalogue"), {}),
+            (reverse("inventory-list"), {}),
             (reverse("inventory-products", args=[self.inventory.pk]), {}),
             (reverse("inventory-products", args=[self.inventory.pk]), {"reorder": "unavailable"}),
             (reverse("manager-staff", args=[self.business.pk]), {}),
@@ -163,3 +167,76 @@ class ListPaginationTests(TestCase):
         self.add_staff(1, 70)
         self.add_invitations(2, 70)
         self.assertEqual(counts(), initial)
+
+    def test_catalogue_filters_and_sort_links(self):
+        self.add_products(0, 28)
+        category = Category.objects.create(business=self.business, name="Tea")
+        Product.objects.filter(sku="TEA-000").update(category=category, is_active=False)
+        self.login(self.staff)
+        url = reverse("product-catalogue")
+        filters = {"q": "Green tea", "inventory": self.inventory.pk, "status": "active", "tag": ["a", "b"]}
+        response = self.client.get(url, {**filters, "page": 2})
+        self.assertEqual(response.context["page"].paginator.count, 27)
+        self.assertContains(response, 'sort=name')
+        self.assertContains(response, 'tag=a&amp;tag=b')
+        self.assertContains(response, 'page=1')
+        for status, count in (("inactive", 1), ("out", 27), ("low", 0)):
+            with self.subTest(status=status):
+                response = self.client.get(url, {"status": status, "inventory": self.inventory.pk})
+                self.assertEqual(response.context["page"].paginator.count, count)
+        response = self.client.get(url, {"category": category.pk})
+        self.assertEqual([row.product.sku for row in response.context["product_links"]], ["TEA-000"])
+        for sort in ("sku", "name", "available", "category"):
+            with self.subTest(sort=sort):
+                ordered = self.client.get(url, {"sort": "-" + sort})
+                self.assertContains(ordered, 'aria-sort="descending"')
+        self.assertEqual(self.client.get(url, {"inventory": self.hidden.pk}).status_code, 400)
+
+    def test_team_search_status_and_sorts(self):
+        self.add_staff(1, 27)
+        self.add_invitations(0, 27)
+        self.login(self.manager)
+        get_user_model().objects.filter(email="staff-005@example.test").update(is_active=False, first_name="Ada")
+        StaffInvitation.objects.filter(target_email="invite-005@example.test").update(status="revoked")
+        for route, params, sorts, email in (
+            ("manager-staff", {"q": "Ada", "status": "inactive"},
+             ("name", "email", "status", "last_login"), "staff-005@example.test"),
+            ("staff-invitations", {"q": "005", "status": "revoked"},
+             ("email", "status", "sent", "expires"), "invite-005@example.test"),
+        ):
+            with self.subTest(route=route):
+                url = reverse(route, args=[self.business.pk])
+                for sort in sorts:
+                    response = self.client.get(url, {**params, "sort": "-" + sort, "page": 9})
+                    self.assertEqual(response.context["page"].paginator.count, 1)
+                    self.assertContains(response, email)
+                    self.assertContains(response, 'aria-sort="descending"')
+                page = self.client.get(url, {"q": email.split("-")[0], "sort": "-email"})
+                self.assertContains(page, 'sort=-email&amp;page=2')
+
+    def test_inventory_search_sort_and_scope(self):
+        self.login(self.staff)
+        url = reverse("inventory-list")
+        for sort in ("name", "-low", "-value"):
+            response = self.client.get(url, {"q": self.inventory.name, "sort": sort})
+            self.assertEqual([inventory.pk for inventory in response.context["inventories"]], [self.inventory.pk])
+            self.assertNotContains(response, self.hidden.name)
+        self.assertEqual(self.client.get(url, {"q": self.hidden.name}).context["page"].paginator.count, 0)
+
+    def test_inventory_count_and_retail_sort_use_available_stock(self):
+        self.add_products(0, 2)
+        second = Inventory.objects.create(business=self.business, name="A priced shelf")
+        InventoryAssignment.objects.create(membership=self.membership, inventory=second)
+        item = Product.objects.create(business=self.business, sku="PRICED", name="Priced", base_unit_label="bag",
+                                      expiry_tracking_required=False)
+        InventoryProduct.objects.create(inventory=second, product=item, selling_price="3.25")
+        receive_manual(user_id=self.manager.pk, inventory_id=second.pk, product_id=item.pk, request_token=uuid4(),
+                       quantity_units=4, expiry_date=None)
+        self.login(self.manager)
+        url = reverse("inventory-list")
+        low = self.client.get(url, {"sort": "-low"}).context["inventories"]
+        self.assertEqual([inventory.pk for inventory in low], [self.inventory.pk, second.pk])
+        self.assertEqual(low[0].stock.out, 2)
+        value = self.client.get(url, {"sort": "-value"})
+        self.assertEqual([inventory.pk for inventory in value.context["inventories"]], [second.pk, self.inventory.pk])
+        self.assertContains(value, "S$13.00")

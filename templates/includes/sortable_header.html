@@ -1,0 +1,8 @@
+{% with descending="-"|add:key %}
+<th scope="col"{% if toolbar.sort == key %} aria-sort="ascending"{% elif toolbar.sort == descending %} aria-sort="descending"{% endif %}>
+  {% if toolbar.sort == key %}{% querystring sort=descending page=None as sort_url %}{% else %}{% querystring sort=key page=None as sort_url %}{% endif %}
+  <a class="table-sort-link" href="{{ sort_url }}">{{ label }}
+    <span aria-hidden="true">{% if toolbar.sort == key %}↑{% elif toolbar.sort == descending %}↓{% else %}↕{% endif %}</span>
+  </a>
+</th>
+{% endwith %}

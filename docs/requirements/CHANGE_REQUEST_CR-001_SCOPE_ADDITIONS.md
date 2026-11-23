@@ -42,3 +42,7 @@ The rest of SRS section 2.2 stands unchanged:
 - any production-readiness claim.
 
 Insights shows no monetary forecasts or cost figures. Its only money figure is the current stock value at the inventory's own selling price, which follows from BR-016 and BR-018.
+
+## Later additions
+
+Further additions requested on 22 November 2026 (TORY-52 to TORY-61, including the dashboard v2 and Insights v2 extensions of the items above) are recorded in [CR-002](../decisions/CR-002-scope-additions-tory-52-61.md).
