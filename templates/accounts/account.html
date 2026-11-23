@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Profile · Tory{% endblock %}
-{% block breadcrumb %}Profile{% endblock %}
+{% block page_header %}{% page_header crumb="Profile" %}Your profile{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><h1>Your profile</h1><p>How you appear to your team, and your sign-in password.</p></div></div>
+<p class="page-intro">How you appear to your team, and your sign-in password.</p>
 <nav class="profile-tabs" aria-label="Profile sections"><a href="#profile">Profile</a><a href="#password">Password</a></nav>
 {% for message in messages %}<div class="alert alert-success" role="status">{{ message }}</div>{% endfor %}
 

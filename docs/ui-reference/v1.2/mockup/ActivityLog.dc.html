@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Activity log</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.t a.btn{color:var(--text);text-decoration:none}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill.red{color:var(--red);background:var(--red-bg)}.pill.amber{color:var(--amber);background:var(--amber-bg)}.pill.blue{color:var(--blue);background:var(--blue-bg)}.pill.green{color:var(--green);background:var(--green-bg)}.pill.neutral{color:var(--muted);background:var(--hover)}
+.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:14px;max-width:1240px}
+.scope{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.scopechip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--accent-weak);color:var(--accent-ink);font-weight:500}
+.box{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.sel{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 8px}
+.sel.sm{height:28px;font-size:12px}
+.inp{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 10px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-weight:500;color:var(--muted);font-size:12px;text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th.num{text-align:right}
+.tbl td{padding:0 12px;height:38px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl tbody tr:hover td{background:var(--hover)}
+.daysep td{height:28px;background:var(--side);font-size:12px;font-weight:500;color:var(--muted)}
+.who{display:inline-flex;align-items:center;gap:6px}
+.av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9.5px;font-weight:600;color:#fff}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.pg{display:flex;gap:4px;align-items:center}
+.pgb{min-width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.pgb.on{border-color:var(--line2);color:var(--text);background:var(--panel)}
+.pgb:disabled{opacity:.45;cursor:default}
+@media (max-width:700px){.main,.ph{padding-left:16px;padding-right:16px}.btn,.sel,.inp{min-height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 1080px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="activity" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<h1>Activity log</h1>
+<div class="ph-actions"><a class="btn" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>Download CSV</a></div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><span>Activity log</span></nav>
+</header>
+<main class="main">
+<div class="scope"><span>Showing</span><span class="scopechip">Grocery</span><span>· every stock movement and setting change, newest first ·</span><a href="#">Show all inventories</a></div>
+<div class="box">
+<div class="toolbar">
+<input class="inp" type="search" aria-label="Search product, SKU or note" placeholder="Search product, SKU or note" style="flex: 1 1 200px; max-width: 280px">
+<select class="sel" aria-label="Action"><option>All actions</option><option>Received</option><option>Issued</option><option>Adjusted</option><option>Quarantined</option><option>Demand verified</option><option>Settings changed</option></select>
+<select class="sel" aria-label="Person"><option>Anyone</option><option>Mia Tan</option><option>Ravi Kumar</option><option>Aisha Rahman</option></select>
+<select class="sel" aria-label="Date range"><option>Last 7 days</option><option>Last 30 days</option><option>Custom…</option></select>
+<a href="#" style="font-size: 12px">Clear filters</a>
+</div>
+<div style="overflow-x: auto">
+<table class="tbl">
+<thead><tr><th>When</th><th>Who</th><th>Action</th><th>Product</th><th class="num">Qty</th><th class="num">After</th><th>Note</th></tr></thead>
+<tbody>
+<tr class="daysep"><td colspan="7">Today · Mon 23 Nov</td></tr>
+<tr><td title="23 Nov 2026, 12:48">25 min ago</td><td><span class="who"><span class="av" style="background: #1A7340">RK</span>Ravi Kumar</span></td><td><span class="pill amber">Issued</span></td><td><a href="ProductDetail.dc.html">Oat Milk</a> <span class="mono">GR-01</span></td><td class="num neg">−3</td><td class="num">4</td><td class="muted">Café order</td></tr>
+<tr><td title="23 Nov 2026, 11:02">2 h ago</td><td><span class="who"><span class="av" style="background: #5B5BD6">MT</span>Mia Tan</span></td><td><span class="pill neutral">Settings</span></td><td class="muted">Grocery</td><td class="num muted">—</td><td class="num muted">—</td><td class="muted">Gave Aisha Rahman access</td></tr>
+<tr><td title="23 Nov 2026, 09:15">4 h ago</td><td><span class="who"><span class="av" style="background: #1A7340">RK</span>Ravi Kumar</span></td><td><span class="pill green">Received</span></td><td><a href="ProductDetail.dc.html">Jasmine Rice</a> <span class="mono">GR-02</span></td><td class="num pos">+20</td><td class="num">43</td><td class="muted">PO 2311 · batch JR-2411-A</td></tr>
+<tr class="daysep"><td colspan="7">Yesterday · Sun 22 Nov</td></tr>
+<tr><td title="22 Nov 2026, 18:40">Yesterday 18:40</td><td><span class="who"><span class="av" style="background: #5B5BD6">MT</span>Mia Tan</span></td><td><span class="pill blue">Verified</span></td><td class="muted">Demand · 21 Nov</td><td class="num muted">—</td><td class="num muted">—</td><td class="muted">12 units across 5 products</td></tr>
+<tr><td title="22 Nov 2026, 16:05">Yesterday 16:05</td><td><span class="who"><span class="av" style="background: #C2417A">AR</span>Aisha Rahman</span></td><td><span class="pill neutral">Adjusted</span></td><td><a href="ProductDetail.dc.html">Black Tea</a> <span class="mono">GR-05</span></td><td class="num neg">−1</td><td class="num">26</td><td class="muted">Damaged box</td></tr>
+<tr><td title="22 Nov 2026, 10:21">Yesterday 10:21</td><td><span class="who"><span class="av" style="background: #1A7340">RK</span>Ravi Kumar</span></td><td><span class="pill red">Quarantined</span></td><td><a href="ProductDetail.dc.html">Rolled Oats</a> <span class="mono">GR-03</span></td><td class="num neg">−2</td><td class="num">32</td><td class="muted">Seal broken, checking supplier</td></tr>
+<tr class="daysep"><td colspan="7">Fri 20 Nov</td></tr>
+<tr><td title="20 Nov 2026, 14:30">Fri 14:30</td><td><span class="who"><span class="av" style="background: #1A7340">RK</span>Ravi Kumar</span></td><td><span class="pill amber">Issued</span></td><td><a href="ProductDetail.dc.html">Olive Oil</a> <span class="mono">GR-06</span></td><td class="num neg">−4</td><td class="num">29</td><td class="muted">FEFO · batch OO-2408-B</td></tr>
+<tr><td title="20 Nov 2026, 09:02">Fri 09:02</td><td><span class="who"><span class="av" style="background: #5B5BD6">MT</span>Mia Tan</span></td><td><span class="pill green">Imported</span></td><td class="muted">CSV · 7 rows</td><td class="num pos">+48</td><td class="num muted">—</td><td class="muted">grocery-nov.csv</td></tr>
+</tbody></table>
+</div>
+<div class="pager">
+<span>Showing <strong style="color: var(--text)">1–50</strong> of 164</span>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<label style="display: flex; align-items: center; gap: 6px">Rows per page <select class="sel sm"><option>25</option><option selected>50</option><option>100</option></select></label>
+<div class="pg"><button class="pgb" type="button" disabled aria-label="Previous page">‹</button><button class="pgb on" type="button" aria-current="page">1</button><button class="pgb" type="button">2</button><button class="pgb" type="button">3</button><button class="pgb" type="button">4</button><button class="pgb" type="button" aria-label="Next page">›</button></div>
+</div>
+</div>
+</div>
+<div style="border: 1px dashed var(--line2); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px">
+<strong style="color: var(--text)">Who sees what</strong>
+<span><strong style="color: var(--text)">Managers:</strong> every inventory, every action including Settings and access changes, plus Download CSV.</span>
+<span><strong style="color: var(--text)">Staff:</strong> read-only, only the inventories they are assigned to, stock movements only (Received, Issued, Adjusted, Quarantined, Imported). No Settings rows, no CSV, can't edit or delete entries.</span>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

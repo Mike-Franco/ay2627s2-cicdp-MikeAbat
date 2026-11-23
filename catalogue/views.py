@@ -2,11 +2,11 @@ from collections import defaultdict
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
 from django.db.models import Case, CharField, F, Q, Sum, Value, When
 from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
@@ -74,6 +74,7 @@ def product_catalogue(request):
     ))
     return render(request, "catalogue/product_catalogue.html", {
         "product_links": page.object_list, "page": page, "toolbar": toolbar, "valid_filters": valid,
+        "breadcrumbs": [("Dashboard", reverse("home")), ("Catalogue", None)],
         "category_managers": manager_memberships(request.user).select_related("business"),
         "create_inventories": managed_inventories(request.user).select_related("business")
         .order_by("business_id", "name", "pk").distinct("business_id"),
@@ -178,7 +179,7 @@ def inventory_products(request, inventory_id):
                 rank = {"attention": 0, "above": 1, "unavailable": 2}
                 links.sort(key=lambda link: ((-1 if descending else 1) * rank[_reorder_status(link)],
                                              link.product.sku, link.pk))
-        page = Paginator(links, 25).get_page(request.GET.get("page"))
+        page = paginate(request, links)
         product_links = page.object_list if computed else _prepare_stock_list(page.object_list, at=now)
         if can_adjust_stock:
             manageable = manageable_lifecycle_product_ids(
@@ -267,9 +268,10 @@ def product_stock(request, inventory_id, product_id):
     for batch in sorted(link.receiving_batches.all(), key=lambda item: item.receipt_sequence):
         if batch.remaining_quantity_units:
             batches.append({"batch": batch, "quarantined": quarantine_quantity(batch, at=now)})
+    batch_page = paginate(request, batches)
     return render(request, "catalogue/product_stock.html", {
         "inventory": inventory, "product": link.product, "link": link,
-        "batches": batches, "can_adjust_stock": _is_inventory_manager(request.user, inventory),
+        "batches": batch_page.object_list, "page": batch_page, "can_adjust_stock": _is_inventory_manager(request.user, inventory),
     })
 
 
@@ -401,7 +403,7 @@ def stock_history(request, inventory_id, product_id):
         event_keys("lifecycle", "occurred_at"),
         all=True,
     ).order_by("-event_time", "-event_kind", "-event_id")
-    page = Paginator(keys, 50).get_page(request.GET.get("page"))
+    page = paginate(request, keys)
     page_keys = list(page.object_list)
     ids_by_kind = defaultdict(list)
     for key in page_keys:

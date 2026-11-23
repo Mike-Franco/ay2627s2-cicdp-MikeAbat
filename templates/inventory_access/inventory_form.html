@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
-{% block breadcrumb %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endblock %}
+{% block page_header %}{% page_header %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><p class="eyebrow">{{ business.name }}</p><h1>{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}</h1></div></div>
 <form method="post" enctype="multipart/form-data" class="panel p-3 inventory-form" novalidate data-sprite="{% static 'tory/icons/lucide-sprite.svg' %}">
   {% csrf_token %}
   {{ form.non_field_errors }}

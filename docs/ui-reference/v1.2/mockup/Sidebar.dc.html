@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#EBEBEF;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1E1E23;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A}
+.t{--mk-t:#5B5BD6;--mk-l:#3B3B9E;--mk-r:#8E8FF5}
+.t.dark{--mk-t:#8E8FF5;--mk-l:#5B5BD6;--mk-r:#B9BAFB}
+.t *{box-sizing:border-box}
+.side{width:100%;min-height:100%;background:var(--side);border-right:1px solid var(--line);padding:14px 10px 12px;display:flex;flex-direction:column;gap:1px}
+.t a.nav{display:flex;align-items:center;gap:9px;height:30px;padding:0 8px;border-radius:6px;color:var(--text);text-decoration:none;font-weight:500}
+.t a.nav:hover{background:var(--hover)}
+.t a.nav.on{background:var(--hover);color:var(--text)}
+.t a.nav svg{color:var(--muted);flex:none}
+.t a.nav.on svg{color:var(--accent)}
+.t a.nav.sub{height:28px;padding-left:34px;font-weight:400;color:var(--muted)}
+.t a.nav.sub.on{color:var(--text);font-weight:500}
+.cnt{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.grp{font-size:11px;font-weight:500;color:var(--muted);padding:16px 8px 4px;letter-spacing:0.02em}
+.sw{display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 8px;border:1px solid var(--line2);border-radius:7px;background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;margin:10px 0 4px;text-align:left}
+.ico{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;flex:none}
+.av{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:600;color:#fff;flex:none}
+.kbd{font-family:"JetBrains Mono",monospace;font-size:10.5px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+.t a.so{font-size:12px;color:var(--muted);text-decoration:none}
+.t a.so:hover{color:var(--text)}
+</style>
+</helmet>
+<nav class="t {{themeClass}}" aria-label="Main" style="width: 100%; min-height: 900px; display: flex">
+<div class="side">
+<div style="display: flex; align-items: center; gap: 8px; padding: 2px 6px">
+<svg viewBox="0 0 37.04 35.80" width="24" height="24" aria-hidden="true"><polygon points="9.26,0.90 17.02,5.00 9.26,9.10 1.50,5.00" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="27.78,0.90 35.54,5.00 27.78,9.10 20.02,5.00" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="18.52,16.70 26.28,20.80 18.52,24.90 10.76,20.80" fill="var(--mk-t)" stroke="var(--mk-t)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="1.05,5.78 8.48,10.45 8.81,19.22 1.38,14.55" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="19.57,5.78 27.00,10.45 27.33,19.22 19.90,14.55" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="10.31,21.58 17.74,26.25 18.07,35.02 10.64,30.35" fill="var(--mk-l)" stroke="var(--mk-l)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="10.04,10.45 17.47,5.78 17.14,14.55 9.71,19.22" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="28.56,10.45 35.99,5.78 35.66,14.55 28.23,19.22" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/><polygon points="19.30,26.25 26.73,21.58 26.40,30.35 18.97,35.02" fill="var(--mk-r)" stroke="var(--mk-r)" stroke-width="0.6" stroke-linejoin="round"/></svg>
+<span style="font-weight: 600; font-size: 14px; letter-spacing: -0.01em">Tory</span>
+<span style="margin-left: auto; font-size: 12px; color: var(--muted)">Tory Demo</span>
+</div>
+<button class="sw" type="button" aria-label="Switch inventory, current: Grocery">
+<span class="ico" style="background: #FDEBDD; color: #C2410C"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg></span>
+<span>Grocery</span>
+<svg style="margin-left: auto; color: var(--muted)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"></path></svg>
+</button>
+<a class="nav {{on.search}}" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>Search<span class="cnt"><span class="kbd">/</span></span></a>
+<a class="nav {{on.dashboard}}" href="Main.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>Dashboard</a>
+<div class="grp">Grocery</div>
+<a class="nav sub {{on.products}}" href="Products.dc.html">Products<span class="cnt">7</span></a>
+<a class="nav sub {{on.insights}}" href="Insights.dc.html">Insights</a>
+<a class="nav sub {{on.import}}" href="#">Import CSV</a>
+<a class="nav sub {{on.verify}}" href="#">Verify demand<span class="cnt" style="color: #8F5300">2</span></a>
+<a class="nav {{on.inventories}}" href="Inventories.dc.html" style="margin-top: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"></path><path d="M3 13l9 5 9-5"></path></svg>All inventories<span class="cnt">2</span></a>
+<div class="grp">Manage</div>
+<a class="nav {{on.catalogue}}" href="Catalogue.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4z"></path><path d="M4 17a3 3 0 0 1 3-3h11"></path></svg>Catalogue</a>
+<a class="nav {{on.categories}}" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9z"></path><circle cx="8" cy="8" r="1.5"></circle></svg>Categories</a>
+<a class="nav {{on.activity}}" href="ActivityLog.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>Activity log</a>
+<div class="grp">Team</div>
+<a class="nav {{on.staff}}" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7"></path><path d="M18 14a6 6 0 0 1 3.5 6"></path></svg>Staff<span class="cnt">1</span></a>
+<a class="nav {{on.invites}}" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg>Invitations</a>
+<div style="flex: 1 1 auto; min-height: 24px"></div>
+<a class="nav {{on.help}}" href="#"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"></path><path d="M12 17.5v.01"></path></svg>Help</a>
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 6px 0; margin-top: 8px; border-top: 1px solid var(--line)">
+<a href="#" aria-label="Your profile" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); min-width: 0">
+<span class="av" style="background: #5B5BD6">MT</span>
+<span style="display: flex; flex-direction: column; min-width: 0"><span style="font-weight: 500">Mia Tan</span><span style="font-size: 12px; color: var(--muted)">Store Manager</span></span>
+</a>
+<a class="so" href="Login.dc.html" style="margin-left: auto">Sign out</a>
+</div>
+</div>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"active":{"editor":"enum","options":["dashboard","products","insights","import","verify","inventories","catalogue","categories","activity","staff","invites","help","search"],"default":"dashboard"},"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":240,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const active = this.props.active ?? 'dashboard';
+    const keys = ['dashboard', 'products', 'insights', 'import', 'verify', 'inventories', 'catalogue', 'categories', 'activity', 'staff', 'invites', 'help', 'search'];
+    const on = {};
+    keys.forEach((k) => { on[k] = k === active ? 'on' : ''; });
+    return { on: on, themeClass: (this.props.theme ?? 'light') === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

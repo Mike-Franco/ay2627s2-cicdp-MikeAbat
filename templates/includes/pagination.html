@@ -1,15 +1,25 @@
-{% if page.has_other_pages %}
-<nav aria-label="{{ pagination_label|default:'Pagination' }}" class="d-flex align-items-center gap-3 mb-3">
-  {% if page.has_previous %}
-    <a href="{% querystring page=page.previous_page_number %}" rel="prev">Previous</a>
-  {% else %}
-    <span class="text-muted">Previous</span>
-  {% endif %}
-  <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}
-    <a href="{% querystring page=page.next_page_number %}" rel="next">Next</a>
-  {% else %}
-    <span class="text-muted">Next</span>
-  {% endif %}
-</nav>
+{% comment %}
+One pagination bar for every table (TORY-62). Pass a page from catalogue.pagination.paginate:
+  {% include "includes/pagination.html" with page=some_page pagination_label="Catalogue pages" %}
+Optional: noun ("products"), scope_label ("in Grocery").
+{% endcomment %}{% if page and page.paginator.count %}
+<div class="pager">
+  <span class="pager-range">Showing <strong>{{ page.start_index }}–{{ page.end_index }}</strong> of {{ page.paginator.count }}{% if noun %} {{ noun }}{% endif %}{% if scope_label %} {{ scope_label }}{% endif %}</span>
+  <div class="pager-controls">
+    {% if page.per_page_choices %}
+    <form method="get" class="pager-size" data-autosubmit{% if page.fragment %} action="#{{ page.fragment }}"{% endif %}>
+      {% for name, value in page.keep %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <label>Rows per page <select class="sel sm" name="{{ page.per_page_param }}">{% for size in page.per_page_choices %}<option value="{{ size }}"{% if size == page.per_page %} selected{% endif %}>{{ size }}</option>{% endfor %}</select></label>
+      <button class="btn sm" type="submit" data-autosubmit-button>Apply</button>
+    </form>
+    {% endif %}
+    {% if page.has_other_pages %}
+    <nav class="pg" aria-label="{{ pagination_label|default:'Pagination' }}">
+      {% if page.previous_url %}<a class="pgb" href="{{ page.previous_url }}" rel="prev" aria-label="Previous page">‹</a>{% else %}<span class="pgb" aria-disabled="true" aria-label="Previous page">‹</span>{% endif %}
+      {% for link in page.links %}{% if link.ellipsis %}<span class="pgb gap" aria-hidden="true">…</span>{% elif link.current %}<a class="pgb on" href="{{ link.url }}" aria-current="page" aria-label="Page {{ link.number }}">{{ link.number }}</a>{% else %}<a class="pgb" href="{{ link.url }}" aria-label="Page {{ link.number }}">{{ link.number }}</a>{% endif %}{% endfor %}
+      {% if page.next_url %}<a class="pgb" href="{{ page.next_url }}" rel="next" aria-label="Next page">›</a>{% else %}<span class="pgb" aria-disabled="true" aria-label="Next page">›</span>{% endif %}
+    </nav>
+    {% endif %}
+  </div>
+</div>
 {% endif %}

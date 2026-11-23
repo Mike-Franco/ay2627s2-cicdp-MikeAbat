@@ -1,3 +1,4 @@
 {% extends "base.html" %}
 {% block title %}Page unavailable ? Tory{% endblock %}
-{% block content %}<h1>Page unavailable</h1><p>This page is unavailable or you do not have access.</p><a href="{% url 'home' %}">Return to your workspace</a>{% endblock %}
+{% block page_header %}{% page_header %}Page unavailable{% endpage_header %}{% endblock %}
+{% block content %}<p>This page is unavailable or you do not have access.</p><a href="{% url 'home' %}">Return to your workspace</a>{% endblock %}

@@ -1,0 +1,73 @@
+/*
+ * Tory v1.2 design tokens (TORY-62), copied from docs/ui-reference/v1.2/mockup.
+ *
+ * Light is the default. A user's explicit choice is stored by theme.js and set
+ * as <html data-theme="light|dark"> before first paint; without a choice the
+ * operating system preference decides (prefers-color-scheme).
+ *
+ * Colour rule: indigo (--accent) marks a task or action for the user.
+ * Amber, red and green only ever describe stock state.
+ */
+:root{
+  color-scheme:light;
+  --bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;
+  --text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;
+  --accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--on-accent:#FFFFFF;
+  --red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;
+  --blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;
+  --mk-t:#5B5BD6;--mk-l:#3B3B9E;--mk-r:#8E8FF5;
+  --font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --radius:6px;--radius-card:8px;--row:38px;--head-row:34px;
+  --shadow:0 12px 32px rgb(16 16 24 / .12);
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;
+  --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;
+  --accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--on-accent:#0E0E10;
+  --red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;
+  --blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;
+  --mk-t:#8E8FF5;--mk-l:#5B5BD6;--mk-r:#B9BAFB;
+  --shadow:0 12px 32px rgb(0 0 0 / .45);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;
+    --text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;
+    --accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--on-accent:#0E0E10;
+    --red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;
+    --blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;
+    --mk-t:#8E8FF5;--mk-l:#5B5BD6;--mk-r:#B9BAFB;
+    --shadow:0 12px 32px rgb(0 0 0 / .45);
+  }
+}
+
+/* Names used by the pre-v1.2 stylesheets, mapped onto the tokens. */
+:root{
+  --canvas:var(--bg);--ink:var(--text);--subtle:var(--hover);--selected:var(--accent-weak);
+  --accent-hover:var(--accent-ink);
+  --attention:var(--amber);--attention-bg:var(--amber-bg);
+  --success:var(--green);--success-bg:var(--green-bg);
+  --error:var(--red);--error-bg:var(--red-bg);
+}
+
+/* Bootstrap reads its own variables; point them at the tokens. */
+:root,[data-bs-theme]{
+  --bs-body-font-family:var(--font);--bs-body-font-size:13px;--bs-body-line-height:1.45;
+  --bs-font-monospace:var(--mono);
+  --bs-body-bg:var(--bg);--bs-body-color:var(--text);
+  --bs-secondary-color:var(--muted);--bs-tertiary-bg:var(--hover);--bs-secondary-bg:var(--hover);
+  --bs-emphasis-color:var(--text);--bs-heading-color:var(--text);
+  --bs-border-color:var(--line);--bs-border-radius:var(--radius);--bs-border-radius-sm:var(--radius);
+  --bs-border-radius-lg:var(--radius-card);
+  --bs-link-color:var(--accent-ink);--bs-link-hover-color:var(--accent-ink);
+  --bs-link-color-rgb:70,70,181;--bs-link-hover-color-rgb:70,70,181;
+  --bs-primary:var(--accent);--bs-primary-rgb:91,91,214;
+  --bs-focus-ring-color:color-mix(in srgb,var(--accent) 35%,transparent);
+  --bs-danger-text-emphasis:var(--red);--bs-danger-bg-subtle:var(--red-bg);--bs-danger-border-subtle:var(--red);
+  --bs-warning-text-emphasis:var(--amber);--bs-warning-bg-subtle:var(--amber-bg);--bs-warning-border-subtle:var(--amber);
+  --bs-success-text-emphasis:var(--green);--bs-success-bg-subtle:var(--green-bg);--bs-success-border-subtle:var(--green);
+  --bs-info-text-emphasis:var(--blue);--bs-info-bg-subtle:var(--blue-bg);--bs-info-border-subtle:var(--blue);
+}

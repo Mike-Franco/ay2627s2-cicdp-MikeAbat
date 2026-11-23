@@ -1,11 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Inventory insights · {{ inventory.name }} · Tory{% endblock %}
-{% block breadcrumb %}Insights{% endblock %}
+{% block page_header %}{% page_header %}Insights{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading">
-  <div><p class="eyebrow">{% include "includes/inventory_badge.html" with inventory=inventory %}</p><h1>Inventory insights</h1></div>
-</div>
 {% include "includes/stock_kpis.html" %}
 <div class="insight-grid">
   {% for card in cards %}{% include "includes/insight_chart.html" %}{% endfor %}

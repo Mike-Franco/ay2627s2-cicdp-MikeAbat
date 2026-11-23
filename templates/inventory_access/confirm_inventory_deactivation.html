@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Deactivate inventory · Tory{% endblock %}
-{% block breadcrumb %}Deactivate inventory{% endblock %}
+{% block page_header %}{% page_header crumb="Deactivate" %}Deactivate {{ inventory.name }}?{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><p class="eyebrow">{{ inventory.business.name }}</p><h1>Deactivate {{ inventory.name }}?</h1></div></div>
 <section class="panel p-3">
   <p>{% include "includes/inventory_badge.html" with inventory=inventory %} will be hidden from the inventory switcher, dashboard and Insights, and no one can receive, issue or import stock in it.</p>
   <p>Its products, stock, history and audit records are kept, and a Manager can reactivate it from <strong>All inventories</strong> at any time. The change is recorded in the activity log.</p>

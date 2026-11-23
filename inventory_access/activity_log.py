@@ -243,8 +243,9 @@ def hydrate(business_id, tuples):
 # --- View -----------------------------------------------------------------------------------------------------
 
 from django import forms  # noqa: E402
-from django.core.paginator import Paginator  # noqa: E402
+from catalogue.pagination import paginate  # noqa: E402
 from django.shortcuts import get_object_or_404, render  # noqa: E402
+from django.urls import reverse  # noqa: E402
 from django.utils import timezone  # noqa: E402
 from django.views.decorators.http import require_GET  # noqa: E402
 
@@ -321,8 +322,9 @@ def activity_log(request, business_id, export=False):
             "Time (Asia/Singapore)", "User", "Email", "Role", "Action", "Inventory", "SKU", "Product",
             "Quantity change", "Details",
         ), _csv_rows(business.pk, list(rows)))
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    page = paginate(request, rows, default=PAGE_SIZE)
     return render(request, "inventory_access/activity_log.html", {
+        "breadcrumbs": [("Dashboard", reverse("home")), (business.name, None), ("Activity log", None)],
         "business": business, "form": form, "page": page, "rows": hydrate(business.pk, list(page.object_list)),
         "is_filtered": any(request.GET.get(name) for name in form.fields),
     })

@@ -45,7 +45,7 @@ class AuthenticationTests(TestCase):
             self.assertRedirects(response, reverse("home"))
             home = self.client.get(reverse("home"))
             self.assertTrue(self.client.session.get("_auth_user_id"))
-        self.assertContains(home, "Inventory dashboard")
+        self.assertContains(home, "<h1>Dashboard</h1>")
         self.assertTrue(self.client.cookies["sessionid"]["httponly"])
         self.assertEqual(self.client.cookies["sessionid"]["samesite"], "Lax")
 
@@ -83,7 +83,7 @@ class AuthenticationTests(TestCase):
         with patch("accounts.sessions.timezone.now", return_value=BASE):
             self.login()
             self.assertEqual(self.client.get(reverse("logout")).status_code, 405)
-            self.assertContains(self.client.get(reverse("home")), "Inventory dashboard")
+            self.assertContains(self.client.get(reverse("home")), "<h1>Dashboard</h1>")
             self.assertRedirects(self.client.post(reverse("logout")), reverse("login"))
         self.assertRedirects(self.client.get(reverse("home")), reverse("login"))
 

@@ -1,18 +1,8 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Inventories &middot; Tory{% endblock %}
-{% block breadcrumb %}Your inventories{% endblock %}
+{% block page_header %}{% page_header %}All inventories{% header_actions %}{% for membership in manager_memberships %}<a class="btn btn-primary" href="{% url 'inventory-create' membership.business_id %}">Add inventory{% if manager_memberships|length > 1 %} &middot; {{ membership.business.name }}{% endif %}</a>{% endfor %}{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading">
-  <h1>Your inventories</h1>
-  {% if manager_memberships %}
-  <div class="heading-actions">
-    {% for membership in manager_memberships %}
-    <a class="btn btn-primary" href="{% url 'inventory-create' membership.business_id %}">Add inventory{% if manager_memberships|length > 1 %} &middot; {{ membership.business.name }}{% endif %}</a>
-    {% endfor %}
-  </div>
-  {% endif %}
-</div>
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
 <section class="panel" aria-label="Search inventories">
   {% include "includes/table_toolbar.html" %}

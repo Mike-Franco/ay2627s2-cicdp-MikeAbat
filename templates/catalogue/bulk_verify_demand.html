@@ -1,12 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Verify demand · {{ inventory.name }} · Tory{% endblock %}
-{% block breadcrumb %}Verify demand{% endblock %}
+{% block page_header %}{% page_header crumb="Verify demand" %}Verify demand for all products{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading">
-  <div><p class="eyebrow">{{ inventory.name }}</p><h1>Verify demand for all products</h1>
-  <p>Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates.</p></div>
-</div>
+<p class="page-intro">Confirm that every stock issue for a complete Asia/Singapore date has been recorded, including dates with zero issues. Forecasts need seven verified dates.</p>
 {% if result %}
 <section class="panel mb-3" aria-labelledby="bulk-result" role="status">
   <div class="panel-heading">

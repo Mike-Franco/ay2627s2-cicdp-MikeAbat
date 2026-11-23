@@ -1,7 +1,6 @@
 from collections import Counter
 from datetime import timedelta
 
-from django.core.paginator import Paginator
 from django.db.models import F, Value
 from django.http import Http404
 from django.shortcuts import render
@@ -16,6 +15,7 @@ from receiving.models import (
 )
 
 from .authorization import visible_product_links
+from .pagination import paginate
 from .metrics import (
     STATUS_LABELS, complete_days, daily_movements, kpis, movement_metrics, singapore_day, stock_positions, unverified_days,
 )
@@ -71,9 +71,10 @@ def _action_rows(positions):
 def _panel(request, key, rows, preview):
     expanded = request.GET.get("panel") == key
     if expanded:
-        page = Paginator(rows, 25).get_page(request.GET.get("page"))
+        page = paginate(request, rows, fragment=key)
         return {"key": key, "rows": list(page.object_list), "page": page, "expanded": True}
-    return {"key": key, "rows": list(rows[:preview])}
+    total = len(rows) if isinstance(rows, list) else rows.count()
+    return {"key": key, "rows": list(rows[:preview]), "total": total}
 
 
 @protected_view

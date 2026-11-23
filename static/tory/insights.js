@@ -15,7 +15,7 @@
     const style = getComputedStyle(root);
     const ink = style.getPropertyValue("--ink").trim();
     const grid = style.getPropertyValue("--line").trim();
-    const dark = root.dataset.theme === "dark";
+    const dark = root.dataset.bsTheme === "dark";
     const colours = dark
       ? ["#6fdbb4", "#f6bd68", "#a0b7ff", "#f98b84", "#d2a5f4", "#74d3de", "#dfd57a"]
       : ["#167655", "#996019", "#425caf", "#a74137", "#854c99", "#1b7486", "#766c24"];
@@ -109,5 +109,5 @@
     for (const chart of charts) chart.destroy();
     charts.length = 0;
     draw();
-  }).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  }).observe(root, { attributes: true, attributeFilter: ["data-bs-theme"] });
 })();
