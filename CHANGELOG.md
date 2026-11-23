@@ -2,6 +2,20 @@
 
 All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refer to [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/pulls?q=is%3Apr+is%3Amerged).
 
+## v1.2.1 — 23 November 2026
+
+A fix-only release with UI corrections from the v1.2 review (TORY-68, #118). There are no migrations.
+
+### Fixed
+- **Forecast tab:** Reorder point showed "—" when the point was a fraction (for example 71/7). It now shows the rounded-up number (11). The Overview strip had the same fault and is also fixed. "How this is calculated" now uses the real numbers and the current formula `ceil(average × (14 + lead time) + safety stock − available)`. It matches the Overview tab and the dashboard.
+- **Forecast tab layout:** a four-number strip, a Stock and settings list, a collapsible explanation, a 7-day row of verification pills, and a separate verification card on wide screens. The tab bar no longer shows a scrollbar on desktop.
+- **Product tabs:** Overview, Batches, History and Forecast share one header (name, SKU, status, then Receive / Issue / Adjust / ⋯). The duplicate SKU line is gone.
+- **Products list and dashboard:** rows show Receive and Issue plus a keyboard-accessible ⋯ menu instead of up to seven wrapping buttons. "No forecast" is a short pill with a help tip, and one notice above the table links to Verify demand.
+- **Layout:** pages fill the screen up to 1600px. Form pages use a centred 880px column, and the page header lines up with the content.
+- **Tables:** header rows are clearer in both themes, and sortable headers no longer use the accent colour.
+- **Staff invitations and Staff:** Team breadcrumbs, an invite card with an inventory checklist, status pills, relative expiry times, and Resend with a red Revoke action. Filters apply as soon as they change, and the duplicate result count is removed.
+- **Categories and Stock history** use the standard table style.
+
 ## v1.2.0 — 23 November 2026
 
 - **TORY-62 (#110)** adds shared pagination, updated page headers and navigation, and a theme switcher.
