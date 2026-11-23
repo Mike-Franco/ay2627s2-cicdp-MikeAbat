@@ -3,6 +3,7 @@ from collections import defaultdict
 from django.db.models import Case, CharField, Exists, F, OuterRef, Value, When
 from django.db.models.functions import Coalesce, Lower, NullIf
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
@@ -26,6 +27,11 @@ INVITATION_SORTS = {
     "email": Lower("target_email"), "status": "display_status", "sent": "issued_at", "expires": "expires_at",
 }
 INVITATION_STATUSES = (("", "All statuses"), *StaffInvitation.Status.choices)
+
+
+def team_breadcrumbs(business_id, current):
+    """Dashboard / Team / <page> (TORY-68). Team opens the Staff list."""
+    return [("Dashboard", reverse("home")), ("Team", reverse("manager-staff", args=[business_id])), (current, None)]
 
 
 def _staff_inventories(request, business_id, accounts):
@@ -63,6 +69,7 @@ def staff_list(request, business_id):
     _staff_inventories(request, business_id, accounts)
     return render(request, "accounts/staff.html", {
         "business_id": business_id, "staff_accounts": accounts, "page": page,
+        "breadcrumbs": team_breadcrumbs(business_id, "Staff"),
         "toolbar": controls.toolbar(request, page, search_label="Search name, email or job title",
                                     filters=(("status", "Status", STAFF_STATUSES),)),
     })
@@ -92,6 +99,7 @@ def invitation_list(request, business_id):
     page = paginate(request, invitations.order_by(controls.order(INVITATION_SORTS), secondary))
     return render(request, "accounts/invitations.html", {
         "business_id": business_id, "inventories": inventories, "invitations": page.object_list, "page": page,
+        "breadcrumbs": team_breadcrumbs(business_id, "Invitations"), "now": timezone.now(),
         "toolbar": controls.toolbar(request, page, search_label="Search email",
                                     filters=(("status", "Status", INVITATION_STATUSES),)),
     })

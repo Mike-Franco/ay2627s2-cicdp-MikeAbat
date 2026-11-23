@@ -17,7 +17,7 @@
         <button class="menu-toggle" type="button" aria-controls="workspace-sidebar" aria-expanded="false"><svg class="icon" aria-hidden="true" focusable="false"><use href="{% static 'tory/icons/ui-sprite.svg' %}#menu"></use></svg><span>Menu</span></button>
         <a class="brand brand-compact" href="{% url 'home' %}" aria-label="Tory dashboard">{% include "includes/logo_mark.html" with size=22 %}<span class="brand-word">Tory</span></a>
       </div>
-      <main id="main-content" class="workspace-main">
+      <main id="main-content" class="workspace-main{% block layout %}{% endblock %}">
         {% block page_header %}{% endblock %}
         <div class="content">
   {% else %}

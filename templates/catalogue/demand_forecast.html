@@ -1,50 +1,69 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Demand forecast for {{ product.sku }} · Tory{% endblock %}
-{% block page_header %}{% page_header crumb="Forecast" %}{{ product.name }}{% header_actions %}{% if can_edit_reorder %}<a class="btn" href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a>{% endif %}{% endpage_header %}{% endblock %}
+{% block page_header %}{% page_header crumb="Forecast" %}{% include "includes/product_title.html" %}{% header_actions %}{% include "includes/product_actions.html" %}{% endpage_header %}{% endblock %}
 {% block content %}
 {% include 'includes/product_tabs.html' with active_tab='forecast' %}
 
-<div class="summary-cards" aria-label="Forecast summary">
-  <div class="summary-card"><span class="stat-label">Average daily demand</span><strong class="stat-value d-block">{% if forecast.available %}{{ forecast.displayed_average }}{% else %}—{% endif %}</strong><span class="stat-unit">units per day, last 7 verified dates</span></div>
-  <div class="summary-card"><span class="stat-label">Reorder point</span><strong class="stat-value d-block">{% if reorder.reorder_point != None %}{{ reorder.reorder_point|units }}{% else %}—{% endif %}</strong><span class="stat-unit">{% if reorder.reorder_point != None %}{% if reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}{% else %}units{% endif %}</span></div>
-  <div class="summary-card"><span class="stat-label">Suggested quantity</span><strong class="stat-value d-block">{% if reorder.reorder_point != None %}{{ reorder.suggested_units }}{% else %}—{% endif %}</strong><span class="stat-unit">units to order</span></div>
-</div>
+{% comment %}TORY-68: the same numbers as the Overview tab (catalogue.product_page.summary).{% endcomment %}
+<section class="strip" aria-label="Forecast summary">
+  <div><div class="k">Avg daily demand</div><div class="v">{{ info.average|default:"—" }}</div><div class="s">{% if info.average %}units per day, last 7 verified dates{% else %}No verified forecast{% endif %}</div></div>
+  <div><div class="k">Reorder point</div><div class="v">{{ info.reorder_point|default_if_none:"—" }}</div><div class="s">{% if info.reorder_point is None %}{% if reorder.missing_settings %}Set {{ reorder.missing_settings|join:" and " }}{% else %}needs a forecast{% endif %}{% elif reorder.alert %}<span class="status-pill attention">At or below reorder point</span>{% else %}<span class="status-pill success">Above reorder point</span>{% endif %}</div></div>
+  <div><div class="k">Suggested order</div><div class="v">{{ info.suggested|default_if_none:"—" }}</div><div class="s">{% if info.suggested is None %}—{% else %}units, covers {{ info.cover_days }} days + lead time{% endif %}</div></div>
+  <div><div class="k">Days of supply</div><div class="v">{{ info.supply|default:"—" }}</div><div class="s">{% if info.run_out %}runs out ~{{ info.run_out|sgweekday }}{% else %}{{ info.reason|default:"—" }}{% endif %}</div></div>
+</section>
 
 {% if not forecast.available %}
-  <div class="alert alert-secondary" role="status">
-    Forecast unavailable: {{ forecast.reason }}<br>
-    Dependent reorder recommendation unavailable.
-  </div>
+  <div class="notice" role="status"><span class="pill neutral">No forecast</span><span>Forecast unavailable: {{ forecast.reason }} The reorder point and suggested order appear once each of the last 7 dates is verified.</span></div>
 {% endif %}
 {% if reorder.missing_settings %}
-  <p role="status">Reorder recommendation unavailable: set {{ reorder.missing_settings|join:", " }}.</p>
+  <div class="notice" role="status"><span class="pill neutral">No reorder settings</span><span>Reorder recommendation unavailable: set {{ reorder.missing_settings|join:", " }}.{% if can_edit_reorder %} <a href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a>{% endif %}</span></div>
 {% endif %}
 
-<h2 class="h5 mt-4">Stock and settings</h2>
-<p>Available to issue: <strong>{{ reorder.available_units }} units</strong> ({{ reorder.quarantined_units }} quarantined) · Lead time: {% if reorder.lead_time_days != None %}{{ reorder.lead_time_days }} days{% else %}not set{% endif %} · Safety stock: {% if reorder.safety_stock_units != None %}{{ reorder.safety_stock_units }} units{% else %}not set{% endif %}</p>
+<div class="fc-layout{% if is_manager and observation_active %} has-side{% endif %}">
+  <div class="fc-main">
+    <section class="panel" aria-labelledby="settings-title">
+      <header class="card-h"><div class="card-title"><h2 id="settings-title">Stock and settings</h2></div>{% if can_edit_reorder %}<a href="{% url 'reorder-settings' inventory.pk product.pk %}">Edit reorder settings</a>{% endif %}</header>
+      <dl class="kv kv-flush">
+        <dt>Available to issue</dt><dd>{{ reorder.available_units }} units{% if reorder.quarantined_units %} <span class="muted">({{ reorder.quarantined_units }} quarantined)</span>{% endif %}</dd>
+        <dt>Lead time</dt><dd>{% if reorder.lead_time_days != None %}{{ reorder.lead_time_days }} days{% else %}<span class="muted">Not set</span>{% endif %}</dd>
+        <dt>Safety stock</dt><dd>{% if reorder.safety_stock_units != None %}{{ reorder.safety_stock_units }} units{% else %}<span class="muted">Not set</span>{% endif %}</dd>
+        <dt>Supplier</dt><dd>{{ product.supplier_name|default:"Not set" }}</dd>
+      </dl>
+      {% if calc %}
+      <details class="calc">
+        <summary>How this is calculated</summary>
+        <div class="calc-body">
+          <p><strong>Average daily demand</strong> = {{ calc.total }} units issued over the last 7 complete Asia/Singapore dates ÷ 7 = <strong>{{ calc.average|two_dp }}</strong> units per day.</p>
+          <p><strong>Reorder point</strong> = average × lead time + safety stock = {{ calc.average|two_dp }} × {{ calc.lead }} + {{ calc.safety }} = {{ calc.point|two_dp }}, rounded up to <strong data-calc="reorder-point">{{ calc.point_units }}</strong> units. {% if reorder.alert %}Reorder alert: available stock ({{ calc.available }}) is at or below it.{% else %}No reorder alert: available stock ({{ calc.available }}) is above it.{% endif %}</p>
+          <p><strong>Suggested order</strong> = ceil(average × ({{ calc.cover }} + lead time) + safety stock − available) = ceil({{ calc.average|two_dp }} × {{ calc.cover_total }} + {{ calc.safety }} − {{ calc.available }}) = ceil({{ calc.target|two_dp }} − {{ calc.available }}) = <strong data-calc="suggested">{{ calc.suggested }}</strong> units{% if calc.suggested == 0 %} (never below zero){% endif %}. It covers {{ calc.cover }} days of demand after the {{ calc.lead }}-day lead time. Deliveries already on order are not counted.</p>
+        </div>
+      </details>
+      {% endif %}
+    </section>
 
-{% if forecast.available %}
-<h2 class="h5 mt-4">How this is calculated</h2>
-<p class="help-text">Average daily demand: {{ forecast.displayed_average }} units, the total issued over the previous seven complete Asia/Singapore dates divided by seven.{% if reorder.reorder_point != None %} Reorder point: {{ forecast.average }} units/day × {{ reorder.lead_time_days }} days + {{ reorder.safety_stock_units }} safety units = {{ reorder.reorder_point }}, shown rounded up as {{ reorder.reorder_point|units }} units. {% if reorder.alert %}Reorder alert: available stock is at or below the point.{% else %}No reorder alert: available stock is above the point.{% endif %} Suggested quantity is the larger of zero and the reorder point minus {{ reorder.available_units }} available units, rounded up. Pending deliveries are excluded.{% endif %}</p>
-{% endif %}
+    <section class="panel" aria-labelledby="dates-title">
+      <header class="card-h"><div class="card-title"><h2 id="dates-title">Demand dates</h2></div>{% if is_manager and observation_active %}<a href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify all products in {{ inventory.name }}</a>{% endif %}</header>
+      <ol class="days7" aria-label="Verification status of the previous seven Singapore dates">
+        {% for day, state in forecast.days %}
+        <li><span class="d">{{ day|sgweekday }}</span><span class="status-pill {% if state == 'verified' %}success{% elif state == 'missing' %}neutral{% else %}attention{% endif %}">{% if state == 'verified' %}Verified{% elif state == 'missing' %}Unverified{% elif state == 'incomplete' %}Incomplete{% elif state == 'invalidated' %}Changed{% else %}{{ state }}{% endif %}</span></li>
+        {% endfor %}
+      </ol>
+      <p class="help-text px-3 pb-3 mb-0">Each date needs explicit Manager verification, including dates with zero demand.</p>
+    </section>
+  </div>
 
-<h2 class="h5 mt-4">Demand dates</h2>
-<p class="help-text">Each of the previous seven complete Asia/Singapore dates needs explicit Manager verification, including dates with zero demand.</p>
-<ul class="list-unstyled d-flex flex-wrap gap-2" aria-label="Verification status of the previous seven Singapore dates">
-  {% for day, state in forecast.days %}
-    <li><span class="status-pill {% if state == 'verified' %}success{% elif state == 'missing' %}neutral{% else %}attention{% endif %}">{{ day|sgdate }} · {% if state == 'verified' %}Verified{% elif state == 'missing' %}Unverified{% elif state == 'incomplete' %}Incomplete{% elif state == 'invalidated' %}Changed after verification{% else %}{{ state }}{% endif %}</span></li>
-  {% endfor %}
-</ul>
-{% if is_manager and observation_active %}<p><a href="{% url 'bulk-verify-demand' inventory.pk %}?scope=week">Verify demand for all products in {{ inventory.name }}</a></p>
-  <form method="post" class="panel p-3 mt-3">
-    {% csrf_token %}
-    <div class="mb-3 field-narrow"><label class="form-label" for="{{ form.day.id_for_label }}">Singapore date</label>{{ form.day }}{{ form.day.errors }}</div>
-    <div class="mb-3"><label class="form-label" for="{{ form.reason.id_for_label }}">Reason</label>{{ form.reason }}{{ form.reason.errors }}<div class="form-text">Required when marking a previously verified day incomplete.</div></div>
-    {{ form.action.errors }}
-    <button class="btn btn-primary" name="action" value="verify" type="submit">Verify complete day</button>
-    <button class="btn btn-outline-danger" name="action" value="incomplete" type="submit">Mark verified day incomplete</button>
-  </form>
-{% endif %}
-<p class="mt-3"><a href="{% url 'inventory-products' inventory.pk %}">Back to products</a></p>
+  {% if is_manager and observation_active %}
+  <section class="panel verify-card" aria-labelledby="verify-title">
+    <header class="card-h"><div class="card-title"><h2 id="verify-title">Verify a date</h2></div></header>
+    <form method="post">
+      {% csrf_token %}
+      <div><label class="form-label" for="{{ form.day.id_for_label }}">Singapore date</label>{{ form.day }}{{ form.day.errors }}</div>
+      <div><label class="form-label" for="{{ form.reason.id_for_label }}">Reason</label>{{ form.reason }}{{ form.reason.errors }}<div class="form-text">Required when marking a previously verified day incomplete.</div></div>
+      {{ form.action.errors }}
+      <div class="btn-row"><button class="btn btn-primary" name="action" value="verify" type="submit">Verify complete day</button><button class="btn btn-outline-danger" name="action" value="incomplete" type="submit">Mark verified day incomplete</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}

@@ -1,17 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Categories · Tory{% endblock %}
+{% block layout %} layout-narrow{% endblock %}
 {% block page_header %}{% page_header %}Categories{% header_actions %}<a class="btn btn-primary" href="{% url 'category-create' business.pk %}">Add category</a>{% endpage_header %}{% endblock %}
 {% block content %}
 {% for message in messages %}<div class="alert alert-info" role="status">{{ message }}</div>{% endfor %}
-<ul class="list-group">
-{% for category in categories %}
-  <li class="list-group-item d-flex align-items-center gap-2 flex-wrap">
-    <strong>{{ category.name }}</strong>{% if category.colour %}<span>{{ category.colour }}</span>{% endif %}
-    <a class="btn btn-sm btn-outline-secondary" href="{% url 'category-edit' business.pk category.pk %}">Edit</a>
-    {% if category.in_use %}<span class="text-muted">In use</span>{% else %}
-    <form method="post" action="{% url 'category-delete' business.pk category.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">Delete</button></form>
-    {% endif %}
-  </li>
-{% empty %}<li class="list-group-item">No categories yet.</li>{% endfor %}
-</ul>
+<section class="panel" aria-labelledby="categories-title">
+  <header class="card-h"><div class="card-title"><h2 id="categories-title">Categories</h2></div><span class="muted">{{ categories|length }} categor{{ categories|length|pluralize:"y,ies" }}</span></header>
+  {% if categories %}
+  <div class="table-scroll" role="region" aria-label="Categories" tabindex="0">
+    <table class="products-table responsive-list">
+      <thead><tr><th scope="col">Name</th><th scope="col">Colour</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+      <tbody>{% for category in categories %}<tr>
+        <th scope="row">{{ category.name }}</th>
+        <td><span class="list-mobile-label" aria-hidden="true">Colour</span>{{ category.colour|default:"—" }}</td>
+        <td><span class="list-mobile-label" aria-hidden="true">Status</span>{% if category.in_use %}<span class="status-pill info">In use</span>{% else %}<span class="status-pill neutral">Not used</span>{% endif %}</td>
+        <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="row-actions"><a class="btn btn-sm" href="{% url 'category-edit' business.pk category.pk %}" aria-label="Edit {{ category.name }}">Edit</a>{% if not category.in_use %}<form method="post" action="{% url 'category-delete' business.pk category.pk %}">{% csrf_token %}<button class="btn-text danger" type="submit" aria-label="Delete {{ category.name }}">Delete</button></form>{% endif %}</div></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% else %}<p class="insight-empty">No categories yet.</p>{% endif %}
+</section>
 {% endblock %}

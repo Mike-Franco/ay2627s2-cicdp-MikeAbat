@@ -186,11 +186,13 @@ class PolishedPagesTests(TestCase):
     def test_forecast_summary_cards(self):
         self.login(self.manager)
         response = self.client.get(reverse("demand-forecast", args=[self.inventory.pk, self.product.pk]))
-        for label in ("Average daily demand", "Reorder point", "Suggested quantity"):
-            self.assertContains(response, f'<span class="stat-label">{label}</span>', html=False)
+        # TORY-68: the same four-number strip as the Overview tab.
+        for label in ("Avg daily demand", "Reorder point", "Suggested order", "Days of supply"):
+            self.assertContains(response, f'<div class="k">{label}</div>', html=False)
 
     def test_products_table_has_mobile_card_markup(self):
         self.login(self.manager)
         response = self.client.get(reverse("inventory-products", args=[self.inventory.pk]))
         self.assertContains(response, 'class="products-table product-cards"')
-        self.assertContains(response, '<summary class="btn btn-sm btn-outline-secondary">More</summary>', html=False)
+        self.assertContains(response, '<div class="row-actions">', html=False)
+        self.assertContains(response, 'aria-haspopup="menu">⋯</summary>', html=False)

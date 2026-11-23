@@ -7,11 +7,11 @@
 {% include "includes/scope_chip.html" %}
 <section class="panel" aria-labelledby="activity-title">
   <h2 class="visually-hidden" id="activity-title">Activity</h2>
-  <form method="get" class="product-filters" role="search" aria-label="Filter activity">
+  <form method="get" class="product-filters" role="search" aria-label="Filter activity" data-autosubmit>
     {% for field in form %}
     <div class="product-filter-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="filter-errors" role="alert">{{ field.errors }}</div>{% endif %}</div>
     {% endfor %}
-    <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply</button>{% if is_filtered %}<a class="btn btn-outline-secondary" href="{% url 'activity-log' business.pk %}">Clear filters</a>{% endif %}</div>
+    <div class="product-filter-actions"><button class="btn btn-primary" type="submit" data-autosubmit-button>Apply</button>{% if is_filtered %}<a class="btn btn-outline-secondary" href="{% url 'activity-log' business.pk %}">Clear filters</a>{% endif %}</div>
   </form>
   {% if rows %}
   <div class="table-scroll" role="region" aria-label="Activity" tabindex="0">
