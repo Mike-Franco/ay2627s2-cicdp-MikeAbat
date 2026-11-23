@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Inventories</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.t h2{font-size:15px;font-weight:600;margin:0}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.t.dark .btn.primary{color:#0E0E10}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+.t a.btn{color:var(--text);text-decoration:none}
+.t a.btn.primary{color:#fff}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.amber{color:var(--amber);background:var(--amber-bg)}
+.pill.green{color:var(--green);background:var(--green-bg)}
+.pill.neutral{color:var(--muted);background:var(--hover)}
+.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:16px;max-width:1240px}
+.sel{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 8px}
+.inp{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 10px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:16px;display:flex;flex-direction:column;gap:14px}
+.card:hover{border-color:var(--line2)}
+.ico{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:9px;flex:none}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.stats b{display:block;font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:var(--muted)}
+.add{border:1px dashed var(--line2);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:196px;color:var(--muted);text-decoration:none}
+.t a.add{color:var(--muted)}
+.t a.add:hover{color:var(--text);border-color:var(--accent);text-decoration:none}
+@media (max-width:1000px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.cards{grid-template-columns:minmax(0,1fr)}.main,.ph{padding-left:16px;padding-right:16px}.btn,.sel,.inp{min-height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 760px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="inventories" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<h1>Inventories</h1>
+<div class="ph-actions"><a class="btn primary" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add inventory</a></div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><span>Inventories</span></nav>
+</header>
+<main class="main">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<label for="q" class="muted" style="position: absolute; left: -9999px">Search inventories</label>
+<input id="q" class="inp" type="search" placeholder="Search inventories" style="flex: 1 1 240px; max-width: 320px">
+<label for="sort" class="muted" style="font-size: 12px; margin-left: 8px">Sort</label>
+<select id="sort" class="sel"><option>Name A–Z</option><option>Most low stock</option><option>Highest value</option></select>
+<span class="muted" style="margin-left: auto; font-size: 12px">2 inventories</span>
+</div>
+<div class="cards">
+<article class="card">
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="ico" style="background: #FDEBDD; color: #C2410C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg></span>
+<div style="min-width: 0"><h2><a href="Products.dc.html" style="color: var(--text)">Grocery</a></h2><div class="muted" style="font-size: 12px">Mia Tan, Ravi Kumar</div></div>
+<span class="pill amber" style="margin-left: auto">1 low</span>
+</div>
+<div class="stats"><div><b>7</b><span>products</span></div><div><b>0</b><span>out of stock</span></div><div><b>S$1,148</b><span>retail value</span></div></div>
+<div style="display: flex; gap: 8px"><a class="btn sm" href="Products.dc.html">Open</a><a class="btn sm" href="Insights.dc.html">Insights</a><a class="btn sm" href="InventoryEdit.dc.html" style="margin-left: auto">Edit</a></div>
+</article>
+<article class="card">
+<div style="display: flex; gap: 12px; align-items: center">
+<span class="ico" style="background: #DDF3F0; color: #0F766E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)"></rect><path d="M8.5 8.5l7 7"></path></svg></span>
+<div style="min-width: 0"><h2><a href="#" style="color: var(--text)">Pharmacy</a></h2><div class="muted" style="font-size: 12px">Mia Tan, Ravi Kumar</div></div>
+<span class="pill amber" style="margin-left: auto">1 low</span>
+</div>
+<div class="stats"><div><b>8</b><span>products</span></div><div><b>0</b><span>out of stock</span></div><div><b>S$3,664</b><span>retail value</span></div></div>
+<div style="display: flex; gap: 8px"><a class="btn sm" href="#">Open</a><a class="btn sm" href="#">Insights</a><a class="btn sm" href="InventoryEdit.dc.html" style="margin-left: auto">Edit</a></div>
+</article>
+<a class="add" href="#">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+<span style="font-weight: 500">Add an inventory</span>
+<span style="font-size: 12px">A stockroom, shelf or branch</span>
+</a>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

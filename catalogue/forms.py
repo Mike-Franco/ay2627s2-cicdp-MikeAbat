@@ -10,7 +10,7 @@ from .models import Category, Product
 
 
 PRODUCT_FIELDS = ("name", "sku", "base_unit_label", "expiry_tracking_required",
-                  "lead_time_days", "safety_stock_units", "category")
+                  "supplier_name", "lead_time_days", "safety_stock_units", "category")
 DUPLICATE_SKU = "A product with this SKU already exists in this business."
 
 
@@ -41,7 +41,8 @@ class ProductForm(PlainLabelsMixin, forms.ModelForm):
         fields = PRODUCT_FIELDS
         widgets = {"name": forms.TextInput()}
         labels = {"name": "Product name", "sku": "SKU", "lead_time_days": "Lead time (days)",
-                  "safety_stock_units": "Safety stock (units)"}
+                  "safety_stock_units": "Safety stock (units)", "supplier_name": "Supplier"}
+        help_texts = {"supplier_name": "Optional. Who you order this product from."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

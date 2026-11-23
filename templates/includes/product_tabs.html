@@ -1,7 +1,7 @@
-<a class="back-link" href="{% url 'inventory-products' inventory.pk %}">← Back to products</a>
-<div class="product-heading"><div><p class="eyebrow">{{ inventory.name }} · {{ product.sku }}</p>{% if request.resolver_match.url_name == 'product-stock' %}<h1>{{ product.name }}</h1>{% else %}<strong class="product-context-name">{{ product.name }}</strong>{% endif %}<p>{{ product.base_unit_label|default:'Base unit not set' }}{% if not product.is_active %} · Inactive{% endif %}</p></div></div>
-<nav class="product-tabs" aria-label="Product pages">
-  <a href="{% url 'product-stock' inventory.pk product.pk %}" {% if active_tab == 'stock' %}aria-current="page"{% endif %}>Stock</a>
-  <a href="{% url 'stock-history' inventory.pk product.pk %}" {% if active_tab == 'history' %}aria-current="page"{% endif %}>Stock history</a>
-  {% if product.is_active %}<a href="{% url 'demand-forecast' inventory.pk product.pk %}" {% if active_tab == 'forecast' %}aria-current="page"{% endif %}>Demand forecast</a>{% endif %}
+{% comment %}Underline tab bar for one product's pages (TORY-66). The page title and breadcrumb come from {% page_header %}.{% endcomment %}<p class="page-intro product-meta"><span class="product-sku">{{ product.sku }}</span> · {{ product.base_unit_label|default:'Base unit not set' }}{% if status_label %} · <span class="pill {% if status == 'out' %}red{% elif status == 'low' or status == 'expiring' %}amber{% elif status == 'quarantined' %}blue{% else %}green{% endif %}">{{ status_label }}</span>{% endif %}{% if not product.is_active %} · <span class="pill neutral">Inactive</span>{% endif %}</p>
+<nav class="product-tabs" aria-label="Product sections">
+  <a href="{% url 'product-stock' inventory.pk product.pk %}" {% if active_tab == 'stock' %}aria-current="page"{% endif %}>Overview</a>
+  <a href="{% url 'product-stock' inventory.pk product.pk %}?tab=batches" {% if active_tab == 'batches' %}aria-current="page"{% endif %}>Batches{% if batch_count is not None %} ({{ batch_count }}){% endif %}</a>
+  <a href="{% url 'stock-history' inventory.pk product.pk %}" {% if active_tab == 'history' %}aria-current="page"{% endif %}>History</a>
+  {% if product.is_active %}<a href="{% url 'demand-forecast' inventory.pk product.pk %}" {% if active_tab == 'forecast' %}aria-current="page"{% endif %}>Forecast</a>{% endif %}
 </nav>

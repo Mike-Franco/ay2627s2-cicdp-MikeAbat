@@ -1,50 +1,60 @@
-{% with here=request.resolver_match.url_name %}
+{% load static %}{% with here=request.resolver_match.url_name ui="tory/icons/ui-sprite.svg" %}{% static ui as sprite %}
 <aside class="sidebar" id="workspace-sidebar" aria-label="Workspace navigation">
-  <a class="brand" href="{% url 'home' %}" aria-label="Tory dashboard"><span class="brand-mark">T</span><span><span class="brand-word">Tory</span><small class="brand-tagline">Inventory made simple</small></span></a>
+  <div class="sidebar-brand">
+    <a class="brand" href="{% url 'home' %}" aria-label="Tory dashboard">{% include "includes/logo_mark.html" with size=24 %}<span class="brand-word">Tory</span></a>
+    {% if workspace_default_inventory %}<span class="brand-business">{{ workspace_default_inventory.business.name }}</span>{% endif %}
+  </div>
   <div class="inventory-switcher">
-    <span class="switcher-label">CURRENT INVENTORY</span>
-    <details>
-      <summary class="inventory-switch">{% if workspace_inventory %}{% include "includes/inventory_badge.html" with inventory=workspace_inventory size="md" icon_only=True %}{% else %}<span class="location-mark" aria-hidden="true">▦</span>{% endif %}<span><strong>{% if workspace_inventory %}{{ workspace_inventory.name }}{% else %}Choose inventory{% endif %}</strong><small>{% if workspace_inventory %}{{ workspace_inventory.business.name }}{% else %}Assigned inventories{% endif %}</small></span><span aria-hidden="true">⌄</span></summary>
+    <details data-menu>
+      <summary class="inventory-switch" aria-label="Switch inventory{% if workspace_current %}, current: {{ workspace_current.name }}{% endif %}">{% if workspace_current %}{% include "includes/inventory_badge.html" with inventory=workspace_current icon_only=True %}{% else %}<span class="location-mark" aria-hidden="true"><svg class="icon" focusable="false"><use href="{{ sprite }}#layers"></use></svg></span>{% endif %}<span class="switch-name">{% if workspace_current %}{{ workspace_current.name }}{% else %}Choose inventory{% endif %}</span><svg class="icon switch-caret" aria-hidden="true" focusable="false"><use href="{{ sprite }}#chevrons"></use></svg></summary>
       <div class="switcher-options">
-        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_inventory.pk == item.pk %}aria-current="page"{% endif %}>{% include "includes/inventory_badge.html" with inventory=item %}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
-        <a href="{% url 'inventory-list' %}">View all inventories</a>
+        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_current.pk == item.pk %}aria-current="page"{% endif %}>{% include "includes/inventory_badge.html" with inventory=item %}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
+        <a class="switcher-all" href="{% url 'inventory-list' %}">View all inventories</a>
       </div>
     </details>
   </div>
   <nav class="sidebar-nav" aria-label="Main navigation">
-    <a class="sidebar-link {% if here == 'home' %}active{% endif %}" href="{% url 'home' %}" {% if here == 'home' %}aria-current="page"{% endif %}><span aria-hidden="true">◧</span> Dashboard</a>
-    <p class="group-label manage-label">INVENTORY</p>
-    <a class="sidebar-link {% if here == 'inventory-list' %}active{% endif %}" href="{% url 'inventory-list' %}" {% if here == 'inventory-list' %}aria-current="page"{% endif %}><span aria-hidden="true">▦</span> All inventories</a>
-    {% if workspace_inventory %}
+    <a class="sidebar-link {% if here == 'home' %}active{% endif %}" href="{% url 'home' %}" {% if here == 'home' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#dashboard"></use></svg>Dashboard</a>
+    {% if workspace_current %}
       {# The selected inventory's pages live in one group so it is clear which inventory they belong to. #}
       <details class="nav-group" open>
-        <summary class="nav-group-summary"><span class="nav-group-name">{{ workspace_inventory.name }}</span><span class="nav-group-caret" aria-hidden="true">⌄</span></summary>
+        <summary class="nav-group-summary"><span class="nav-group-name">{{ workspace_current.name }}</span><span class="nav-group-caret" aria-hidden="true">⌄</span></summary>
         <div class="nav-group-links">
-          <a class="sidebar-link {% if here == 'inventory-products' %}active{% endif %}" href="{% url 'inventory-products' workspace_inventory.pk %}" {% if here == 'inventory-products' %}aria-current="page"{% endif %}>Products</a>
-          <a class="sidebar-link {% if here == 'inventory-insights' %}active{% endif %}" href="{% url 'inventory-insights' workspace_inventory.pk %}" {% if here == 'inventory-insights' %}aria-current="page"{% endif %}>Insights</a>
+          <a class="sidebar-link sub {% if here == 'inventory-products' %}active{% endif %}" href="{% url 'inventory-products' workspace_current.pk %}" {% if here == 'inventory-products' %}aria-current="page"{% endif %}>Products</a>
+          <a class="sidebar-link sub {% if here == 'inventory-insights' %}active{% endif %}" href="{% url 'inventory-insights' workspace_current.pk %}" {% if here == 'inventory-insights' %}aria-current="page"{% endif %}>Insights</a>
           {% if workspace_is_manager %}
-          <a class="sidebar-link {% if here == 'import-stock-csv' %}active{% endif %}" href="{% url 'import-stock-csv' workspace_inventory.pk %}" {% if here == 'import-stock-csv' %}aria-current="page"{% endif %}>Import CSV</a>
-          <a class="sidebar-link {% if here == 'bulk-verify-demand' %}active{% endif %}" href="{% url 'bulk-verify-demand' workspace_inventory.pk %}" {% if here == 'bulk-verify-demand' %}aria-current="page"{% endif %}>Verify demand</a>
+          <a class="sidebar-link sub {% if here == 'import-stock-csv' %}active{% endif %}" href="{% url 'import-stock-csv' workspace_current.pk %}" {% if here == 'import-stock-csv' %}aria-current="page"{% endif %}>Import CSV</a>
+          <a class="sidebar-link sub {% if here == 'bulk-verify-demand' %}active{% endif %}" href="{% url 'bulk-verify-demand' workspace_current.pk %}" {% if here == 'bulk-verify-demand' %}aria-current="page"{% endif %}>Verify demand</a>
           {% endif %}
         </div>
       </details>
     {% endif %}
-    {% if workspace_inventories %}<p class="group-label manage-label">MANAGE</p><a class="sidebar-link {% if here == 'product-catalogue' %}active{% endif %}" href="{% url 'product-catalogue' %}" {% if here == 'product-catalogue' %}aria-current="page"{% endif %}><span aria-hidden="true">▤</span> Catalogue</a>{% endif %}
-    {% if workspace_is_manager and workspace_default_inventory %}<a class="sidebar-link {% if here == 'activity-log' %}active{% endif %}" href="{% url 'activity-log' workspace_default_inventory.business_id %}" {% if here == 'activity-log' %}aria-current="page"{% endif %}><span aria-hidden="true">☰</span> Activity log</a>{% endif %}
-    {% if workspace_is_manager and workspace_default_inventory %}<p class="group-label manage-label">TEAM</p><a class="sidebar-link {% if here == 'manager-staff' %}active{% endif %}" href="{% url 'manager-staff' workspace_default_inventory.business_id %}" {% if here == 'manager-staff' %}aria-current="page"{% endif %}>Staff</a><a class="sidebar-link {% if here == 'staff-invitations' %}active{% endif %}" href="{% url 'staff-invitations' workspace_default_inventory.business_id %}" {% if here == 'staff-invitations' %}aria-current="page"{% endif %}>Staff invitations</a>{% endif %}
+    <a class="sidebar-link {% if here == 'inventory-list' %}active{% endif %}" href="{% url 'inventory-list' %}" {% if here == 'inventory-list' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#layers"></use></svg>All inventories</a>
+    {% if workspace_inventories %}<p class="group-label">Manage</p><a class="sidebar-link {% if here == 'product-catalogue' %}active{% endif %}" href="{% url 'product-catalogue' %}" {% if here == 'product-catalogue' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#book"></use></svg>Catalogue</a>{% endif %}
+    {% if workspace_is_manager and workspace_default_inventory %}<a class="sidebar-link {% if here == 'category-list' %}active{% endif %}" href="{% url 'category-list' workspace_default_inventory.business_id %}" {% if here == 'category-list' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#tag"></use></svg>Categories</a>{% endif %}
+    {% if workspace_default_inventory %}{# TORY-67: Staff see their own inventories' stock movements. #}<a class="sidebar-link {% if here == 'activity-log' %}active{% endif %}" href="{% url 'activity-log' workspace_default_inventory.business_id %}" {% if here == 'activity-log' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#activity"></use></svg>Activity log</a>{% endif %}
+    {% if workspace_is_manager and workspace_default_inventory %}<p class="group-label">Team</p><a class="sidebar-link {% if here == 'manager-staff' %}active{% endif %}" href="{% url 'manager-staff' workspace_default_inventory.business_id %}" {% if here == 'manager-staff' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#users"></use></svg>Staff</a><a class="sidebar-link {% if here == 'staff-invitations' %}active{% endif %}" href="{% url 'staff-invitations' workspace_default_inventory.business_id %}" {% if here == 'staff-invitations' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#mail"></use></svg>Staff invitations</a>{% endif %}
     {% if workspace_inventory and product %}
-      <p class="group-label manage-label">{{ product.sku }}</p>
-      <a class="sidebar-link {% if here == 'product-stock' %}active{% endif %}" href="{% url 'product-stock' workspace_inventory.pk product.pk %}" {% if here == 'product-stock' %}aria-current="page"{% endif %}>Stock</a>
-      <a class="sidebar-link {% if here == 'stock-history' %}active{% endif %}" href="{% url 'stock-history' workspace_inventory.pk product.pk %}" {% if here == 'stock-history' %}aria-current="page"{% endif %}>Stock history</a>
-      {% if product.is_active %}<a class="sidebar-link {% if here == 'demand-forecast' %}active{% endif %}" href="{% url 'demand-forecast' workspace_inventory.pk product.pk %}" {% if here == 'demand-forecast' %}aria-current="page"{% endif %}>Demand forecast</a>
-        <a class="sidebar-link" href="{% url 'receive-batch' workspace_inventory.pk product.pk %}">Receive stock</a><a class="sidebar-link" href="{% url 'issue-stock' workspace_inventory.pk product.pk %}">Issue stock</a>
-        {% if workspace_is_manager %}<a class="sidebar-link" href="{% url 'adjust-stock' workspace_inventory.pk product.pk %}">Adjust count</a><a class="sidebar-link" href="{% url 'dispose-stock' workspace_inventory.pk product.pk %}">Dispose stock</a>{% endif %}
-      {% endif %}
+      <p class="group-label">{{ product.sku }}</p>
+      <a class="sidebar-link sub {% if here == 'product-stock' %}active{% endif %}" href="{% url 'product-stock' workspace_inventory.pk product.pk %}" {% if here == 'product-stock' %}aria-current="page"{% endif %}>Overview</a>
+      <a class="sidebar-link sub {% if here == 'stock-history' %}active{% endif %}" href="{% url 'stock-history' workspace_inventory.pk product.pk %}" {% if here == 'stock-history' %}aria-current="page"{% endif %}>Stock history</a>
+      {% if product.is_active %}<a class="sidebar-link sub {% if here == 'demand-forecast' %}active{% endif %}" href="{% url 'demand-forecast' workspace_inventory.pk product.pk %}" {% if here == 'demand-forecast' %}aria-current="page"{% endif %}>Demand forecast</a>{% endif %}
     {% endif %}
-    <a class="sidebar-link sidebar-help {% if here == 'help' %}active{% endif %}" href="{% url 'help' %}" {% if here == 'help' %}aria-current="page"{% endif %}><span aria-hidden="true">?</span> Help</a>
+    <a class="sidebar-link sidebar-help {% if here == 'help' %}active{% endif %}" href="{% url 'help' %}" {% if here == 'help' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#help"></use></svg>Help</a>
   </nav>
   <div class="sidebar-bottom">
-    <div class="user-card"><a class="account-link" href="{% url 'account' %}" {% if here == 'account' %}aria-current="page"{% endif %} title="Your profile and password">{% include "includes/user_avatar.html" with user=request.user %}<span class="user-details"><strong>{{ request.user.display_label }}</strong><small>{{ workspace_role|default:'No assigned role' }}{% if request.user.job_title %} · {{ request.user.job_title }}{% endif %}</small></span></a><form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="sign-out" type="submit">Sign out</button></form></div>
+    <div class="user-card">
+      <a class="account-link" href="{% url 'account' %}" {% if here == 'account' %}aria-current="page"{% endif %} title="Your profile and password">{% include "includes/user_avatar.html" with user=request.user size="sm" %}<span class="user-details"><strong>{{ request.user.display_label }}</strong><small>{{ workspace_role|default:'No assigned role' }}{% if request.user.job_title %} · {{ request.user.job_title }}{% endif %}</small></span></a>
+      <details class="profile-menu" data-menu>
+        <summary class="profile-menu-toggle" aria-label="Profile menu: theme and sign out"><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#more"></use></svg></summary>
+        <div class="profile-menu-items">
+          <a href="{% url 'account' %}">Your profile</a>
+          <p class="menu-label" id="theme-label">Theme</p>
+          {% include "includes/theme_control.html" %}
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="sign-out" type="submit">Sign out</button></form>
+        </div>
+      </details>
+    </div>
   </div>
 </aside>
 {% endwith %}

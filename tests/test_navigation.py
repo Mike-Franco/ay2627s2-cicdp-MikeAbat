@@ -46,7 +46,7 @@ class NavigationTests(TestCase):
 
     def crumb(self, url):
         html = self.client.get(url).content.decode()
-        return re.search(r'<nav class="workspace-crumb".*?</nav>', html, re.S).group(0)
+        return re.search(r'<nav class="crumbs" aria-label="Breadcrumb">.*?</nav>', html, re.S).group(0)
 
     def protected_pages(self):
         inv, prod = self.inventory.pk, self.product.pk
@@ -91,7 +91,7 @@ class NavigationTests(TestCase):
         group = self.group(self.sidebar(reverse("inventory-insights", args=[self.inventory.pk])))
         labels = re.findall(r">([A-Za-z ]+)</a>", group)
         self.assertEqual(labels, ["Products", "Insights", "Import CSV", "Verify demand"])
-        self.assertIn('class="sidebar-link active" href="/inventories/%d/insights/" aria-current="page"'
+        self.assertIn('class="sidebar-link sub active" href="/inventories/%d/insights/" aria-current="page"'
                       % self.inventory.pk, group)
         self.assertIn(reverse("import-stock-csv", args=[self.inventory.pk]), group)
         self.assertIn(reverse("bulk-verify-demand", args=[self.inventory.pk]), group)
@@ -103,7 +103,7 @@ class NavigationTests(TestCase):
         self.assertEqual(labels, ["Products", "Insights"])
         self.assertNotIn("Import CSV", sidebar)
         self.assertNotIn("Verify demand", sidebar)
-        self.assertNotIn(">TEAM</p>", sidebar)
+        self.assertNotIn(">Team</p>", sidebar)
 
     def test_all_inventories_link_for_every_role(self):
         for user in (self.manager, self.staff):
@@ -125,7 +125,8 @@ class NavigationTests(TestCase):
         crumb = self.crumb(reverse("stock-history", args=[self.inventory.pk, self.product.pk]))
         self.assertIn(f'<a href="{reverse("inventory-products", args=[self.inventory.pk])}"><span class="inventory-badge', crumb)
         self.assertIn('<span class="inventory-badge-name">Front shelf</span>', crumb)
-        self.assertIn('aria-current="page">NAV-1 · History<', crumb)
+        self.assertIn(f'<a href="{reverse("product-stock", args=[self.inventory.pk, self.product.pk])}">Gauze</a>', crumb)
+        self.assertIn('<span aria-current="page">History</span>', crumb)
 
     def test_dashboard_breadcrumb_is_the_current_page(self):
         self.login(self.manager)

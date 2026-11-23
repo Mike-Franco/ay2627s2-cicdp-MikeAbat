@@ -5,13 +5,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Something went wrong{% endblock %} · Tory</title>
-  <script src="{% static 'tory/theme.js' %}"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <link href="{% static 'tory/app.css' %}" rel="stylesheet">
-  <link href="{% static 'tory/pages.css' %}" rel="stylesheet">
+  {% include "includes/head_assets.html" %}
 </head>
 <body>
-  <header class="public-header"><a class="brand" href="/"><span class="brand-mark">T</span><span class="brand-word">Tory</span></a></header>
+  <header class="public-header"><a class="brand" href="/">{% include "includes/logo_mark.html" with size=26 %}<span class="brand-word">Tory</span></a></header>
   <main id="main-content" class="public-content">{% block content %}{% endblock %}</main>
 </body>
 </html>

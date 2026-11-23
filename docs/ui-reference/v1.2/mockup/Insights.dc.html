@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Insights</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;--c1:#5B5BD6;--c2:#E08A2E;--c3:#2E9E6A;--c4:#C2417A;--grid:#EEEEF2;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424;--c1:#8E8FF5;--c2:#F0A65A;--c3:#5CC796;--c4:#E57AA8;--grid:#202026}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.t h2{font-size:14px;font-weight:600;margin:0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.t a.btn{color:var(--text);text-decoration:none}
+.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:16px;max-width:1240px}
+.sel{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 8px}
+.sel.sm{height:28px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{height:30px;padding:0 10px;border:0;background:var(--panel);color:var(--muted);font:inherit;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line2)}
+.seg button.on{background:var(--hover);color:var(--text);font-weight:500}
+.strip{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.strip>div{flex:1 1 150px;padding:12px 16px;border-right:1px solid var(--line)}
+.strip>div:last-child{border-right:0}
+.strip .k{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.strip .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.strip .s{font-size:11.5px;color:var(--muted)}
+.grid2{display:flex;flex-wrap:wrap;gap:16px}
+.grid2>.card{flex:1 1 440px;min-width:0}
+.card{border:1px solid var(--line);border-radius:8px;background:var(--panel);display:flex;flex-direction:column}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px 4px}
+.card-h .l{display:flex;align-items:center;gap:6px}
+.card-sub{padding:0 14px 8px;font-size:12px;color:var(--muted)}
+.card-b{padding:4px 14px 14px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.help{position:relative;display:inline-flex}
+.help>button{width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font:600 11px Inter,sans-serif;cursor:help;padding:0;line-height:1}
+.help>button:hover,.help>button:focus-visible{color:var(--accent-ink);border-color:var(--accent)}
+.tip{position:absolute;left:-8px;top:26px;z-index:20;width:300px;padding:10px 12px;border-radius:8px;background:var(--text);color:var(--bg);font-size:12px;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(-2px);transition:opacity .12s,transform .12s}
+.tip b{display:block;font-weight:600;margin-bottom:2px}
+.tip .eg{display:block;margin-top:6px;opacity:.75}
+.help:hover .tip,.help:focus-within .tip{opacity:1;visibility:visible;transform:none}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-weight:500;color:var(--muted);font-size:12px;text-align:left;padding:0 12px;height:32px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th.num{text-align:right}
+.tbl td{padding:0 12px;height:34px;border-bottom:1px solid var(--line);white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:var(--hover);overflow:hidden;min-width:120px}
+.bar>i{display:block;height:100%;border-radius:4px}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+.pg{display:flex;gap:4px;align-items:center}
+.pgb{min-width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.pgb.on{border-color:var(--line2);color:var(--text);background:var(--panel)}
+.pgb:disabled{opacity:.45;cursor:default}
+.note{font-size:12px;color:var(--muted);padding:8px 12px;border:1px dashed var(--line2);border-radius:8px}
+svg text{font-family:Inter,sans-serif}
+@media (max-width:700px){.main,.ph{padding-left:16px;padding-right:16px}.btn,.sel{min-height:44px}.tip{width:240px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 1500px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="insights" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<h1>Insights</h1>
+<div class="ph-actions">
+<div class="seg" role="group" aria-label="Date range"><button type="button">7d</button><button type="button" class="on">30d</button><button type="button">90d</button></div>
+<a class="btn" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>Export CSV</a>
+</div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><a href="Products.dc.html">Grocery</a><span class="sep">/</span><span>Insights</span></nav>
+</header>
+<main class="main">
+
+<div class="strip">
+<div><div class="k">Stock value <span class="help"><button type="button" aria-label="What is stock value?">?</button><span class="tip" role="tooltip"><b>Stock value</b>Available quantity × selling price, summed over every active product in Grocery. Quarantined and expired units are left out.</span></span></div><div class="v">S$1,148</div><div class="s">+S$62 vs last 30d</div></div>
+<div><div class="k">Turnover <span class="help"><button type="button" aria-label="What is turnover?">?</button><span class="tip" role="tooltip"><b>Turnover (30 days)</b>Units issued ÷ average units on hand. Higher means stock moves faster.<span class="eg">0.39× means about 39% of average stock was used this month.</span></span></span></div><div class="v">0.39×</div><div class="s">30-day</div></div>
+<div><div class="k">Median days of supply <span class="help"><button type="button" aria-label="What is days of supply?">?</button><span class="tip" role="tooltip"><b>Days of supply</b>How long current stock lasts at the average daily demand of the last 30 days. Median across products.</span></span></div><div class="v">21.5</div><div class="s">days</div></div>
+<div><div class="k">Forecast accuracy <span class="help"><button type="button" aria-label="What is forecast accuracy?">?</button><span class="tip" role="tooltip"><b>Forecast accuracy (MAPE)</b>Average % gap between last week's 7-day forecast and verified demand. Lower is better. Unverified days are not counted.</span></span></div><div class="v">14%</div><div class="s">error, last 7 days</div></div>
+</div>
+
+<div class="grid2">
+<section class="card">
+<div class="card-h"><div class="l"><h2>Stock vs reorder point</h2><span class="help"><button type="button" aria-label="About this chart">?</button><span class="tip" role="tooltip"><b>Stock vs reorder point</b>Bars show available units per product. The tick is the reorder point: when a bar drops below its tick, the product shows as Low stock.<span class="eg">Oat Milk: 4 on hand, reorder at 12.</span></span></span></div>
+<div class="legend"><span><i style="background: var(--c1)"></i>Available</span><span><i style="background: var(--text); width: 2px"></i>Reorder point</span></div></div>
+<div class="card-b">
+<svg viewBox="0 0 460 230" width="100%" role="img" aria-label="Bar chart of available stock against reorder point for 7 products">
+<g stroke="var(--grid)"><line x1="120" y1="10" x2="120" y2="214"></line><line x1="200" y1="10" x2="200" y2="214"></line><line x1="280" y1="10" x2="280" y2="214"></line><line x1="360" y1="10" x2="360" y2="214"></line><line x1="440" y1="10" x2="440" y2="214"></line></g>
+<g font-size="11" fill="var(--muted)" text-anchor="end">
+<text x="112" y="27">Canned Chickpeas</text><text x="112" y="56">Jasmine Rice</text><text x="112" y="85">Rolled Oats</text><text x="112" y="114">Olive Oil</text><text x="112" y="143">Black Tea</text><text x="112" y="172">Reusable Bag</text><text x="112" y="201">Oat Milk</text></g>
+<g fill="var(--c1)">
+<rect x="120" y="16" width="176" height="16" rx="3"></rect><rect x="120" y="45" width="172" height="16" rx="3"></rect><rect x="120" y="74" width="128" height="16" rx="3"></rect><rect x="120" y="103" width="116" height="16" rx="3"></rect><rect x="120" y="132" width="104" height="16" rx="3"></rect><rect x="120" y="161" width="80" height="16" rx="3"></rect></g>
+<rect x="120" y="190" width="16" height="16" rx="3" fill="var(--red)"></rect>
+<g stroke="var(--text)" stroke-width="2"><line x1="200" y1="13" x2="200" y2="35"></line><line x1="180" y1="42" x2="180" y2="64"></line><line x1="160" y1="71" x2="160" y2="93"></line><line x1="160" y1="100" x2="160" y2="122"></line><line x1="160" y1="129" x2="160" y2="151"></line><line x1="160" y1="158" x2="160" y2="180"></line><line x1="168" y1="187" x2="168" y2="209"></line></g>
+<g font-size="11" fill="var(--text)"><text x="302" y="28">44</text><text x="298" y="57">43</text><text x="254" y="86">32</text><text x="242" y="115">29</text><text x="230" y="144">26</text><text x="206" y="173">20</text><text x="176" y="202" fill="var(--red)">4 · below 12</text></g>
+<g font-size="10" fill="var(--muted)" text-anchor="middle"><text x="120" y="226">0</text><text x="200" y="226">20</text><text x="280" y="226">40</text><text x="360" y="226">60</text><text x="440" y="226">80</text></g>
+</svg>
+</div>
+</section>
+
+<section class="card">
+<div class="card-h"><div class="l"><h2>Intake vs outtake</h2><span class="help"><button type="button" aria-label="About this chart">?</button><span class="tip" role="tooltip"><b>Intake vs outtake</b>Units received (stock in) and units issued or sold (stock out) per week. When outtake stays above intake, stock is running down.</span></span></div>
+<div class="legend"><span><i style="background: var(--c3)"></i>Received</span><span><i style="background: var(--c2)"></i>Issued</span></div></div>
+<div class="card-b">
+<svg viewBox="0 0 460 230" width="100%" role="img" aria-label="Grouped bar chart of weekly units received and issued">
+<g stroke="var(--grid)"><line x1="36" y1="20" x2="450" y2="20"></line><line x1="36" y1="70" x2="450" y2="70"></line><line x1="36" y1="120" x2="450" y2="120"></line><line x1="36" y1="170" x2="450" y2="170"></line></g>
+<line x1="36" y1="200" x2="450" y2="200" stroke="var(--line2)"></line>
+<g font-size="10" fill="var(--muted)" text-anchor="end"><text x="30" y="204">0</text><text x="30" y="154">20</text><text x="30" y="104">40</text><text x="30" y="54">60</text></g>
+<g fill="var(--c3)"><rect x="60" y="80" width="30" height="120" rx="3"></rect><rect x="160" y="130" width="30" height="70" rx="3"></rect><rect x="260" y="60" width="30" height="140" rx="3"></rect><rect x="360" y="150" width="30" height="50" rx="3"></rect></g>
+<g fill="var(--c2)"><rect x="94" y="110" width="30" height="90" rx="3"></rect><rect x="194" y="100" width="30" height="100" rx="3"></rect><rect x="294" y="95" width="30" height="105" rx="3"></rect><rect x="394" y="88" width="30" height="112" rx="3"></rect></g>
+<g font-size="11" fill="var(--muted)" text-anchor="middle"><text x="92" y="218">26 Oct</text><text x="192" y="218">2 Nov</text><text x="292" y="218">9 Nov</text><text x="392" y="218">16 Nov</text></g>
+</svg>
+</div>
+</section>
+</div>
+
+<div class="grid2">
+<section class="card">
+<div class="card-h"><div class="l"><h2>Stock value breakdown</h2><span class="help"><button type="button" aria-label="About this chart">?</button><span class="tip" role="tooltip"><b>Stock value breakdown</b>Share of S$1,148 by category, or by stock status. Use it to see where money is tied up.</span></span></div>
+<div class="seg" role="group" aria-label="Group by"><button type="button" class="on">Category</button><button type="button">Status</button></div></div>
+<div class="card-b" style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<svg viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="Donut chart of stock value by category">
+<g fill="none" stroke-width="22" transform="rotate(-90 80 80)">
+<circle cx="80" cy="80" r="56" stroke="var(--c1)" stroke-dasharray="232 352"></circle>
+<circle cx="80" cy="80" r="56" stroke="var(--c2)" stroke-dasharray="61 352" stroke-dashoffset="-234"></circle>
+<circle cx="80" cy="80" r="56" stroke="var(--c3)" stroke-dasharray="21 352" stroke-dashoffset="-297"></circle>
+<circle cx="80" cy="80" r="56" stroke="var(--c4)" stroke-dasharray="30 352" stroke-dashoffset="-320"></circle></g>
+<text x="80" y="78" text-anchor="middle" font-size="16" font-weight="600" fill="var(--text)">S$1,148</text><text x="80" y="95" text-anchor="middle" font-size="11" fill="var(--muted)">7 products</text>
+</svg>
+<table class="tbl" style="flex: 1 1 220px; width: auto">
+<tbody>
+<tr><td><span class="legend"><span><i style="background: var(--c1)"></i>Pantry</span></span></td><td class="num">S$766</td><td class="num muted">66%</td></tr>
+<tr><td><span class="legend"><span><i style="background: var(--c2)"></i>Beverages</span></span></td><td class="num">S$179</td><td class="num muted">16%</td></tr>
+<tr><td><span class="legend"><span><i style="background: var(--c4)"></i>Household</span></span></td><td class="num">S$50</td><td class="num muted">9%</td></tr>
+<tr><td><span class="legend"><span><i style="background: var(--c3)"></i>Dairy alternatives</span></span></td><td class="num">S$17</td><td class="num muted">6%</td></tr>
+</tbody></table>
+</div>
+</section>
+
+<section class="card">
+<div class="card-h"><div class="l"><h2>Daily demand and forecast</h2><span class="help"><button type="button" aria-label="About this chart">?</button><span class="tip" role="tooltip"><b>Daily demand and forecast</b>Solid line: verified demand per day, all products. Dashed line: the next 7 days predicted from that history. Hollow dots are days not yet verified, so the forecast ignores them.<span class="eg">Verify them on the Verify demand page.</span></span></span></div>
+<div class="legend"><span><i style="background: var(--c1)"></i>Verified</span><span><i style="background: none; border: 1.5px dashed var(--c1)"></i>Forecast</span></div></div>
+<div class="card-b">
+<svg viewBox="0 0 460 200" width="100%" role="img" aria-label="Line chart of daily demand with a 7-day forecast">
+<g stroke="var(--grid)"><line x1="36" y1="30" x2="450" y2="30"></line><line x1="36" y1="80" x2="450" y2="80"></line><line x1="36" y1="130" x2="450" y2="130"></line></g>
+<line x1="36" y1="170" x2="450" y2="170" stroke="var(--line2)"></line>
+<g font-size="10" fill="var(--muted)" text-anchor="end"><text x="30" y="174">0</text><text x="30" y="134">8</text><text x="30" y="84">18</text><text x="30" y="34">28</text></g>
+<rect x="320" y="20" width="130" height="150" fill="var(--accent-weak)" opacity=".5"></rect>
+<polyline fill="none" stroke="var(--c1)" stroke-width="2" points="40,110 60,96 80,104 100,88 120,92 140,80 160,98 180,86 200,74 220,90 240,82 260,70 280,84 300,76"></polyline>
+<polyline fill="none" stroke="var(--c1)" stroke-width="2" stroke-dasharray="5 4" points="300,76 320,80 340,78 360,74 380,77 400,72 420,75 440,73"></polyline>
+<circle cx="280" cy="84" r="3.5" fill="var(--panel)" stroke="var(--amber)" stroke-width="2"></circle><circle cx="300" cy="76" r="3.5" fill="var(--panel)" stroke="var(--amber)" stroke-width="2"></circle>
+<g font-size="11" fill="var(--muted)"><text x="40" y="188">10 Nov</text><text x="180" y="188">17 Nov</text><text x="286" y="188">Today</text><text x="400" y="188">30 Nov</text></g>
+<text x="326" y="36" font-size="11" fill="var(--accent-ink)">Next 7 days</text>
+</svg>
+</div>
+</section>
+</div>
+
+<section class="card">
+<div class="card-h"><div class="l"><h2>Days of supply ranking</h2><span class="help"><button type="button" aria-label="About this table">?</button><span class="tip" role="tooltip"><b>Days of supply ranking</b>Products ordered by how soon they run out at current demand. Anything under its lead time should be reordered now.</span></span></div>
+<select class="sel sm" aria-label="Sort"><option>Runs out soonest</option><option>Most stock</option></select></div>
+<div style="overflow-x: auto">
+<table class="tbl">
+<thead><tr><th>#</th><th>Product</th><th>SKU</th><th class="num">On hand</th><th class="num">Avg / day</th><th class="num">Days left</th><th style="width: 32%">Cover</th></tr></thead>
+<tbody>
+<tr><td class="muted">1</td><td><a href="ProductDetail.dc.html">Oat Milk</a></td><td class="mono">GR-01</td><td class="num">4</td><td class="num">1.6</td><td class="num" style="color: var(--red); font-weight: 600">2.5</td><td><div class="bar"><i style="width: 6%; background: var(--red)"></i></div></td></tr>
+<tr><td class="muted">2</td><td><a href="ProductDetail.dc.html">Reusable Grocery Bag</a></td><td class="mono">GR-07</td><td class="num">20</td><td class="num">1.4</td><td class="num">14.3</td><td><div class="bar"><i style="width: 34%; background: var(--c2)"></i></div></td></tr>
+<tr><td class="muted">3</td><td><a href="ProductDetail.dc.html">Black Tea</a></td><td class="mono">GR-05</td><td class="num">26</td><td class="num">1.3</td><td class="num">20.0</td><td><div class="bar"><i style="width: 48%; background: var(--c1)"></i></div></td></tr>
+<tr><td class="muted">4</td><td><a href="ProductDetail.dc.html">Rolled Oats</a></td><td class="mono">GR-03</td><td class="num">32</td><td class="num">1.5</td><td class="num">21.3</td><td><div class="bar"><i style="width: 51%; background: var(--c1)"></i></div></td></tr>
+<tr><td class="muted">5</td><td><a href="ProductDetail.dc.html">Olive Oil</a></td><td class="mono">GR-06</td><td class="num">29</td><td class="num">1.3</td><td class="num">22.3</td><td><div class="bar"><i style="width: 53%; background: var(--c1)"></i></div></td></tr>
+</tbody></table>
+</div>
+<div class="pager"><span>Showing <strong style="color: var(--text)">1–5</strong> of 7</span>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap"><label style="display: flex; align-items: center; gap: 6px">Rows <select class="sel sm"><option selected>5</option><option>10</option><option>25</option></select></label>
+<div class="pg"><button class="pgb" type="button" disabled aria-label="Previous page">‹</button><button class="pgb on" type="button" aria-current="page">1</button><button class="pgb" type="button">2</button><button class="pgb" type="button" aria-label="Next page">›</button></div></div></div>
+</section>
+
+<section class="card">
+<div class="card-h"><div class="l"><h2>Expiring stock by week</h2><span class="help"><button type="button" aria-label="About this table">?</button><span class="tip" role="tooltip"><b>Expiring stock by week</b>Batches that reach their expiry date in each of the next weeks, with the value at risk. Issue these first (FEFO).</span></span></div></div>
+<div style="overflow-x: auto">
+<table class="tbl">
+<thead><tr><th>Week</th><th>Product</th><th>Batch</th><th class="num">Units</th><th class="num">Value at risk</th><th>Expires</th></tr></thead>
+<tbody>
+<tr><td>This week</td><td><a href="ProductDetail.dc.html">Oat Milk</a></td><td class="mono">OM-2411-A</td><td class="num">4</td><td class="num">S$16.80</td><td>27 Nov</td></tr>
+<tr><td>Next week</td><td><a href="ProductDetail.dc.html">Black Tea</a></td><td class="mono">BT-2409-C</td><td class="num">6</td><td class="num">S$41.40</td><td>3 Dec</td></tr>
+<tr><td>In 3 weeks</td><td><a href="ProductDetail.dc.html">Rolled Oats</a></td><td class="mono">RO-2410-B</td><td class="num">8</td><td class="num">S$44.80</td><td>14 Dec</td></tr>
+</tbody></table>
+</div>
+<div class="pager"><span>Showing <strong style="color: var(--text)">1–3</strong> of 3</span><div class="pg"><button class="pgb" type="button" disabled aria-label="Previous page">‹</button><button class="pgb on" type="button" aria-current="page">1</button><button class="pgb" type="button" disabled aria-label="Next page">›</button></div></div>
+</section>
+
+<div class="note">Hover or tab to any <strong>?</strong> to see the explanation. On phones it opens on tap. Every table on this page pages at 5–10 rows.</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{% load tory_format %}{% if batches %}<div class="table-scroll" role="region" aria-label="Batches in FEFO order" tabindex="0"><table class="products-table">
+  <thead><tr><th scope="col">Batch</th><th scope="col">Received</th><th scope="col">Expires</th><th scope="col" class="numeric">Remaining</th><th scope="col" class="numeric">Quarantined</th><th scope="col">Status</th></tr></thead>
+  <tbody>{% for row in batches %}<tr>
+    <th scope="row" class="mono">#{{ row.batch.receipt_sequence }}</th>
+    <td>{{ row.batch.received_at|sgdate }}</td>
+    <td>{% if row.batch.expiry_date %}{{ row.batch.expiry_date|sgdate }}{% if row.days is not None and row.days >= 0 and row.batch.remaining_quantity_units %} <span class="muted">· {{ row.days }} day{{ row.days|pluralize }}</span>{% endif %}{% else %}Undated{% endif %}</td>
+    <td class="numeric">{{ row.batch.remaining_quantity_units }}</td>
+    <td class="numeric">{{ row.quarantined }}</td>
+    <td><span class="pill {{ row.tone }}">{{ row.status }}</span></td>
+  </tr>{% endfor %}</tbody>
+</table></div>{% else %}<p class="insight-empty">No remaining batch stock.</p>{% endif %}

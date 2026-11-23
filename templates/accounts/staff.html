@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Staff · Tory{% endblock %}
-{% block breadcrumb %}Staff{% endblock %}
+{% block page_header %}{% page_header %}Staff{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><h1>Staff</h1><p>Staff accounts within your current authority.</p></div></div>
+<p class="page-intro">Staff accounts within your current authority.</p>
 <section class="panel" aria-label="Staff accounts">
   {% include "includes/table_toolbar.html" %}
   {% if staff_accounts %}

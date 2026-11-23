@@ -1,19 +1,18 @@
-from collections import defaultdict
-
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.paginator import Paginator
-from django.db.models import Case, CharField, F, Q, Sum, Value, When
+from django.db.models import Case, F, Q, Sum, When
 from django.db.models.functions import Lower
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
 from accounts.sessions import protected_view
-from catalogue.models import Category, InventoryProduct, Product, ProductLifecycleAuditEvent
+from catalogue.models import Category, InventoryProduct, Product
 from inventory_access.authorization import authorized_inventories, get_authorized_inventory, manager_memberships
 from inventory_access.models import BusinessMembership, Inventory
+from inventory_access.selection import current_inventory, scope_chip, scope_filter
 from receiving.demand import (
     forecasts_for_links,
     mark_demand_day_incomplete,
@@ -22,14 +21,7 @@ from receiving.demand import (
     verify_demand_days_for_inventory,
 )
 from receiving.forms import DemandCoverageActionForm
-from receiving.models import (
-    DemandAuditEvent,
-    DisposalAuditEvent,
-    ExpiryQuarantineEvent,
-    ObservationActivation,
-    ReceiptAuditEvent,
-    StockAdjustmentAuditEvent,
-)
+from receiving.models import ObservationActivation
 from receiving.services import SINGAPORE, ReceiptRejected, quarantine_quantity
 
 from .authorization import (can_manage_product_lifecycle, manageable_lifecycle_product_ids, managed_inventories,
@@ -38,6 +30,10 @@ from .csv_exports import csv_download, history_rows, stock_rows
 from .table_lists import CATALOGUE_SORTS, CATALOGUE_STATUSES, TableControls, catalogue_rows, paginate
 from .forms import BulkDemandVerifyForm, SellingPriceForm, InventoryProductFilterForm, ProductCreateForm, ProductForm, ReorderSettingsForm
 from .insights import inventory_insights as inventory_insights
+from .metrics import STATUS_LABELS, singapore_day, stock_positions
+from .product_page import (
+    OVERVIEW_HISTORY_ROWS, fefo_batches, history_keys, history_row, history_sources, hydrate_history, outlook, summary,
+)
 from .lifecycle import ProductLifecycleRejected, set_product_active
 from .product_changes import save_product_change, save_selling_price
 from .reorder import can_edit_shared_settings, recommendation, recommendation_from_evidence, save_shared_settings
@@ -52,7 +48,11 @@ def product_catalogue(request):
     controls = TableControls.from_request(request, CATALOGUE_SORTS, default="sku")
     links = _search_product_links(visible_product_links(request.user), controls.query)
     category = request.GET.get("category", "")
-    inventory = request.GET.get("inventory", "")
+    # TORY-63: default to the inventory selected in the sidebar; ?scope=all widens to
+    # every inventory this user may see (visible_product_links never goes further).
+    current = current_inventory(request, inventories)
+    inventory, defaulted = scope_filter(request, current)
+    inventory = inventory or ""
     status = request.GET.get("status", "")
     valid = len(request.GET.get("q", "")) <= 200 and (not category or category in categories_by_id or category == "uncategorised") and (
         not inventory or inventory in inventories_by_id
@@ -72,8 +72,15 @@ def product_catalogue(request):
         ("inventory", "Inventory", [("", "All inventories"),
                                      *((str(item.pk), item.name) for item in inventories)]),
     ))
+    if defaulted:
+        for item in toolbar["filters"]:
+            if item["key"] == "inventory":
+                item["value"] = inventory  # keep the scope when the toolbar is submitted
+    all_count = visible_product_links(request.user).values("product_id").distinct().count() if current else 0
     return render(request, "catalogue/product_catalogue.html", {
+        "scope": scope_chip(request, current, shown_id=inventory or None, all_count=all_count, noun="products"),
         "product_links": page.object_list, "page": page, "toolbar": toolbar, "valid_filters": valid,
+        "breadcrumbs": [("Dashboard", reverse("home")), ("Catalogue", None)],
         "category_managers": manager_memberships(request.user).select_related("business"),
         "create_inventories": managed_inventories(request.user).select_related("business")
         .order_by("business_id", "name", "pk").distinct("business_id"),
@@ -178,7 +185,7 @@ def inventory_products(request, inventory_id):
                 rank = {"attention": 0, "above": 1, "unavailable": 2}
                 links.sort(key=lambda link: ((-1 if descending else 1) * rank[_reorder_status(link)],
                                              link.product.sku, link.pk))
-        page = Paginator(links, 25).get_page(request.GET.get("page"))
+        page = paginate(request, links)
         product_links = page.object_list if computed else _prepare_stock_list(page.object_list, at=now)
         if can_adjust_stock:
             manageable = manageable_lifecycle_product_ids(
@@ -228,6 +235,11 @@ def _is_inventory_manager(user, inventory):
     ).exists()
 
 
+def can_view_activity_log(user, inventory):
+    """Who may open the business Activity log from a product page: Managers and (TORY-67) Staff."""
+    return BusinessMembership.objects.filter(user=user, business_id=inventory.business_id, is_active=True).exists()
+
+
 def _prepare_stock_link(link, user, inventory, now):
     """Display the same expiry-aware balances and reorder state on both pages."""
     link.display_quarantine_units = sum(
@@ -260,16 +272,33 @@ def product_stock(request, inventory_id, product_id):
         inventory, links = visible_inventory_product_links(request.user, inventory_id)
     except Inventory.DoesNotExist as error:
         raise Http404 from error
-    link = get_object_or_404(links.prefetch_related("receiving_batches"), product_id=product_id)
+    link = get_object_or_404(links.prefetch_related("receiving_batches").select_related("product__category"),
+                             product_id=product_id)
     now = timezone.now()
+    today = singapore_day(now)
     _prepare_stock_link(link, request.user, inventory, now)
-    batches = []
-    for batch in sorted(link.receiving_batches.all(), key=lambda item: item.receipt_sequence):
-        if batch.remaining_quantity_units:
-            batches.append({"batch": batch, "quarantined": quarantine_quantity(batch, at=now)})
+    tab = "batches" if request.GET.get("tab") == "batches" else "overview"
+    # TORY-66: Overview shows batches with stock left; the Batches tab also lists used-up ones.
+    batches = fefo_batches(link, today=today, now=now, include_empty=tab == "batches")
+    batch_page = paginate(request, batches)
+    position = stock_positions([link], at=now)[0]
+    info = summary(position, today=today)
+    projection, callout = outlook(position, info, today=today)
+    scope = {"business_id": inventory.business_id, "inventory_id": inventory.pk, "product_id": link.product_id}
+    sources = history_sources(scope)
+    keys = history_keys(sources)
+    recent = [history_row(event) for event in hydrate_history(sources, list(keys[:OVERVIEW_HISTORY_ROWS]))]
+    is_manager = _is_inventory_manager(request.user, inventory)
     return render(request, "catalogue/product_stock.html", {
-        "inventory": inventory, "product": link.product, "link": link,
-        "batches": batches, "can_adjust_stock": _is_inventory_manager(request.user, inventory),
+        "inventory": inventory, "product": link.product, "link": link, "tab": tab,
+        "batches": batch_page.object_list, "page": batch_page,
+        "batch_count": sum(1 for batch in link.receiving_batches.all() if batch.remaining_quantity_units),
+        "can_adjust_stock": is_manager, "can_view_activity": can_view_activity_log(request.user, inventory),
+        "info": info, "status": position.status, "status_label": STATUS_LABELS[position.status],
+        "projection": projection, "callout": callout,
+        "recent": recent, "history_count": keys.count(),
+        "also_in": [shelf.name for shelf in authorized_inventories(request.user).filter(
+            product_links__product_id=link.product_id).exclude(pk=inventory.pk).order_by("name")],
     })
 
 
@@ -374,44 +403,12 @@ def export_stock_history(request, inventory_id, product_id):
 def stock_history(request, inventory_id, product_id):
     """Show committed audit evidence within one assigned inventory/product."""
     inventory, link, scope = _history_scope(request.user, inventory_id, product_id)
-    audit_sources = {
-        "receipt": ReceiptAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
-        "issue": DemandAuditEvent.objects.filter(**scope).select_related("actor", "stock_out").prefetch_related(
-            "stock_out__allocations__batch"
-        ),
-        "adjustment": StockAdjustmentAuditEvent.objects.filter(**scope).select_related("actor").prefetch_related(
-            "adjustment__allocations__batch"
-        ),
-        "quarantine": ExpiryQuarantineEvent.objects.filter(**scope).select_related("batch"),
-        "disposal": DisposalAuditEvent.objects.filter(**scope).select_related("actor", "batch"),
-        "lifecycle": ProductLifecycleAuditEvent.objects.filter(**scope).select_related("actor"),
-    }
-
-    def event_keys(kind, timestamp):
-        return audit_sources[kind].order_by().annotate(
-            event_time=F(timestamp), event_kind=Value(kind, output_field=CharField()),
-            event_id=F("id"),
-        ).values("event_time", "event_kind", "event_id")
-
-    keys = event_keys("receipt", "occurred_at").union(
-        event_keys("issue", "occurred_at"),
-        event_keys("adjustment", "occurred_at"),
-        event_keys("quarantine", "recorded_at"),
-        event_keys("disposal", "occurred_at"),
-        event_keys("lifecycle", "occurred_at"),
-        all=True,
-    ).order_by("-event_time", "-event_kind", "-event_id")
-    page = Paginator(keys, 50).get_page(request.GET.get("page"))
-    page_keys = list(page.object_list)
-    ids_by_kind = defaultdict(list)
-    for key in page_keys:
-        ids_by_kind[key["event_kind"]].append(key["event_id"])
-    audits = {kind: audit_sources[kind].filter(pk__in=ids).in_bulk()
-              for kind, ids in ids_by_kind.items()}
-    events = [{"kind": key["event_kind"], "audit": audits[key["event_kind"]][key["event_id"]]}
-              for key in page_keys]
+    sources = history_sources(scope)
+    page = paginate(request, history_keys(sources))
+    events = hydrate_history(sources, list(page.object_list))
     return render(request, "catalogue/stock_history.html", {
         "inventory": inventory, "product": link.product, "events": events, "page": page,
+        "batch_count": link.receiving_batches.filter(remaining_quantity_units__gt=0).count(),
     })
 
 

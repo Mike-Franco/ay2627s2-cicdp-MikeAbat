@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Help · Tory{% endblock %}
-{% block breadcrumb %}Help{% endblock %}
+{% block page_header %}{% page_header %}Help{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><h1>Help</h1><p>How each part of Tory works, and who can do what. Times and dates are Singapore time.</p></div></div>
+<p class="page-intro">How each part of Tory works, and who can do what. Times and dates are Singapore time.</p>
 <div class="help-layout">
 <nav class="help-toc panel" aria-label="Help contents">
   <h2 class="h6">Contents</h2>
@@ -27,7 +27,7 @@
 <section id="inventories" class="panel help-section">
   <h2>Inventories <span class="role-badge role-manager">Manager</span></h2>
   <p>Everyone sees only the inventories they are assigned to; pick one with the <em>Current inventory</em> switcher. Its pages (Products, Insights, and for Managers Import CSV and Verify demand) are grouped under its name in the sidebar.</p>
-  <p>Managers add inventories and edit the name, icon, colour and optional picture. To deactivate one, open <strong>Edit</strong> and confirm on the next page; reactivate it from <strong>All inventories</strong>. Names are unique within the business, ignoring case. Every change is recorded in the activity log.</p>
+  <p>Managers add inventories and edit the name, icon, colour and optional picture. Choose who can use each inventory under <strong>Who can use this inventory</strong> on its Edit page. To deactivate one, open <strong>Edit</strong> and type its name to confirm; reactivate it from <strong>All inventories</strong>. Names are unique within the business, ignoring case. Every change is recorded in the activity log.</p>
 </section>
 
 <section id="products" class="panel help-section">
@@ -77,9 +77,9 @@
     <li><strong>Average daily demand</strong> = units issued over those 7 days ÷ 7</li>
     <li><strong>Reorder point</strong> = average daily demand × lead time (days) + safety stock</li>
     <li><strong>Reorder alert</strong> when available units ≤ reorder point</li>
-    <li><strong>Suggested order</strong> = reorder point − available, rounded up (never below 0)</li>
+    <li><strong>Suggested order</strong> = average daily demand × (14 + lead time) + safety stock − available, rounded up (never below 0). It covers 14 days of demand after the order arrives.</li>
   </ul>
-  <p class="help-example"><strong>Worked example.</strong> 21 units were issued over the last 7 verified days, so the average is 3 a day. With a lead time of 4 days and safety stock of 5, the reorder point is 3 × 4 + 5 = 17. With 10 units available, 10 ≤ 17 raises an alert and the suggestion is 17 − 10 = 7 units.</p>
+  <p class="help-example"><strong>Worked example.</strong> 21 units were issued over the last 7 verified days, so the average is 3 a day. With a lead time of 4 days and safety stock of 5, the reorder point is 3 × 4 + 5 = 17. With 10 units available, 10 ≤ 17 raises an alert, and the suggested order is 3 × (14 + 4) + 5 − 10 = 49 units.</p>
   <p>Only Managers can change lead time and safety stock. They apply to the product in every inventory.</p>
 </section>
 
@@ -114,8 +114,9 @@
 </section>
 
 <section id="activity" class="panel help-section">
-  <h2>Activity log <span class="role-badge role-manager">Manager</span></h2>
-  <p>One read-only list of who did what across your business: receipts and issues (including CSV rows), count adjustments, disposals, quarantines, demand reviews, product and inventory changes, and invitations sent. Filter by user, action, inventory, product or dates, and download the filtered list as CSV.</p>
+  <h2>Activity log <span class="role-badge role-manager">Manager</span> <span class="role-badge role-staff">Staff</span></h2>
+  <p>One read-only list of who did what across your business: receipts and issues (including CSV rows), count adjustments, disposals, quarantines, demand reviews, product and inventory changes, inventory access changes, and invitations sent. Filter by user, action, inventory, product or dates. Managers can download the filtered list as CSV.</p>
+  <p><span class="role-badge role-staff">Staff</span> see stock movements (received, issued, counted and quarantined, including CSV imports) in the inventories they are assigned to. Settings and access changes, other inventories and the CSV download are for Managers.</p>
 </section>
 
 <section id="profile" class="panel help-section">

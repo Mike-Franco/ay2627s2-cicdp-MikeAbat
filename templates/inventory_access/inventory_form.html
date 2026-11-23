@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %} &middot; Tory{% endblock %}
-{% block breadcrumb %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endblock %}
+{% block page_header %}{% page_header %}{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading"><div><p class="eyebrow">{{ business.name }}</p><h1>{% if inventory %}Edit inventory{% else %}Add inventory{% endif %}</h1></div></div>
 <form method="post" enctype="multipart/form-data" class="panel p-3 inventory-form" novalidate data-sprite="{% static 'tory/icons/lucide-sprite.svg' %}">
   {% csrf_token %}
   {{ form.non_field_errors }}
@@ -30,14 +29,37 @@
   </fieldset>
   <div class="mb-3 field-wide"><label class="form-label" for="{{ form.picture_upload.id_for_label }}">{{ form.picture_upload.label }}</label>{{ form.picture_upload }}<div class="form-text">{{ form.picture_upload.help_text }}</div>{{ form.picture_upload.errors }}</div>
   {% if inventory.picture %}<div class="mb-3 form-check"><input class="form-check-input" type="checkbox" name="remove_picture" id="{{ form.remove_picture.id_for_label }}" data-remove-picture{% if form.remove_picture.value %} checked{% endif %}><label class="form-check-label" for="{{ form.remove_picture.id_for_label }}">{{ form.remove_picture.label }}</label>{{ form.remove_picture.errors }}</div>{% endif %}
+  {% if inventory %}
+  <fieldset class="access-section" aria-labelledby="access-title" data-access>
+    <input type="hidden" name="access_form" value="1">
+    <h2 class="h6" id="access-title">Who can use this inventory</h2>
+    <p class="text-muted">Staff only see inventories they are ticked for. Managers can always see every inventory.</p>
+    {% if access_error %}<div class="auth-error" role="alert">{{ access_error }}</div>{% endif %}
+    <div class="people">
+      <div class="ptool"><span>{{ access_count }} of {{ people|length }} {{ people|length|pluralize:"person has,people have" }} access</span><span><button type="button" class="btn-link-plain" data-select-all-staff>Select all staff</button> · <a href="{% url 'staff-invitations' inventory.business_id %}">Invite someone</a></span></div>
+      {% for person in people %}{% with user=person.membership.user %}
+      <div class="prow">
+        {% if person.manager %}<input type="checkbox" checked disabled aria-label="{{ user.display_label }}, always has access">{% else %}<input type="checkbox" name="staff" value="{{ person.membership.pk }}" id="staff-{{ person.membership.pk }}"{% if person.has_access %} checked{% endif %} aria-label="{{ user.display_label }}">{% endif %}
+        {% include "includes/user_avatar.html" with user=user size="sm" %}
+        <div class="pname">{{ user.display_label }} <small>{{ user.email }}{% if not person.manager and not person.has_access and person.elsewhere %} · {{ person.elsewhere|join:", " }} only{% endif %}</small></div>
+        <span class="pill {% if person.manager %}plain{% else %}neutral{% endif %}">{% if person.manager %}Manager · always{% else %}Staff{% endif %}</span>
+      </div>
+      {% endwith %}{% endfor %}
+    </div>
+    <p class="form-text">Changes are recorded in the Activity log.</p>
+  </fieldset>
+  {% endif %}
   <button class="btn btn-primary" type="submit">{% if inventory %}Save changes{% else %}Add inventory{% endif %}</button>
   <a class="btn btn-outline-secondary" href="{% url 'inventory-list' %}">Cancel</a>
 </form>
 {% if inventory %}
 <section class="panel p-3 mt-3 danger-zone" aria-labelledby="deactivate-title">
   <h2 class="h6" id="deactivate-title">Deactivate inventory</h2>
-  <p class="text-muted">Hide this inventory and stop stock movements in it. Its stock and history are kept, and you can reactivate it later.</p>
-  <a class="btn btn-sm btn-outline-danger" href="{% url 'inventory-status' inventory.pk %}">Deactivate {{ inventory.name }}…</a>
+  <p class="text-muted">Hides {{ inventory.name }} from staff and stops new stock movements. History, products and reports are kept, and you can reactivate it later.</p>
+  <details class="danger-details">
+    <summary class="btn btn-danger">Deactivate {{ inventory.name }}…</summary>
+    {% include "inventory_access/deactivate_confirm_form.html" %}
+  </details>
 </section>
 {% endif %}
 <script src="{% static 'tory/inventory_form.js' %}" defer></script>

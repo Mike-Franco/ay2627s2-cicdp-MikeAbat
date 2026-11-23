@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Catalogue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--blue:#1D58A3;--blue-bg:#E6EFFB;--green:#1A7340;--green-bg:#E3F2E9;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--blue:#93BBF7;--blue-bg:#152842;--green:#82D6A6;--green-bg:#133424}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.t.dark .btn.primary{color:#0E0E10}
+.t a.btn{color:var(--text);text-decoration:none}
+.t a.btn.primary{color:#fff}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.amber{color:var(--amber);background:var(--amber-bg)}
+.pill.green{color:var(--green);background:var(--green-bg)}
+.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:14px;max-width:1240px}
+.scope{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.scopechip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;background:var(--accent-weak);color:var(--accent-ink);font-weight:500}
+.box{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-weight:500;color:var(--muted);font-size:12px;text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th.num{text-align:right}
+.tbl td{padding:0 12px;height:38px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl tbody tr:hover td{background:var(--hover)}
+.sort{color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer}
+.sort.on{color:var(--text)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.sel{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 8px}
+.sel.sm{height:28px;font-size:12px}
+.inp{height:32px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 10px}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.pg{display:flex;gap:4px;align-items:center}
+.pgb{min-width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;cursor:pointer}
+.pgb.on{border-color:var(--line2);color:var(--text);background:var(--panel)}
+.pgb:disabled{opacity:.45;cursor:default}
+.ico{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:5px}
+.inv{display:inline-flex;align-items:center;gap:6px}
+@media (max-width:700px){.main,.ph{padding-left:16px;padding-right:16px}.btn,.sel,.inp{min-height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 1000px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="catalogue" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<h1>Catalogue</h1>
+<div class="ph-actions">
+<a class="btn" href="#">Categories</a>
+<a class="btn primary" href="#"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New product</a>
+</div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><span>Catalogue</span></nav>
+</header>
+<main class="main">
+<div class="scope">
+<span>Showing</span>
+<span class="scopechip"><span class="ico" style="background: #FDEBDD; color: #C2410C; width: 16px; height: 16px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg></span>Grocery</span>
+<span>products from your current inventory ·</span>
+<a href="#">Show all inventories (15)</a>
+</div>
+<div class="box">
+<div class="toolbar">
+<input class="inp" type="search" aria-label="Search by name or SKU" placeholder="Search name or SKU" style="flex: 1 1 220px; max-width: 320px">
+<select class="sel" aria-label="Category"><option>All categories</option><option>Pantry</option><option>Beverages</option><option>Dairy alternatives</option><option>Household</option></select>
+<select class="sel" aria-label="Status"><option>Active</option><option>Inactive</option><option>All</option></select>
+<a href="#" style="font-size: 12px">Clear filters</a>
+</div>
+<div class="scroll">
+<table class="tbl">
+<thead><tr><th><button class="sort on" type="button">Name ↑</button></th><th>SKU</th><th><button class="sort" type="button">Category</button></th><th>Inventories</th><th class="num"><button class="sort" type="button">Total available</button></th><th class="num">Price</th><th>Unit</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><a href="ProductDetail.dc.html">Black Tea</a></td><td class="mono">GR-05</td><td>Beverages</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">26</td><td class="num">S$6.90</td><td class="muted">box</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Canned Chickpeas</a></td><td class="mono">GR-04</td><td>Pantry</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">44</td><td class="num">S$1.85</td><td class="muted">can</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Jasmine Rice</a></td><td class="mono">GR-02</td><td>Pantry</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">43</td><td class="num">S$14.50</td><td class="muted">bag</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Oat Milk</a></td><td class="mono">GR-01</td><td>Dairy alternatives</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">4</td><td class="num">S$4.20</td><td class="muted">carton</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Olive Oil</a></td><td class="mono">GR-06</td><td>Pantry</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">29</td><td class="num">S$12.90</td><td class="muted">bottle</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Reusable Grocery Bag</a></td><td class="mono">GR-07</td><td>Household</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">20</td><td class="num">S$2.50</td><td class="muted">bag</td><td><span class="pill green">Active</span></td></tr>
+<tr><td><a href="ProductDetail.dc.html">Rolled Oats</a></td><td class="mono">GR-03</td><td>Pantry</td><td><span class="inv"><span class="ico" style="background: #FDEBDD; color: #C2410C">·</span>Grocery</span></td><td class="num">32</td><td class="num">S$5.60</td><td class="muted">bag</td><td><span class="pill green">Active</span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="pager">
+<span>Showing <strong style="color: var(--text)">1–7</strong> of 7 in Grocery</span>
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+<label style="display: flex; align-items: center; gap: 6px">Rows per page <select class="sel sm"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+<div class="pg"><button class="pgb" type="button" disabled aria-label="Previous page">‹</button><button class="pgb on" type="button" aria-current="page">1</button><button class="pgb" type="button" disabled aria-label="Next page">›</button></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

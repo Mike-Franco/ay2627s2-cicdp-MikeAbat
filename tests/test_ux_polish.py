@@ -172,9 +172,9 @@ class PolishedPagesTests(TestCase):
 
     def test_sidebar_team_group_is_manager_only(self):
         self.login(self.manager)
-        self.assertContains(self.client.get(reverse("inventory-list")), ">TEAM</p>")
+        self.assertContains(self.client.get(reverse("inventory-list")), ">Team</p>")
         self.login(self.staff)
-        self.assertNotContains(self.client.get(reverse("inventory-list")), ">TEAM</p>")
+        self.assertNotContains(self.client.get(reverse("inventory-list")), ">Team</p>")
 
     def test_single_page_hides_pagination(self):
         self.stock()

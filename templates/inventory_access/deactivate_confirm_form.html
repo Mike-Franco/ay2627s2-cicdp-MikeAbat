@@ -1,0 +1,10 @@
+{% comment %}Type-the-name confirmation for deactivating an inventory (TORY-65). The server checks the name too.{% endcomment %}<form method="post" action="{% url 'inventory-status' inventory.pk %}" class="confirm-dialog" aria-label="Confirm deactivation">
+  {% csrf_token %}
+  <input type="hidden" name="is_active" value="false">
+  <strong>Deactivate {{ inventory.name }}?</strong>
+  <span class="muted">{{ product_count }} product{{ product_count|pluralize }} and {{ staff_losing_access }} staff will lose access. Type <strong>{{ inventory.name }}</strong> to confirm.</span>
+  {% if confirm_error %}<div class="auth-error" role="alert">{{ confirm_error }}</div>{% endif %}
+  <label class="visually-hidden" for="confirm-name-{{ inventory.pk }}">Type the inventory name to confirm</label>
+  <input class="form-control field-wide" id="confirm-name-{{ inventory.pk }}" name="confirm_name" placeholder="{{ inventory.name }}" autocomplete="off" required value="{{ typed|default:'' }}">
+  <div class="d-flex flex-wrap gap-2"><a class="btn" href="{% url 'inventory-rename' inventory.pk %}">Cancel</a><button class="btn btn-danger" type="submit">Deactivate</button></div>
+</form>

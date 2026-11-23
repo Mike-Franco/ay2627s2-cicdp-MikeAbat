@@ -1,20 +1,60 @@
 {% extends "base.html" %}
-{% load tory_format %}
-{% block title %}{{ product.name }} stock · Tory{% endblock %}
-{% block breadcrumb %}{{ product.sku }} · Stock{% endblock %}
+{% load static tory_format %}
+{% block title %}{{ product.name }} · Tory{% endblock %}
+{% block page_header %}{% page_header %}{{ product.name }}{% header_actions %}{% if product.is_active %}<a class="btn btn-primary" href="{% url 'receive-batch' inventory.pk product.pk %}">Receive</a><a class="btn" href="{% url 'issue-stock' inventory.pk product.pk %}">Issue</a>{% if can_adjust_stock %}<a class="btn" href="{% url 'adjust-stock' inventory.pk product.pk %}">Adjust</a>{% endif %}{% endif %}{% if can_adjust_stock or link.can_manage_lifecycle %}<details class="more-menu" data-menu><summary class="btn" aria-label="More actions">⋯</summary><div class="more-items" role="menu">{% if link.can_manage_lifecycle %}<a role="menuitem" href="{% url 'product-edit' inventory.pk product.pk %}">Edit product</a>{% endif %}{% if can_adjust_stock %}<a role="menuitem" href="{% url 'selling-price' inventory.pk product.pk %}">Selling price</a>{% if product.is_active %}<a role="menuitem" href="{% url 'reorder-settings' inventory.pk product.pk %}">Reorder settings</a><a role="menuitem" href="{% url 'dispose-stock' inventory.pk product.pk %}">Dispose quarantined stock</a>{% endif %}{% endif %}{% if link.can_manage_lifecycle %}<hr><a role="menuitem" href="{% url 'product-lifecycle' inventory.pk product.pk %}">{% if product.is_active %}Deactivate product{% else %}Reactivate product{% endif %}</a>{% endif %}</div></details>{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
-{% include 'includes/product_tabs.html' with active_tab='stock' %}
-<div class="stock-actions" aria-label="Stock actions">
-  {% if product.is_active %}<a class="btn btn-primary" href="{% url 'receive-batch' inventory.pk product.pk %}">Receive stock</a><a class="btn btn-outline-primary" href="{% url 'issue-stock' inventory.pk product.pk %}">Issue stock</a>{% if can_adjust_stock %}<a class="btn btn-outline-secondary" href="{% url 'adjust-stock' inventory.pk product.pk %}">Adjust batch count</a><a class="btn btn-outline-secondary" href="{% url 'dispose-stock' inventory.pk product.pk %}">Dispose stock</a>{% endif %}{% endif %}
-  {% if link.can_manage_lifecycle %}<a class="btn btn-outline-secondary" href="{% url 'product-edit' inventory.pk product.pk %}">Edit product</a><a class="btn btn-outline-secondary" href="{% url 'product-lifecycle' inventory.pk product.pk %}">Product status</a>{% endif %}
-</div>
-<div class="balance-grid">
-  <section class="balance-card"><h2>Physical</h2><strong>{{ link.display_physical_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} recorded on hand</small></section>
-  <section class="balance-card"><h2>Quarantined</h2><strong>{{ link.display_quarantine_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} held from issue</small></section>
-  <section class="balance-card"><h2>Selling price</h2><strong>{{ link.selling_price|sgd }}</strong><small>per {{ product.base_unit_label|default:'base unit' }} in {{ inventory.name }}{% if can_adjust_stock %} · <a href="{% url 'selling-price' inventory.pk product.pk %}">Edit</a>{% endif %}</small></section>
-  <section class="balance-card emphasized"><h2>Available</h2><strong>{{ link.display_available_units }}</strong><small>{{ product.base_unit_label|default:'base units' }} available to issue</small></section>
-</div>
-<section class="panel"><div class="panel-heading"><h2>Batch balances</h2><p>Remaining quantities and Singapore expiry dates.</p></div>
-  {% if batches %}<div class="table-scroll" role="region" aria-label="Batch balances" tabindex="0"><table class="products-table"><thead><tr><th scope="col">Batch</th><th scope="col">Received</th><th scope="col">Expiry</th><th scope="col" class="numeric">Remaining</th><th scope="col" class="numeric">Quarantined</th></tr></thead><tbody>{% for row in batches %}<tr><th scope="row">#{{ row.batch.receipt_sequence }}</th><td>{{ row.batch.received_at|sgdate }}</td><td>{{ row.batch.expiry_date|sgdate|default:'Undated' }}</td><td class="numeric">{{ row.batch.remaining_quantity_units }}</td><td class="numeric">{{ row.quarantined }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="p-4 mb-0">No remaining batch stock.</p>{% endif %}
+{% if tab == "batches" %}{% include 'includes/product_tabs.html' with active_tab="batches" %}{% else %}{% include 'includes/product_tabs.html' with active_tab="stock" %}{% endif %}
+{% if tab == "batches" %}
+<section class="panel" aria-labelledby="batches-title">
+  <header class="card-h"><div class="card-title"><h2 id="batches-title">Batches · issued FEFO</h2></div><span class="muted">Earliest expiry goes out first</span></header>
+  {% include "catalogue/includes/batch_table.html" %}
+  {% include "includes/pagination.html" with pagination_label="Batch pages" %}
 </section>
+{% else %}
+<section class="strip strip-6" aria-label="Product summary">
+  <div><div class="k">Available</div><div class="v">{{ info.available }}</div><div class="s">{{ info.unit }}{{ info.available|pluralize }} · {% if info.reorder_point is None %}no reorder point{% else %}reorder at {{ info.reorder_point }}{% endif %}</div></div>
+  <div><div class="k">Quarantined</div><div class="v">{{ info.quarantined }}</div><div class="s">{% if info.quarantined %}held from issue{% else %}none held{% endif %}</div></div>
+  <div><div class="k">Avg demand</div><div class="v">{{ info.average|default:"—" }}</div><div class="s">{% if info.average %}per day, 7 verified days{% else %}{{ info.reason|default:"No verified forecast" }}{% endif %}</div></div>
+  <div><div class="k">Days of supply</div><div class="v">{{ info.supply|default:"—" }}</div><div class="s">{% if info.run_out %}runs out ~{{ info.run_out|sgweekday }}{% else %}{{ info.reason|default:"—" }}{% endif %}</div></div>
+  <div><div class="k">Suggested order</div><div class="v">{% if info.suggested is None %}—{% else %}{{ info.suggested }}{% endif %}</div><div class="s">{% if info.suggested is None %}{{ info.reason|default:"—" }}{% else %}covers {{ info.cover_days }} days + lead time{% endif %}</div></div>
+  <div><div class="k">Price</div><div class="v">{{ info.price|sgd }}</div><div class="s">{% if info.value %}value on hand {{ info.value }}{% else %}no selling price{% endif %}</div></div>
+</section>
+<div class="grid2">
+  <section class="panel" aria-labelledby="batches-title">
+    <header class="card-h"><div class="card-title"><h2 id="batches-title">Batches · issued FEFO</h2></div><span class="muted">Earliest expiry goes out first</span></header>
+    {% include "catalogue/includes/batch_table.html" %}
+    {% include "includes/pagination.html" with pagination_label="Batch pages" %}
+  </section>
+  <section class="panel" aria-labelledby="outlook-title">
+    <header class="card-h"><div class="card-title"><h2 id="outlook-title">Next 7 days</h2></div>{% if product.is_active %}<a href="{% url 'demand-forecast' inventory.pk product.pk %}">Full forecast</a>{% endif %}</header>
+    {% if projection %}
+    <div class="chart-frame chart-small"><canvas id="outlook-chart" role="img" aria-label="Projected available stock for the next 7 days against the reorder point"></canvas></div>
+    {% else %}<p class="insight-empty">{{ info.reason|default:"No verified forecast yet." }} The projection appears once the last seven days are verified.</p>{% endif %}
+    {% if callout %}<p class="callout">{{ callout }}</p>{% endif %}
+    <dl class="kv">
+      <dt>Category</dt><dd>{{ product.category|default:"Uncategorised" }}</dd>
+      <dt>Unit</dt><dd>{{ product.base_unit_label|default:"Not set" }}</dd>
+      <dt>Supplier</dt><dd>{% if product.supplier_name %}{{ product.supplier_name }}{% else %}<span class="muted">Not set</span>{% endif %}{% if product.lead_time_days %} · {{ product.lead_time_days }}-day lead{% endif %}</dd>
+      <dt>Also in</dt><dd>{% if also_in %}{{ also_in|join:", " }}{% else %}<span class="muted">No other inventory</span>{% endif %}</dd>
+    </dl>
+  </section>
+</div>
+<section class="panel" aria-labelledby="recent-title">
+  <header class="card-h"><div class="card-title"><h2 id="recent-title">Recent history</h2></div><span>{% if can_view_activity %}<a href="{% url 'activity-log' inventory.business_id %}?inventory={{ inventory.pk }}&amp;q={{ product.sku|urlencode }}">Open in Activity log</a> · {% endif %}<a href="{% url 'stock-history' inventory.pk product.pk %}">Full history</a></span></header>
+  {% if recent %}
+  <div class="table-scroll" role="region" aria-label="Recent history" tabindex="0">
+    <table class="products-table">
+      <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col" class="numeric">Qty</th><th scope="col" class="numeric">After</th><th scope="col">Note</th></tr></thead>
+      <tbody>{% for row in recent %}
+        <tr><td><time datetime="{{ row.at.isoformat }}" title="{{ row.at|sgdate }}">{{ row.at|sgdate }}</time></td><td>{% if row.actor %}{% include "includes/user_avatar.html" with user=row.actor size="sm" with_name=True %}{% else %}System{% endif %}</td><th scope="row">{{ row.action }}</th><td class="numeric{% if row.change is not None and row.change < 0 %} neg{% elif row.change %} pos{% endif %}">{% if row.change is None %}—{% elif row.change > 0 %}+{{ row.change }}{% elif row.change < 0 %}−{{ row.magnitude }}{% else %}0{% endif %}</td><td class="numeric">{{ row.after|default_if_none:"—" }}</td><td class="muted">{{ row.note|default:"—" }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="pager"><span class="pager-range">Showing <strong>{{ recent|length }}</strong> of {{ history_count }}</span><a href="{% url 'stock-history' inventory.pk product.pk %}">View all</a></div>
+  {% else %}<p class="insight-empty">No stock movements recorded yet.</p>{% endif %}
+</section>
+{{ projection|json_script:"outlook-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<script src="{% static 'tory/product.js' %}" defer></script>
+{% endif %}
 {% endblock %}

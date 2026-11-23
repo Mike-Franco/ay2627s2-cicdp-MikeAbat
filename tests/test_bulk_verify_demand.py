@@ -226,8 +226,27 @@ class BulkVerifyDemandTests(TestCase):
         self.assertEqual(inventory_dashboard(self.staff, at=self.now)["unreviewed_demand"], [])
         self.login(self.manager)
         response = self.client.get(reverse("home"))
-        self.assertContains(response, f"{expected} unverified demand days")
-        self.assertContains(response, f"{self.url}?scope=week")
+        # TORY-63: the indigo "Do this first" task replaces the old amber note.
+        self.assertNotContains(response, "alert-warning")
+        self.assertContains(response, 'class="todo" role="region" aria-label="Do this first"')
+        self.assertContains(response, "<strong>Verify 6 demand days in Bulk shelf</strong>")
+        self.assertContains(response, "for 3 products stay paused")
+        self.assertContains(response, f'<a class="btn btn-primary" href="{self.url}?scope=week">Verify 6 days</a>')
+        self.assertContains(response, '<span class="count-badge" aria-label="6 days to verify">6</span>')
+        self.assertEqual([task["days"] for task in response.context["demand_tasks"]],
+                         [[self.today - timedelta(days=offset) for offset in range(7, 1, -1)]])
+
+    def test_do_this_first_is_for_managers_and_hidden_when_nothing_is_left(self):
+        self.login(self.staff)
+        response = self.client.get(reverse("home"))
+        self.assertNotContains(response, 'aria-label="Do this first"')
+        self.assertNotContains(response, "count-badge")
+        self.assertEqual(response.context["demand_tasks"], [])
+        self.bulk(list(reviewable_days(self.now)))
+        self.login(self.manager)
+        response = self.client.get(reverse("home"))
+        self.assertNotContains(response, 'aria-label="Do this first"')
+        self.assertNotContains(response, "count-badge")
 
     def test_forecast_page_shows_status_chips(self):
         self.bulk([self.yesterday])
@@ -243,23 +262,28 @@ class BulkVerifySeedDemoTests(TestCase):
            "DEMO_STAFF_EMAIL": "bulk-seed-staff@example.test",
            "DEMO_MANAGER_PASSWORD": "bulk-seed-password-1!", "DEMO_STAFF_PASSWORD": "bulk-seed-password-2!"}
 
-    def test_fresh_seed_is_fully_verified_and_idempotent(self):
+    def test_fresh_seed_has_two_grocery_dates_to_verify_and_is_idempotent(self):
         with patch.dict(os.environ, self.ENV):
             call_command("seed_demo", stdout=StringIO())
         manager = get_user_model().objects.get(email=self.ENV["DEMO_MANAGER_EMAIL"])
-        links = list(InventoryProduct.objects.filter(inventory__business__name="Tory Demo"))
+        links = list(InventoryProduct.objects.filter(inventory__business__name="Tory Demo")
+                     .select_related("inventory", "product"))
         self.assertEqual(len(links), 15)
         for link in links:
             result = recommendation(user_id=manager.pk, inventory_id=link.inventory_id, product_id=link.product_id)
-            self.assertIsNotNone(result.reorder_point, link.product.sku)
+            if link.product.sku == "GR-07":
+                self.assertIsNone(result.reorder_point)
+            else:
+                self.assertIsNotNone(result.reorder_point, link.product.sku)
         now = timezone.now()
-        self.assertEqual(inventory_dashboard(manager, at=now)["unreviewed_demand"], [])
+        tasks = inventory_dashboard(manager, at=now)["unreviewed_demand"]
+        self.assertEqual([(inventory.name, count) for inventory, count in tasks], [("Grocery", 2)])
         events = DemandCoverageEvent.objects.count()
         with patch.dict(os.environ, self.ENV):
             call_command("seed_demo", stdout=StringIO())
         self.assertEqual(DemandCoverageEvent.objects.count(), events)
-        for inventory_id in {link.inventory_id for link in links}:
+        for inventory_id, name in {(link.inventory_id, link.inventory.name) for link in links}:
             result = verify_demand_days_for_inventory(user_id=manager.pk, inventory_id=inventory_id,
                                                       days=reviewable_days(now), at=now)
-            self.assertEqual(result.verified, ())
-        self.assertEqual(DemandCoverageEvent.objects.count(), events)
+            self.assertEqual(len(result.verified), 2 if name == "Grocery" else 0)
+        self.assertEqual(DemandCoverageEvent.objects.count(), events + 2)

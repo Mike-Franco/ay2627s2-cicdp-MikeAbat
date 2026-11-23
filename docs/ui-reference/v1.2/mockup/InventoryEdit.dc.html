@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tory · Edit inventory</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.t{--bg:#FBFBFC;--panel:#FFFFFF;--side:#F5F5F7;--line:#E6E6EB;--line2:#D6D6DE;--text:#1C1C21;--muted:#5F5F6B;--hover:#F0F0F3;--accent:#5B5BD6;--accent-ink:#4646B5;--accent-weak:#ECECFB;--red:#B42318;--red-bg:#FDECEA;--amber:#8F5300;--amber-bg:#FCF1DC;--green:#1A7340;--green-bg:#E3F2E9;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px;line-height:1.45;color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+.t.dark{--bg:#0E0E10;--panel:#141417;--side:#111113;--line:#26262C;--line2:#34343C;--text:#ECECF1;--muted:#A3A3AE;--hover:#1C1C21;--accent:#8E8FF5;--accent-ink:#ABACF9;--accent-weak:#24244A;--red:#F59E96;--red-bg:#3B1816;--amber:#F3C56E;--amber-bg:#3A2B0F;--green:#82D6A6;--green-bg:#133424}
+.t *{box-sizing:border-box}
+.t a{color:var(--accent-ink);text-decoration:none}
+.t a:hover{text-decoration:underline}
+.t h1{font-size:20px;font-weight:600;letter-spacing:-0.01em;margin:0}
+.t h2{font-size:14px;font-weight:600;margin:0}
+.muted{color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line2);background:var(--panel);color:var(--text);font:inherit;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.t.dark .btn.primary{color:#0E0E10}
+.btn.danger{color:var(--red);border-color:var(--red)}
+.t a.btn{color:var(--text);text-decoration:none}
+.pill{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:500;white-space:nowrap;color:var(--muted);background:var(--hover)}
+.ph{padding:20px 32px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+.ph-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.ph-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}
+.t .crumbs a{color:var(--muted)}
+.sep{color:var(--line2)}
+.main{padding:20px 32px 40px;display:flex;flex-direction:column;gap:16px;max-width:880px}
+.sec{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.sec-h{padding:14px 16px 2px}
+.sec-sub{padding:0 16px 12px;font-size:12px;color:var(--muted)}
+.sec-b{padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:500}
+.hint{font-size:12px;color:var(--muted)}
+.inp{height:34px;border:1px solid var(--line2);border-radius:6px;background:var(--panel);color:var(--text);font:inherit;padding:0 10px;max-width:420px}
+.inp:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.icons{display:flex;flex-wrap:wrap;gap:6px}
+.icons button{width:38px;height:38px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--muted);display:grid;place-items:center;cursor:pointer}
+.icons button.on{border:2px solid var(--accent);color:var(--accent-ink);background:var(--accent-weak)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatches button{width:24px;height:24px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line2);cursor:pointer}
+.swatches button.on{box-shadow:0 0 0 2px var(--text)}
+.preview{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px dashed var(--line2);border-radius:8px;width:fit-content}
+.tile{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;background:#FDEBDD;color:#C2410C}
+.people{border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ptool{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+.prow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);min-height:44px}
+.prow:last-child{border-bottom:0}
+.prow input{width:16px;height:16px;accent-color:var(--accent)}
+.av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;color:#fff;flex:none}
+.pname{flex:1;min-width:0}
+.pname small{display:block;color:var(--muted);font-size:12px}
+.danger-zone{border-color:var(--red-bg)}
+.footer{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;align-items:center;padding:12px 32px;border-top:1px solid var(--line);background:var(--panel)}
+.dlg{border:1px solid var(--line2);border-radius:10px;background:var(--panel);box-shadow:0 12px 32px rgba(0,0,0,.14);padding:16px;max-width:420px;display:flex;flex-direction:column;gap:10px}
+@media (max-width:700px){.main,.ph,.footer{padding-left:16px;padding-right:16px}.btn,.inp{min-height:44px}}
+</style>
+</helmet>
+<div class="t {{themeClass}}" style="display: flex; flex-wrap: wrap; min-height: 1240px; align-items: stretch">
+<div style="flex: 1 1 240px; max-width: 100%; min-width: 220px; display: flex">
+<dc-import name="Sidebar" active="inventories" theme="{{theme}}" hint-size="240px,900px"></dc-import>
+</div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header class="ph">
+<div class="ph-row">
+<h1>Edit inventory</h1>
+<div class="ph-actions"><a class="btn" href="Products.dc.html">View products</a></div>
+</div>
+<nav class="crumbs" aria-label="Breadcrumb"><a href="Main.dc.html">Dashboard</a><span class="sep">/</span><a href="Inventories.dc.html">All inventories</a><span class="sep">/</span><a href="Products.dc.html">Grocery</a><span class="sep">/</span><span>Edit</span></nav>
+</header>
+<main class="main" style="flex: 1">
+
+<section class="sec">
+<div class="sec-h"><h2>Details</h2></div>
+<div class="sec-sub">Name and icon show in the sidebar, the inventory switcher and on every page header.</div>
+<div class="sec-b">
+<div class="field"><label for="n">Name</label><input id="n" class="inp" value="Grocery"></div>
+<div class="field"><label for="d">Description <span class="muted" style="font-weight: 400">(optional)</span></label><input id="d" class="inp" value="Front-of-store dry goods and drinks" style="max-width: 560px"></div>
+<div class="field"><label>Icon</label>
+<div class="icons" role="radiogroup" aria-label="Icon">
+<button type="button" class="on" aria-label="Cart" aria-checked="true" role="radio"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg></button>
+<button type="button" aria-label="Pill" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"></rect><path d="M9 9l6 6"></path></svg></button>
+<button type="button" aria-label="Box" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10"></path></svg></button>
+<button type="button" aria-label="Wrench" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg></button>
+<button type="button" aria-label="Coffee" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h2a2 2 0 0 1 0 4h-2M8 2v3M12 2v3"></path></svg></button>
+<button type="button" aria-label="Shirt" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 3l4 3 4-3 5 4-3 3v11H6V10L3 7z"></path></svg></button>
+<button type="button" aria-label="Leaf" role="radio" aria-checked="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 19c0-9 6-14 15-15-1 9-6 15-15 15zM5 19l7-7"></path></svg></button>
+<button type="button" aria-label="Upload picture" role="radio" aria-checked="false" title="Use your own picture"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"></path></svg></button>
+</div>
+<span class="hint">Or upload a square picture (PNG or JPG, up to 1 MB).</span>
+</div>
+<div class="field"><label>Colour</label>
+<div class="swatches" role="radiogroup" aria-label="Colour">
+<button type="button" class="on" style="background: #C2410C" aria-label="Orange" role="radio" aria-checked="true"></button>
+<button type="button" style="background: #B42318" aria-label="Red" role="radio" aria-checked="false"></button>
+<button type="button" style="background: #1A7340" aria-label="Green" role="radio" aria-checked="false"></button>
+<button type="button" style="background: #1D58A3" aria-label="Blue" role="radio" aria-checked="false"></button>
+<button type="button" style="background: #5B5BD6" aria-label="Indigo" role="radio" aria-checked="false"></button>
+<button type="button" style="background: #8F5300" aria-label="Brown" role="radio" aria-checked="false"></button>
+<button type="button" style="background: #5F5F6B" aria-label="Grey" role="radio" aria-checked="false"></button>
+</div></div>
+<div class="preview"><span class="tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.5 12h11l2-8H6.2"></path></svg></span><div><strong>Grocery</strong><div class="hint">Preview</div></div></div>
+</div>
+</section>
+
+<section class="sec">
+<div class="sec-h"><h2>Who can use this inventory</h2></div>
+<div class="sec-sub">Staff only see inventories they are ticked for. Managers can always see every inventory.</div>
+<div class="sec-b">
+<div class="people">
+<div class="ptool"><span>3 of 4 people have access</span><span><a href="#">Select all staff</a> · <a href="#">Invite someone</a></span></div>
+<div class="prow"><input type="checkbox" checked disabled aria-label="Mia Tan, always has access"><span class="av" style="background: #5B5BD6">MT</span><div class="pname">Mia Tan <small>mia@torydemo.sg</small></div><span class="pill">Manager · always</span></div>
+<div class="prow"><input type="checkbox" checked aria-label="Ravi Kumar"><span class="av" style="background: #1A7340">RK</span><div class="pname">Ravi Kumar <small>ravi@torydemo.sg</small></div><span class="pill">Staff</span></div>
+<div class="prow"><input type="checkbox" checked aria-label="Aisha Rahman"><span class="av" style="background: #C2417A">AR</span><div class="pname">Aisha Rahman <small>aisha@torydemo.sg</small></div><span class="pill">Staff</span></div>
+<div class="prow"><input type="checkbox" aria-label="Daniel Lim"><span class="av" style="background: #8F5300">DL</span><div class="pname">Daniel Lim <small>daniel@torydemo.sg · Pharmacy only</small></div><span class="pill">Staff</span></div>
+</div>
+<span class="hint">Changes are recorded in the Activity log.</span>
+</div>
+</section>
+
+<section class="sec danger-zone">
+<div class="sec-h"><h2>Deactivate inventory</h2></div>
+<div class="sec-sub">Hides Grocery from staff and stops new stock movements. History, products and reports are kept, and you can reactivate it later.</div>
+<div class="sec-b">
+<div><button class="btn danger" type="button">Deactivate Grocery…</button></div>
+<div class="dlg" role="dialog" aria-label="Confirm deactivation">
+<strong>Deactivate Grocery?</strong>
+<span class="muted">7 products and 2 staff will lose access. Type <strong style="color: var(--text)">Grocery</strong> to confirm.</span>
+<input class="inp" placeholder="Grocery" aria-label="Type the inventory name to confirm">
+<div style="display: flex; gap: 8px; justify-content: flex-end"><button class="btn" type="button">Cancel</button><button class="btn danger" type="button">Deactivate</button></div>
+</div>
+<span class="hint">The dialog above is shown open for the mockup.</span>
+</div>
+</section>
+</main>
+<div class="footer"><span class="hint" style="margin-right: auto">Unsaved changes</span><a class="btn" href="Inventories.dc.html">Cancel</a><button class="btn primary" type="button">Save changes</button></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    return { theme: theme, themeClass: theme === 'dark' ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

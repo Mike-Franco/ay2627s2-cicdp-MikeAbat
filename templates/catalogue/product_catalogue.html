@@ -1,21 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Product catalogue · Tory{% endblock %}
-{% block breadcrumb %}Catalogue{% endblock %}
+{% block page_header %}{% page_header %}Catalogue{% header_actions %}{% for membership in category_managers %}<a class="btn" href="{% url 'category-list' membership.business_id %}">Categories{% if category_managers|length > 1 %} · {{ membership.business.name }}{% endif %}</a>{% endfor %}{% for inventory in create_inventories %}<a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product{% if create_inventories|length > 1 %} · {{ inventory.business.name }}{% endif %}</a>{% endfor %}{% endpage_header %}{% endblock %}
 {% block content %}
-<div class="products-heading">
-  <h1>Product catalogue</h1>
-  {% if create_inventories %}
-  <div class="heading-actions">
-    {% for inventory in create_inventories %}
-    <a class="btn btn-primary" href="{% url 'product-create' inventory.pk %}">New product{% if create_inventories|length > 1 %} · {{ inventory.business.name }}{% endif %}</a>
-    {% endfor %}
-  </div>
-  {% endif %}
-  {% for membership in category_managers %}
-  <a href="{% url 'category-list' membership.business_id %}">Manage categories{% if category_managers|length > 1 %} · {{ membership.business.name }}{% endif %}</a>
-  {% endfor %}
-</div>
 {% load tory_format %}
+{% include "includes/scope_chip.html" %}
 <section class="panel" aria-label="Catalogue">
   {% include "includes/table_toolbar.html" %}
   {% if not valid_filters %}<p class="p-3" role="alert">Check the search length and choose a category and inventory available to your account.</p>
@@ -27,8 +15,8 @@
         {% include "includes/sortable_header.html" with key="sku" label="SKU" %}
         {% include "includes/sortable_header.html" with key="category" label="Category" %}
         <th scope="col">Inventories</th>
-        {% include "includes/sortable_header.html" with key="available" label="Total available" %}
-        <th scope="col">Status</th><th scope="col">Price range</th><th scope="col">Active</th>
+        {% include "includes/sortable_header.html" with key="available" label="Total available" numeric=True %}
+        <th scope="col">Status</th><th scope="col" class="numeric">Price range</th><th scope="col">Active</th>
       </tr></thead>
       <tbody>
       {% for row in product_links %}
@@ -37,9 +25,9 @@
           <td><span class="list-mobile-label" aria-hidden="true">SKU</span>{{ row.product.sku }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Category</span>{{ row.product.category|default:"Uncategorised" }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Inventories</span><div class="d-flex flex-wrap gap-2">{% for link in row.links %}<a href="{% url 'inventory-products' link.inventory_id %}">{% include "includes/inventory_badge.html" with inventory=link.inventory %}</a>{% endfor %}</div></td>
-          <td><span class="list-mobile-label" aria-hidden="true">Total available</span>{{ row.available_units }}</td>
+          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Total available</span>{{ row.available_units }}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Status</span>{{ row.status }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Price range</span>{% with prices=row.prices %}{% if prices %}{{ prices|first|sgd }}{% else %}—{% endif %}{% if prices|length > 1 %} – {{ prices|last|sgd }}{% endif %}{% endwith %}</td>
+          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Price range</span>{% with prices=row.prices %}{% if prices %}{{ prices|first|sgd }}{% else %}—{% endif %}{% if prices|length > 1 %} – {{ prices|last|sgd }}{% endif %}{% endwith %}</td>
           <td><span class="list-mobile-label" aria-hidden="true">Active</span>{{ row.product.is_active|yesno:"Yes,No" }}</td>
         </tr>
       {% endfor %}

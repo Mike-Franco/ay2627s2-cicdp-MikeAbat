@@ -1,6 +1,7 @@
 """Populate a non-production database with a reproducible demo snapshot."""
 
 import os
+import random
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 from secrets import token_urlsafe
@@ -12,6 +13,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from catalogue.forms import PRODUCT_FIELDS
@@ -38,11 +40,23 @@ except ImportError:
 # TORY-54: how each demo inventory looks (icon key, colour key).
 INVENTORY_LOOKS = {"Pharmacy": ("pill", "teal"), "Grocery": ("shopping-cart", "orange")}
 
-# SKU, display name, base unit, opening stock, days to expiry, daily issues.
+DEMO_SUPPLIERS = {"PH": "Harbour Medical Supplies", "GR": "Market Lane Wholesale"}
+DEMO_WEEK_DAYS = 7
+# Leave two dates for the Manager to verify without blocking the Oat Milk forecast.
+DEMO_UNVERIFIED_SKU = "GR-07"
+DEMO_UNVERIFIED_DAYS = 2
+# Day-to-day demand varies by about +/-25%, with weekends 20% busier, so
+# Insights shows a realistic forecast error (roughly 10-20%) rather than 0%.
+# A fixed seed keeps every reseed and test run identical.
+DEMO_DEMAND_SEED = 92
+DEMO_DEMAND_SPREAD = 0.25
+DEMO_WEEKEND_LIFT = 1.2
+
+# SKU, display name, base unit, on-hand stock after the seeded history, days to expiry, typical daily issues.
 INVENTORIES = {
     "Pharmacy": (
-        ("PH-01", "Saline Nasal Spray", "bottle", 16, 3, 2),
-        ("PH-02", "Oral Rehydration Salts", "sachet", 48, 5, 1),
+        ("PH-01", "Saline Nasal Spray", "bottle", 2, 3, 6),
+        ("PH-02", "Oral Rehydration Salts", "sachet", 41, 5, 4),
         ("PH-03", "Sterile Dressings", "pack", 36, 60, 0),
         ("PH-04", "Digital Thermometer", "each", 25, None, 0),
         ("PH-05", "Hand Sanitizer", "bottle", 42, 90, 0),
@@ -51,8 +65,8 @@ INVENTORIES = {
         ("PH-08", "Medical Tape", "roll", 24, None, 0),
     ),
     "Grocery": (
-        ("GR-01", "Oat Milk", "carton", 18, 6, 2),
-        ("GR-02", "Jasmine Rice", "bag", 50, 180, 1),
+        ("GR-01", "Oat Milk", "carton", 4, 6, 6),
+        ("GR-02", "Jasmine Rice", "bag", 43, 180, 4),
         ("GR-03", "Rolled Oats", "bag", 32, 70, 0),
         ("GR-04", "Canned Chickpeas", "can", 44, 120, 0),
         ("GR-05", "Black Tea", "box", 26, 100, 0),
@@ -144,34 +158,38 @@ def _demo_category(business, sku):
     return category or Category.objects.create(business=business, name=label)
 
 
-def _backfill_categories(business, manager):
-    """Give uncategorised demo products their demo category, through the audited product edit."""
-    filled = 0
-    products = Product.objects.filter(business=business, category__isnull=True, sku__in=DEMO_PRICES).order_by("pk")
+def _ordering_settings(sku):
+    return {"lead_time_days": 3, "safety_stock_units": 5, "supplier_name": DEMO_SUPPLIERS[sku[:2]]}
+
+
+def _backfill_products(business, manager):
+    """Fill missing demo categories and ordering settings through the audited edit."""
+    categories = settings_filled = 0
+    products = Product.objects.filter(business=business, sku__in=DEMO_PRICES).filter(
+        Q(category__isnull=True) | Q(lead_time_days__isnull=True) | Q(safety_stock_units__isnull=True)
+        | Q(supplier_name=""),
+    ).order_by("pk")
     for product in products:
         link = product.inventory_links.filter(inventory__is_active=True).select_related("inventory").order_by("pk").first()
-        category = _demo_category(business, product.sku)
-        if link is None or category is None:
+        if link is None:
             continue
-        values = {field: getattr(product, field) for field in PRODUCT_FIELDS if field != "category"}
-        values["category"] = category
+        defaults = _ordering_settings(product.sku)
+        changes = {field: value for field, value in defaults.items() if getattr(product, field) in (None, "")}
+        settings_filled += bool(changes)
+        if product.category_id is None:
+            changes["category"] = _demo_category(business, product.sku)
+            categories += 1
         if save_product_change is not None:
+            values = {field: getattr(product, field) for field in PRODUCT_FIELDS}
+            values.update(changes)
             save_product_change(user=manager, inventory=link.inventory, values=values, product_id=product.pk)
         else:
-            Product.objects.filter(pk=product.pk).update(category=category)
-        filled += 1
-    return filled
+            Product.objects.filter(pk=product.pk).update(**changes)
+    return categories, settings_filled
 
 
 def _backfill(business):
-    """Add demo prices, names and categories to an existing demo without touching stock or history.
-
-    Only blank values are filled: products without a selling price get the demo
-    price through the audited price service, products without a category get
-    their demo category through the audited product edit, and users without a
-    display name or job title get the demo profile. Returns (users, prices,
-    categories) filled.
-    """
+    """Fill blank demo fields without changing stock movements or demand coverage."""
     users = sum(_apply_profile(membership.user, membership.role)
                 for membership in business.memberships.select_related("user"))
     manager = business.memberships.get(role=BusinessMembership.Role.MANAGER).user
@@ -183,7 +201,8 @@ def _backfill(business):
     for link in links:
         _set_price(manager, link.inventory, link.product_id, link.product.sku)
         prices += 1
-    return users, prices, _backfill_categories(business, manager)
+    categories, settings_filled = _backfill_products(business, manager)
+    return users, prices, categories, settings_filled
 
 
 def _ensure_observation(first_day):
@@ -205,9 +224,22 @@ def _ensure_observation(first_day):
     )
 
 
+def demo_demand(sku, typical, dates):
+    """Deterministic daily issue quantities for one SKU: at least one unit on each date."""
+    if not typical:
+        return [0] * len(dates)
+    rng = random.Random(f"{DEMO_DEMAND_SEED}:{sku}")
+    return [
+        max(1, round(typical * rng.uniform(1 - DEMO_DEMAND_SPREAD, 1 + DEMO_DEMAND_SPREAD)
+                     * (DEMO_WEEKEND_LIFT if day.weekday() >= 5 else 1)))
+        for day in dates
+    ]
+
+
 def _seed_inventory(inventory, manager, staff, dates, now):
     today = now.astimezone(SINGAPORE).date()
     received_at = datetime.combine(dates[0], time(8), SINGAPORE)
+    unverified_dates = dates[-DEMO_UNVERIFIED_DAYS:]
     skus = {row[0] for row in INVENTORIES[inventory.name]}
     categories = {}
     for label, category_skus in DEMO_CATEGORIES.items():
@@ -219,27 +251,31 @@ def _seed_inventory(inventory, manager, staff, dates, now):
         product = _create_product(manager, inventory, {
             "sku": sku, "name": name, "base_unit_label": unit,
             "expiry_tracking_required": expiry_offset is not None,
-            "lead_time_days": 3, "safety_stock_units": 5, "category": categories[sku],
+            "category": categories[sku], **_ordering_settings(sku),
         })
         _set_price(manager, inventory, product.pk, sku)
         scope = {"inventory_id": inventory.pk, "product_id": product.pk}
         expiry = today + timedelta(days=expiry_offset) if expiry_offset is not None else None
-        receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=quantity,
+        issues = demo_demand(sku, daily_issue, dates)
+        # Receive enough to cover the seeded issues and leave the listed on-hand stock.
+        opening_quantity = quantity + sum(issues)
+        receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=opening_quantity,
                        expiry_date=expiry, demo_received_at=received_at)
         if sku == "PH-03":
+            # The expired demo batch must use the receipt guard's recent demo window.
+            recent_receipt = datetime.combine(dates[-DEMO_WEEK_DAYS], time(8), SINGAPORE)
             receive_manual(user_id=manager.pk, **scope, request_token=uuid4(), quantity_units=6,
-                           expiry_date=today - timedelta(days=1), demo_received_at=received_at)
-        for day in dates:
-            if daily_issue:
-                issue_stock(user_id=staff.pk, **scope, quantity_units=daily_issue,
+                           expiry_date=today - timedelta(days=1), demo_received_at=recent_receipt)
+        for day, issued in zip(dates, issues, strict=True):
+            if issued:
+                issue_stock(user_id=staff.pk, **scope, quantity_units=issued,
                             demo_issued_at=datetime.combine(day, time(12), SINGAPORE))
-            # Verify every seeded date, including zero-demand ones, so a fresh
-            # demo shows numeric forecasts and no unverified-day warnings.
-            verify_demand_day(user_id=manager.pk, **scope, day=day, at=now)
+            if sku != DEMO_UNVERIFIED_SKU or day not in unverified_dates:
+                verify_demand_day(user_id=manager.pk, **scope, day=day, at=now)
 
 
 class Command(BaseCommand):
-    help = "Create the Tory demo and seven days of sample history in a non-production database."
+    help = "Create the Tory demo and two weeks of sample history in a non-production database."
 
     def handle(self, *args, **options):
         if settings.DJANGO_ENV == "production" or os.getenv("DJANGO_ENV", "").lower() == "production":
@@ -256,7 +292,7 @@ class Command(BaseCommand):
 
         now = timezone.now()
         today = now.astimezone(SINGAPORE).date()
-        dates = [today - timedelta(days=offset) for offset in range(7, 0, -1)]
+        dates = [today - timedelta(days=offset) for offset in range(2 * DEMO_WEEK_DAYS, 0, -1)]
         generated = {}
         with transaction.atomic():
             lock_activation(shared=False)
@@ -265,11 +301,13 @@ class Command(BaseCommand):
                 memberships = dict(businesses[0].memberships.values_list("role", "user__email"))
                 if len(businesses) != 1 or memberships != logins:
                     raise CommandError("The demo business name is already in use with different accounts.")
-                users, prices, categories = _backfill(businesses[0])
+                users, prices, categories, settings_filled = _backfill(businesses[0])
                 self.stdout.write("Tory Demo is already seeded.")
                 if users or prices or categories:
                     self.stdout.write(f"Backfilled {users} demo profile(s), {prices} selling price(s) "
                                       f"and {categories} product categor{'y' if categories == 1 else 'ies'}.")
+                if settings_filled:
+                    self.stdout.write(f"Backfilled ordering settings for {settings_filled} demo product(s).")
                 return
             if User.objects.filter(email__in=logins.values()).exists():
                 raise CommandError("A demo email is already in use. Configure distinct demo emails.")
