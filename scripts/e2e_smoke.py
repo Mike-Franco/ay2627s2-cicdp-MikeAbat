@@ -41,7 +41,9 @@ def main():
         page.fill("#id_email", args.email)
         page.fill("#id_password", args.password)
         page.get_by_role("button", name="Sign in").click()
-        expect(page.get_by_role("heading", name="Inventory dashboard")).to_be_visible()
+        expect(page.get_by_role("heading", name="Dashboard", exact=True)).to_be_visible()
+        # TORY-62: one page header with the breadcrumb under the title.
+        expect(page.get_by_role("navigation", name="Breadcrumb")).to_be_visible()
         expect(page.locator(".stat-tile")).not_to_have_count(0)
         snap("1-dashboard")
 
@@ -54,7 +56,7 @@ def main():
         forecast_href = page.locator("a[href$='/forecast/']").first.get_attribute("href")
 
         page.goto(f"{base}/inventories/{inventory_id}/insights/")
-        expect(page.get_by_role("heading", name="Inventory insights")).to_be_visible()
+        expect(page.get_by_role("heading", name="Insights", exact=True)).to_be_visible()
         # TORY-59: six explained chart cards; seeded demo data always fills these four
         # (the value and days-of-supply cards may legitimately show their empty state).
         expect(page.locator("section.insight-card")).to_have_count(6)
@@ -66,10 +68,13 @@ def main():
         snap("3-insights")
 
         page.goto(base + forecast_href)
-        expect(page.get_by_role("heading", name="Demand forecast for", exact=False)).to_be_visible()
+        # TORY-62: the product name is the page title; the underline tab shows the forecast.
+        expect(page.locator(".product-tabs a[aria-current='page']")).to_have_text("Forecast")
         expect(page.locator(".summary-card")).to_have_count(3)
         snap("4-forecast")
 
+        # TORY-62: Sign out (and the theme toggle) live in the sidebar profile menu.
+        page.locator(".profile-menu summary").click()
         page.get_by_role("button", name="Sign out").click()
         expect(page).to_have_url(f"{base}/login/")
         # TORY-60: "/" is the public landing page; the dashboard needs sign-in again.
