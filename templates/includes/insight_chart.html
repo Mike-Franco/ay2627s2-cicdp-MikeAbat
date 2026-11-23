@@ -1,39 +1,15 @@
 {% load tory_format %}
 <section class="panel insight-card" id="{{ card.key }}" aria-labelledby="{{ card.key }}-heading">
-  <header class="panel-heading">
-    <h2 id="{{ card.key }}-heading">{{ card.title }}</h2>
-    <p>Data as of <time datetime="{{ as_of_iso }}">{{ as_of|sgdate }} SGT</time></p>
+  <header class="card-h">
+    <div class="card-title"><h2 id="{{ card.key }}-heading">{{ card.title }}</h2>{% include "includes/help_tip.html" with tip=card.help %}</div>
+    {% if card.key == "value" %}<div class="seg" role="group" aria-label="Group by">{% for item in group_links %}<a href="{{ item.url }}"{% if item.current %} class="on" aria-current="true"{% endif %}>{{ item.label }}</a>{% endfor %}</div>{% endif %}
   </header>
-  {% if card.control.choices %}
-  <form method="get" action="#{{ card.key }}" class="product-filters" aria-label="{{ card.title }} options">
-    {% for name, value in card.control.hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
-    <div class="product-filter-field">
-      <label for="{{ card.key }}-option">{{ card.control.label }}</label>
-      <select id="{{ card.key }}-option" name="{{ card.control.key }}" class="form-select">
-        {% for value, label in card.control.choices %}
-        <option value="{{ value }}"{% if value == card.control.value %} selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="product-filter-actions"><button class="btn btn-outline-primary">Apply</button></div>
-  </form>
-  {% endif %}
   {% if card.has_data %}
-  <div class="chart-frame"><canvas id="{{ card.key }}-chart" role="img" aria-labelledby="{{ card.key }}-heading" aria-describedby="{{ card.key }}-guide"></canvas></div>
+  <div class="chart-frame"><canvas id="{{ card.key }}-chart" role="img" aria-label="{{ card.title }} chart; the data is in the table below"></canvas></div>
   {% else %}
   <p class="insight-empty">{{ card.empty }}</p>
   {% endif %}
-  <dl id="{{ card.key }}-guide" class="chart-guide">
-    <div><dt>What this shows</dt><dd>{{ card.shows }}</dd></div>
-    <div><dt>How to read it</dt><dd>{{ card.read }}</dd></div>
-    <div><dt>What to do</dt><dd>{{ card.action }}</dd></div>
-  </dl>
-  {% if card.key == "value" and priced_count %}
-  <p class="p-3 mb-0"><strong>{{ stock_value|sgd }}</strong> across {{ priced_count }} priced product{{ priced_count|pluralize }}.</p>
-  {% endif %}
-  {% if card.key == "value" and unpriced_products %}
-  <p class="chart-price-note">Products with no selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>
-  {% endif %}
+  {% if card.key == "value" and unpriced_products %}<p class="chart-price-note">No selling price set: {% for product in unpriced_products %}{{ product.sku }}{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
   <details class="chart-data"{% if card.page.touched %} open{% endif %}><summary>Show data</summary>
     <div class="table-scroll" role="region" aria-label="{{ card.title }} data" tabindex="0">
       <table class="products-table" aria-label="{{ card.title }} data">

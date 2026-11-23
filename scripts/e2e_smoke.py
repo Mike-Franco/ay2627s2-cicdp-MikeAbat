@@ -57,10 +57,13 @@ def main():
 
         page.goto(f"{base}/inventories/{inventory_id}/insights/")
         expect(page.get_by_role("heading", name="Insights", exact=True)).to_be_visible()
-        # TORY-59: six explained chart cards; seeded demo data always fills these four
-        # (the value and days-of-supply cards may legitimately show their empty state).
-        expect(page.locator("section.insight-card")).to_have_count(6)
-        charts = ("stock-chart", "traffic-chart", "demand-chart", "expiry-chart")
+        # TORY-64: four chart cards with "?" help tips; seeded demo data always fills these three
+        # (the value card may legitimately show its empty state). Tables sit below the charts.
+        expect(page.locator("section.insight-card")).to_have_count(4)
+        expect(page.locator(".strip .help-btn")).to_have_count(4)
+        expect(page.locator("#ranking")).to_be_visible()
+        expect(page.locator("#expiring")).to_be_visible()
+        charts = ("stock-chart", "traffic-chart", "demand-chart")
         for chart in charts:
             expect(page.locator(f"canvas#{chart}")).to_be_visible()
         page.wait_for_function(
