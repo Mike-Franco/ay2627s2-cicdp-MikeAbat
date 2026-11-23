@@ -2,6 +2,12 @@
 
 All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refer to [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/pulls?q=is%3Apr+is%3Amerged).
 
+## v1.1.1 — 23 November 2026
+
+### Fixed
+- Re-running `seed_demo` on an existing demo now also creates the demo categories and assigns them to products that have none. It uses the audited product edit and leaves stock and history unchanged. Demos seeded before TORY-56 had shown an empty Categories page (#107).
+- The CI browser smoke test now passes its generated password as `--password=VALUE`, so a password starting with `-` no longer fails the run (#106).
+
 ## v1.1.0 — 23 November 2026
 
 Owner-feedback release: TORY-52 to TORY-61 (approved in [CR-002](docs/decisions/CR-002-scope-additions-tory-52-61.md)) and a demo polish pass. It includes three new migrations: `accounts` 0004, `catalogue` 0011–0012, and `inventory_access` 0004.
