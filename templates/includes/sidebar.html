@@ -6,25 +6,25 @@
   </div>
   <div class="inventory-switcher">
     <details data-menu>
-      <summary class="inventory-switch" aria-label="Switch inventory{% if workspace_inventory %}, current: {{ workspace_inventory.name }}{% endif %}">{% if workspace_inventory %}{% include "includes/inventory_badge.html" with inventory=workspace_inventory icon_only=True %}{% else %}<span class="location-mark" aria-hidden="true"><svg class="icon" focusable="false"><use href="{{ sprite }}#layers"></use></svg></span>{% endif %}<span class="switch-name">{% if workspace_inventory %}{{ workspace_inventory.name }}{% else %}Choose inventory{% endif %}</span><svg class="icon switch-caret" aria-hidden="true" focusable="false"><use href="{{ sprite }}#chevrons"></use></svg></summary>
+      <summary class="inventory-switch" aria-label="Switch inventory{% if workspace_current %}, current: {{ workspace_current.name }}{% endif %}">{% if workspace_current %}{% include "includes/inventory_badge.html" with inventory=workspace_current icon_only=True %}{% else %}<span class="location-mark" aria-hidden="true"><svg class="icon" focusable="false"><use href="{{ sprite }}#layers"></use></svg></span>{% endif %}<span class="switch-name">{% if workspace_current %}{{ workspace_current.name }}{% else %}Choose inventory{% endif %}</span><svg class="icon switch-caret" aria-hidden="true" focusable="false"><use href="{{ sprite }}#chevrons"></use></svg></summary>
       <div class="switcher-options">
-        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_inventory.pk == item.pk %}aria-current="page"{% endif %}>{% include "includes/inventory_badge.html" with inventory=item %}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
+        {% for item in workspace_inventories %}<a href="{% url 'inventory-products' item.pk %}" {% if workspace_current.pk == item.pk %}aria-current="page"{% endif %}>{% include "includes/inventory_badge.html" with inventory=item %}<small>{{ item.business.name }}</small></a>{% empty %}<p>No assigned inventories. Contact your Manager.</p>{% endfor %}
         <a class="switcher-all" href="{% url 'inventory-list' %}">View all inventories</a>
       </div>
     </details>
   </div>
   <nav class="sidebar-nav" aria-label="Main navigation">
     <a class="sidebar-link {% if here == 'home' %}active{% endif %}" href="{% url 'home' %}" {% if here == 'home' %}aria-current="page"{% endif %}><svg class="icon" aria-hidden="true" focusable="false"><use href="{{ sprite }}#dashboard"></use></svg>Dashboard</a>
-    {% if workspace_inventory %}
+    {% if workspace_current %}
       {# The selected inventory's pages live in one group so it is clear which inventory they belong to. #}
       <details class="nav-group" open>
-        <summary class="nav-group-summary"><span class="nav-group-name">{{ workspace_inventory.name }}</span><span class="nav-group-caret" aria-hidden="true">⌄</span></summary>
+        <summary class="nav-group-summary"><span class="nav-group-name">{{ workspace_current.name }}</span><span class="nav-group-caret" aria-hidden="true">⌄</span></summary>
         <div class="nav-group-links">
-          <a class="sidebar-link sub {% if here == 'inventory-products' %}active{% endif %}" href="{% url 'inventory-products' workspace_inventory.pk %}" {% if here == 'inventory-products' %}aria-current="page"{% endif %}>Products</a>
-          <a class="sidebar-link sub {% if here == 'inventory-insights' %}active{% endif %}" href="{% url 'inventory-insights' workspace_inventory.pk %}" {% if here == 'inventory-insights' %}aria-current="page"{% endif %}>Insights</a>
+          <a class="sidebar-link sub {% if here == 'inventory-products' %}active{% endif %}" href="{% url 'inventory-products' workspace_current.pk %}" {% if here == 'inventory-products' %}aria-current="page"{% endif %}>Products</a>
+          <a class="sidebar-link sub {% if here == 'inventory-insights' %}active{% endif %}" href="{% url 'inventory-insights' workspace_current.pk %}" {% if here == 'inventory-insights' %}aria-current="page"{% endif %}>Insights</a>
           {% if workspace_is_manager %}
-          <a class="sidebar-link sub {% if here == 'import-stock-csv' %}active{% endif %}" href="{% url 'import-stock-csv' workspace_inventory.pk %}" {% if here == 'import-stock-csv' %}aria-current="page"{% endif %}>Import CSV</a>
-          <a class="sidebar-link sub {% if here == 'bulk-verify-demand' %}active{% endif %}" href="{% url 'bulk-verify-demand' workspace_inventory.pk %}" {% if here == 'bulk-verify-demand' %}aria-current="page"{% endif %}>Verify demand</a>
+          <a class="sidebar-link sub {% if here == 'import-stock-csv' %}active{% endif %}" href="{% url 'import-stock-csv' workspace_current.pk %}" {% if here == 'import-stock-csv' %}aria-current="page"{% endif %}>Import CSV</a>
+          <a class="sidebar-link sub {% if here == 'bulk-verify-demand' %}active{% endif %}" href="{% url 'bulk-verify-demand' workspace_current.pk %}" {% if here == 'bulk-verify-demand' %}aria-current="page"{% endif %}>Verify demand</a>
           {% endif %}
         </div>
       </details>

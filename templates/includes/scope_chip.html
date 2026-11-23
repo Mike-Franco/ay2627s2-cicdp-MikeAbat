@@ -1,0 +1,5 @@
+{% comment %}"Showing [Grocery] products from your current inventory · Show all inventories (N)" (TORY-63). Context from inventory_access.selection.scope_chip.{% endcomment %}{% if scope and scope.showing_current %}
+<div class="scope"><span>Showing</span><span class="scopechip">{% include "includes/inventory_badge.html" with inventory=scope.inventory %}</span><span>{{ scope.noun }} from your current inventory ·</span><a href="{{ scope.all_url }}">Show all inventories ({{ scope.all_count }})</a></div>
+{% elif scope and scope.showing_all %}
+<div class="scope"><span>Showing</span><span class="scopechip">All inventories</span><span>·</span><a href="{{ scope.current_url }}">Show only {{ scope.inventory.name }}</a></div>
+{% endif %}

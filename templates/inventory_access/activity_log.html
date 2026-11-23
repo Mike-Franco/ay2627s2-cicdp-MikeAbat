@@ -4,6 +4,7 @@
 {% block page_header %}{% page_header %}Activity log{% header_actions %}<a class="btn" href="{% url 'activity-log-csv' business.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Download CSV</a>{% endpage_header %}{% endblock %}
 {% block content %}
 <p class="page-intro">Who did what across every inventory in this business. Read-only, from the audit records. Times are Asia/Singapore.</p>
+{% include "includes/scope_chip.html" %}
 <section class="panel" aria-labelledby="activity-title">
   <h2 class="visually-hidden" id="activity-title">Activity</h2>
   <form method="get" class="product-filters" role="search" aria-label="Filter activity">

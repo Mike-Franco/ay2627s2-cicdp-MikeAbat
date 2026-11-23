@@ -226,8 +226,27 @@ class BulkVerifyDemandTests(TestCase):
         self.assertEqual(inventory_dashboard(self.staff, at=self.now)["unreviewed_demand"], [])
         self.login(self.manager)
         response = self.client.get(reverse("home"))
-        self.assertContains(response, f"{expected} unverified demand days")
-        self.assertContains(response, f"{self.url}?scope=week")
+        # TORY-63: the indigo "Do this first" task replaces the old amber note.
+        self.assertNotContains(response, "alert-warning")
+        self.assertContains(response, 'class="todo" role="region" aria-label="Do this first"')
+        self.assertContains(response, "<strong>Verify 6 demand days in Bulk shelf</strong>")
+        self.assertContains(response, "for 3 products stay paused")
+        self.assertContains(response, f'<a class="btn btn-primary" href="{self.url}?scope=week">Verify 6 days</a>')
+        self.assertContains(response, '<span class="count-badge" aria-label="6 days to verify">6</span>')
+        self.assertEqual([task["days"] for task in response.context["demand_tasks"]],
+                         [[self.today - timedelta(days=offset) for offset in range(7, 1, -1)]])
+
+    def test_do_this_first_is_for_managers_and_hidden_when_nothing_is_left(self):
+        self.login(self.staff)
+        response = self.client.get(reverse("home"))
+        self.assertNotContains(response, 'aria-label="Do this first"')
+        self.assertNotContains(response, "count-badge")
+        self.assertEqual(response.context["demand_tasks"], [])
+        self.bulk(list(reviewable_days(self.now)))
+        self.login(self.manager)
+        response = self.client.get(reverse("home"))
+        self.assertNotContains(response, 'aria-label="Do this first"')
+        self.assertNotContains(response, "count-badge")
 
     def test_forecast_page_shows_status_chips(self):
         self.bulk([self.yesterday])

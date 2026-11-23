@@ -254,6 +254,8 @@ from catalogue.csv_exports import csv_download  # noqa: E402
 from catalogue.templatetags.tory_format import sgdate  # noqa: E402
 
 from .authorization import manager_memberships  # noqa: E402
+from .authorization import authorized_inventories  # noqa: E402
+from .selection import current_inventory, scope_chip, scope_filter  # noqa: E402
 
 PAGE_SIZE = 50
 
@@ -310,7 +312,14 @@ def _csv_rows(business_id, rows):
 @require_GET
 def activity_log(request, business_id, export=False):
     business = _business(request, business_id)
-    form = ActivityFilterForm(request.GET, business_id=business.pk)
+    # TORY-63: default to the inventory selected in the sidebar when it belongs to
+    # this business; ?scope=all (or choosing "All inventories") shows the business.
+    current = current_inventory(request, authorized_inventories(request.user).filter(business_id=business.pk))
+    shown, defaulted = scope_filter(request, current)
+    data = request.GET.copy()
+    if defaulted:
+        data["inventory"] = shown
+    form = ActivityFilterForm(data, business_id=business.pk)
     if not form.is_valid():
         return render(request, "inventory_access/activity_log.html", {
             "business": business, "form": form, "rows": [], "page": None,
@@ -323,7 +332,10 @@ def activity_log(request, business_id, export=False):
             "Quantity change", "Details",
         ), _csv_rows(business.pk, list(rows)))
     page = paginate(request, rows, default=PAGE_SIZE)
+    all_count = activity_rows(business.pk, **{**form.query(), "inventory_id": None}).count() if current else 0
     return render(request, "inventory_access/activity_log.html", {
+        "scope": scope_chip(request, current, shown_id=str(form.cleaned_data["inventory"] or "") or None,
+                            all_count=all_count, noun="activity"),
         "breadcrumbs": [("Dashboard", reverse("home")), (business.name, None), ("Activity log", None)],
         "business": business, "form": form, "page": page, "rows": hydrate(business.pk, list(page.object_list)),
         "is_filtered": any(request.GET.get(name) for name in form.fields),
