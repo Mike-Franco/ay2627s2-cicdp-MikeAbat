@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load tory_format %}
 {% block title %}Activity log · Tory{% endblock %}
-{% block page_header %}{% page_header %}Activity log{% header_actions %}<a class="btn" href="{% url 'activity-log-csv' business.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Download CSV</a>{% endpage_header %}{% endblock %}
+{% block page_header %}{% page_header %}Activity log{% header_actions %}{% if not is_staff_view %}<a class="btn" href="{% url 'activity-log-csv' business.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">Download CSV</a>{% endif %}{% endpage_header %}{% endblock %}
 {% block content %}
-<p class="page-intro">Who did what across every inventory in this business. Read-only, from the audit records. Times are Asia/Singapore.</p>
+<p class="page-intro">{% if is_staff_view %}Stock movements in the inventories you are assigned to. Read-only, from the audit records.{% else %}Who did what across every inventory in this business. Read-only, from the audit records.{% endif %} Times are Asia/Singapore.</p>
 {% include "includes/scope_chip.html" %}
 <section class="panel" aria-labelledby="activity-title">
   <h2 class="visually-hidden" id="activity-title">Activity</h2>
@@ -13,21 +13,22 @@
     {% endfor %}
     <div class="product-filter-actions"><button class="btn btn-primary" type="submit">Apply</button>{% if is_filtered %}<a class="btn btn-outline-secondary" href="{% url 'activity-log' business.pk %}">Clear filters</a>{% endif %}</div>
   </form>
-  {% if page %}<p class="list-result-count">{{ page.paginator.count }} event{{ page.paginator.count|pluralize }}</p>{% endif %}
   {% if rows %}
   <div class="table-scroll" role="region" aria-label="Activity" tabindex="0">
-    <table class="products-table responsive-list activity-table">
-      <thead><tr><th scope="col" aria-sort="descending">Time</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">Inventory</th><th scope="col">Product</th><th scope="col" class="numeric">Change</th><th scope="col">Details</th></tr></thead>
+    <table class="products-table activity-table">
+      <thead><tr><th scope="col" aria-sort="descending">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Inventory</th><th scope="col">Product</th><th scope="col" class="numeric">Qty</th><th scope="col" class="numeric">After</th><th scope="col">Note</th></tr></thead>
       <tbody>
       {% for row in rows %}
+        {% ifchanged row.day %}<tr class="daysep"><th scope="rowgroup" colspan="8">{{ row.day|sgdayheading }}</th></tr>{% endifchanged %}
         <tr>
-          <td><span class="list-mobile-label" aria-hidden="true">Time</span><time datetime="{{ row.at_iso }}">{{ row.at|sgdate }}</time></td>
-          <th scope="row" class="activity-user"{% if row.actor %} title="{{ row.actor.display_label }} ({{ row.actor.email }})"{% endif %}><span class="list-mobile-label" aria-hidden="true">User</span><span class="activity-user-line">{% if row.actor %}{% include "includes/user_avatar.html" with user=row.actor size="sm" with_name=True %}{% else %}{{ row.actor_label }}{% endif %}{% if row.role %}<span class="activity-role">{{ row.role }}</span>{% endif %}</span></th>
-          <td><span class="list-mobile-label" aria-hidden="true">Action</span>{{ row.label }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% if row.inventory %}{% include "includes/inventory_badge.html" with inventory=row.inventory %}{% else %}—{% endif %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Product</span>{% if row.product %}<span class="product-sku">{{ row.product.sku }}</span> {{ row.product.name }}{% else %}—{% endif %}</td>
-          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Change</span>{% if row.change is not None %}{% if row.change > 0 %}+{% endif %}{{ row.change }}{% else %}—{% endif %}</td>
-          <td class="activity-details" title="{{ row.details }}"><span class="list-mobile-label" aria-hidden="true">Details</span><span class="activity-details-text">{{ row.details }}</span></td>
+          <td><time datetime="{{ row.at_iso }}" title="{{ row.at|sgdate }}">{{ row.at|sgrelative }}</time></td>
+          <td class="activity-user"{% if row.actor %} title="{{ row.actor.display_label }} ({{ row.actor.email }})"{% endif %}><span class="activity-user-line">{% if row.actor %}{% include "includes/user_avatar.html" with user=row.actor size="sm" with_name=True %}{% else %}{{ row.actor_label }}{% endif %}{% if row.role %}<span class="activity-role">{{ row.role }}</span>{% endif %}</span></td>
+          <td><span class="pill {{ row.tone }}" title="{{ row.label }}">{{ row.pill }}</span></td>
+          <td>{% if row.inventory %}{% include "includes/inventory_badge.html" with inventory=row.inventory %}{% else %}—{% endif %}</td>
+          <td>{% if row.product %}{{ row.product.name }} <span class="product-sku">{{ row.product.sku }}</span>{% else %}—{% endif %}</td>
+          <td class="numeric{% if row.change is not None and row.change < 0 %} neg{% elif row.change %} pos{% endif %}">{% if row.change is None %}—{% elif row.change > 0 %}+{{ row.change }}{% elif row.change < 0 %}−{{ row.magnitude }}{% else %}0{% endif %}</td>
+          <td class="numeric">{% if row.kind in "receipt issue adjustment disposal quarantine" and row.after is not None %}{{ row.after }}{% else %}—{% endif %}</td>
+          <td class="activity-details muted" title="{{ row.details }}"><span class="activity-details-text">{{ row.details|default:"—" }}</span></td>
         </tr>
       {% endfor %}
       </tbody>

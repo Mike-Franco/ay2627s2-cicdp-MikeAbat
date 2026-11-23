@@ -134,12 +134,13 @@ class ActivityLogTests(TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         return response.context["rows"], response
 
-    def test_manager_only(self):
+    def test_members_only_and_csv_for_managers(self):
         self.assertRedirects(self.client.get(self.url), reverse("login"), fetch_redirect_response=False)
         self.login(self.staff)
-        self.assertEqual(self.client.get(self.url).status_code, 404)
-        self.assertEqual(self.client.get(reverse("activity-log-csv", args=[self.business.pk])).status_code, 404)
-        self.assertNotContains(self.client.get(reverse("inventory-list")), "Activity log")
+        # TORY-67: Staff can read the log (scoped, see test_staff_activity) but not download it.
+        self.assertEqual(self.client.get(self.url).status_code, 200)
+        self.assertEqual(self.client.get(reverse("activity-log-csv", args=[self.business.pk])).status_code, 403)
+        self.assertContains(self.client.get(reverse("inventory-list")), f'href="{self.url}"')
         self.login(self.outsider)
         self.assertEqual(self.client.get(self.url).status_code, 404)
         self.login(self.manager)

@@ -407,3 +407,7 @@ th[aria-sort=descending] .sort-link::after{content:" ↓"}
 @media(max-width:1100px){.strip.strip-6{grid-template-columns:repeat(3,minmax(0,1fr))}.strip.strip-6>div{border-left:0;border-top:1px solid var(--line)}.strip.strip-6>div:nth-child(-n+3){border-top:0}}
 @media(max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){.strip.strip-6{grid-template-columns:repeat(2,minmax(0,1fr))}.strip.strip-6>div:nth-child(3){border-top:1px solid var(--line)}}
+
+/* TORY-67: activity log day separators. */
+.activity-table tr.daysep th{height:30px;padding:4px 12px;background:var(--hover);color:var(--muted);font-size:12px;font-weight:500;text-align:left}
+.activity-table tbody tr.daysep:hover>*{background:var(--hover)}

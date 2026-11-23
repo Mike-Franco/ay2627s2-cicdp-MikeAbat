@@ -151,8 +151,9 @@ class ProductPageTests(TestCase):
         response = self.client.get(self.url)
         self.assertContains(response, ">Receive<")
         self.assertContains(response, ">Issue<")
-        for label in (">Adjust<", "Edit product", "Deactivate product", "More actions", "Open in Activity log"):
+        for label in (">Adjust<", "Edit product", "Deactivate product", "More actions"):
             self.assertNotContains(response, label)
+        self.assertContains(response, "Open in Activity log")  # TORY-67: Staff can read their movements
 
     def test_tabs_batches_and_recent_history(self):
         self.receive(4, expiry=self.today + timedelta(days=3))
