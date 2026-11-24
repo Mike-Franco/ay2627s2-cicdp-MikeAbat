@@ -26,21 +26,21 @@
   <div class="panel-heading"><h2 id="dashboard-actions">Stock actions</h2>{% include "includes/dashboard_panel_link.html" with panel=actions label="stock actions" %}</div>
   {% if actions.rows %}
   <div class="table-scroll" role="region" aria-label="Stock actions" tabindex="0">
-    <table class="products-table responsive-list" aria-label="Stock actions by urgency">
-      <thead><tr><th scope="col">SKU</th><th scope="col">Item</th><th scope="col">Inventory</th><th scope="col">Category</th><th scope="col" class="numeric">Available</th><th scope="col" class="numeric">Reorder point</th><th scope="col" class="numeric">Days of supply</th><th scope="col" class="numeric">Suggested order</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+    <table class="products-table responsive-list dash-actions-table" aria-label="Stock actions by urgency">
+      <thead><tr><th scope="col">SKU</th><th scope="col">Item</th><th scope="col">Inventory</th><th scope="col">Category</th><th scope="col" class="numeric">Available</th><th scope="col" class="numeric">Reorder point</th><th scope="col" class="numeric">Days of supply</th><th scope="col" class="numeric">Suggested order</th><th scope="col">Status</th><th scope="col" class="actions">Actions</th></tr></thead>
       <tbody>
       {% for row in actions.rows %}{% with link=row.link item=row.position %}
         <tr>
-          <td><span class="list-mobile-label" aria-hidden="true">SKU</span>{{ link.product.sku }}</td>
+          <td class="nowrap"><span class="list-mobile-label" aria-hidden="true">SKU</span>{{ link.product.sku }}</td>
           <th scope="row"><a href="{% url 'product-stock' link.inventory_id link.product_id %}">{{ link.product.name }}</a></th>
           <td><span class="list-mobile-label" aria-hidden="true">Inventory</span>{% include "includes/inventory_badge.html" with inventory=link.inventory %}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Category</span>{{ link.product.category|default:"Uncategorised" }}</td>
+          <td class="cell-shrink"><span class="list-mobile-label" aria-hidden="true">Category</span>{% with category=link.product.category|default:"Uncategorised" %}<span class="cell-truncate" title="{{ category }}">{{ category }}</span>{% endwith %}</td>
           <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Available</span>{{ item.available }}</td>
           <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Reorder point</span>{% if item.reorder.reorder_point is None %}—{% else %}{{ item.reorder.reorder_point|units }}{% endif %}</td>
-          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="d-block">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|days }}{% endif %}</td>
+          <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Days of supply</span>{% if item.supply is None %}<span>— <small class="cell-truncate" title="{{ item.supply_reason }}">{{ item.supply_reason }}</small></span>{% else %}{{ item.supply|days }}{% endif %}</td>
           <td class="numeric"><span class="list-mobile-label" aria-hidden="true">Suggested order</span>{{ item.reorder.suggested_units|default_if_none:"—" }}</td>
-          <td><span class="list-mobile-label" aria-hidden="true">Status</span><span class="status-pill attention">{{ row.label }}</span></td>
-          <td><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="row-actions"><a class="btn btn-sm btn-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm" href="{% url 'issue-stock' link.inventory_id link.product_id %}">Issue</a><details class="more-menu" data-menu><summary class="btn btn-sm" aria-label="More actions for {{ link.product.name }}" aria-haspopup="menu">⋯</summary><div class="more-items" role="menu"><a role="menuitem" href="{% url 'stock-history' link.inventory_id link.product_id %}">History</a><a role="menuitem" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></details></div></td>
+          <td class="cell-shrink"><span class="list-mobile-label" aria-hidden="true">Status</span><span class="status-pill attention" title="{{ row.label }}"><span class="cell-truncate">{{ row.label }}</span></span></td>
+          <td class="actions"><span class="list-mobile-label" aria-hidden="true">Actions</span><div class="row-actions"><a class="btn btn-sm btn-primary" href="{% url 'receive-batch' link.inventory_id link.product_id %}">Receive</a><a class="btn btn-sm" href="{% url 'issue-stock' link.inventory_id link.product_id %}">Issue</a><details class="more-menu" data-menu><summary class="btn btn-sm" aria-label="More actions for {{ link.product.name }}" aria-haspopup="menu">⋯</summary><div class="more-items" role="menu"><a role="menuitem" href="{% url 'stock-history' link.inventory_id link.product_id %}">History</a><a role="menuitem" href="{% url 'demand-forecast' link.inventory_id link.product_id %}">Forecast</a></div></details></div></td>
         </tr>
       {% endwith %}{% endfor %}
       </tbody>
