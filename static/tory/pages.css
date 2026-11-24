@@ -485,3 +485,22 @@ label.prow:hover{background:var(--hover)}
 .swatch-dot{width:10px;height:10px;flex:none;border-radius:50%;box-shadow:0 0 0 1px var(--line2)}
 .th-help{display:inline-flex;align-items:center;gap:5px}
 .th-help .help-btn{font-weight:600}
+
+/* TORY-70: the dashboard Stock actions table fits its card from 1280px up, so Receive / Issue / ⋯ never clip.
+   Headers wrap, the less important columns truncate (full text in title), and the actions column stays nowrap.
+   The two-line clamp on the days-of-supply note is left-aligned: Chromium drops the ellipsis on right-aligned clamped text. */
+.cell-truncate{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-pill .cell-truncate{display:inline-block}
+.products-table.dash-actions-table th,.products-table.dash-actions-table td{padding-left:8px;padding-right:8px}
+.products-table.dash-actions-table thead th{white-space:normal;line-height:1.25}
+.products-table.dash-actions-table .actions{width:1%;white-space:nowrap}
+.dash-actions-table tbody th[scope=row]{min-width:6.5rem}
+.dash-actions-table .cell-shrink .cell-truncate{max-width:6.5rem}
+.dash-actions-table .status-pill{max-width:8.5rem}
+.products-table.dash-actions-table .numeric small.cell-truncate{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;max-width:7rem;margin-left:auto;white-space:normal;text-align:left}
+@media (max-width:699px){
+  .dash-actions-table .cell-shrink .cell-truncate,.dash-actions-table .status-pill{max-width:100%}
+  .products-table.dash-actions-table .numeric small.cell-truncate{max-width:100%;margin-left:0;-webkit-line-clamp:3;line-clamp:3}
+  .products-table.dash-actions-table th,.products-table.dash-actions-table td{padding-left:0;padding-right:0}
+  .products-table.dash-actions-table .actions{width:auto}
+}
