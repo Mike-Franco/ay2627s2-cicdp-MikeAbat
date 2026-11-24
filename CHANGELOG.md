@@ -2,6 +2,13 @@
 
 All notable changes to Tory. Dates are Asia/Singapore. Pull request numbers refer to [`Mike-Franco/ay2627s2-cicdp-MikeAbat`](https://github.com/Mike-Franco/ay2627s2-cicdp-MikeAbat/pulls?q=is%3Apr+is%3Amerged).
 
+## v1.2.3 — 24 November 2026
+
+A fix-only release for clipped dashboard row actions (TORY-70, #125). There are no migrations.
+
+### Fixed
+- **Dashboard, Stock actions:** at 1280 and 1440px the table was wider than its card, so Issue and the ⋯ menu were hidden and Receive was cut off. The actions column now stays on one line at its natural width, as on Products. Column headers wrap, and Category, Status and the Days of supply reason truncate with an ellipsis, with the full text shown on hover. The table now fits its card from 1280px up. On phones the stacked list no longer overflows its card.
+
 ## v1.2.2 — 24 November 2026
 
 A fix-only release for inconsistent page widths (TORY-69, #121). There are no migrations.
