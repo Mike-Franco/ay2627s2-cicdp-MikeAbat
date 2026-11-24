@@ -6,6 +6,8 @@ Captured on 24 Nov 2026 from the live staging site (https://104-208-96-230.sslip
 - Desktop: 1440 px wide, light and dark theme, each page captured to its full height. Pages `01`–`21` are signed in
   as the demo Manager (Grocery inventory, product Oat Milk); `22`–`23` are signed in as the demo Staff user.
 - Phone: 390 px wide, dashboard and product overview, light and dark (`mobile-390-*`).
+- `03-dashboard-light/dark` and `mobile-390-dashboard-light/dark` were retaken the same day on **v1.2.3** (image
+  `sha-6bdcf13`), after the TORY-70 fix for clipped dashboard row actions. All other images are v1.2.2.
 - No passwords are shown: the sign-in and change-password fields are empty, and the capture script
   checked that neither generated demo password appeared anywhere in a page's HTML.
 
